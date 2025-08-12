@@ -148,7 +148,11 @@ const defaultConfigs: DefaultConfigs = {
         mode: 'allowed',
     },
     'captcha': { enabled: true, verification_channel: null, type: 'text', difficulty: 'medium', verified_role_id: null },
-    'image-filter': { enabled: true, sensitivity: 'medium' },
+    'image-filter': { 
+        enabled: true, 
+        sensitivity: 'medium',
+        premium: true
+    },
     'moderation-ai': { enabled: true, mode: 'monitor' },
     'adaptive-anti-raid': { 
         enabled: true, 

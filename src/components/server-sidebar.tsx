@@ -49,7 +49,7 @@ export function ServerSidebar() {
             </button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>Add a server</p>
+            <p>Ajouter un serveur</p>
           </TooltipContent>
         </Tooltip>
       </aside>

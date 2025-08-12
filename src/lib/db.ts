@@ -22,7 +22,7 @@ const upgradeSchema = () => {
     try {
         db.pragma('journal_mode = WAL');
         // Check for premium column
-        const columns = db.pragma('table_info(server_configs)');
+        const columns: any[] = db.pragma('table_info(server_configs)');
         const hasPremiumColumn = columns.some((col: any) => col.name === 'premium');
 
         if (!hasPremiumColumn) {

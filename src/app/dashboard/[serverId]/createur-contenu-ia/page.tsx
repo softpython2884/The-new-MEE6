@@ -21,7 +21,8 @@ import {
   SelectGroup,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Palette, Switch } from 'lucide-react';
+import { Palette } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';

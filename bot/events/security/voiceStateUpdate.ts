@@ -1,7 +1,7 @@
 
 
-import { Events, VoiceState } from 'discord.js';
-import { getServerConfig } from '../../../src/lib/db';
+import { Events, VoiceState, PermissionFlagsBits } from 'discord.js';
+import { getServerConfig } from '@/lib/db';
 
 
 export const name = Events.VoiceStateUpdate;
@@ -46,22 +46,22 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
             case 'webcam_only':
                 // Allow video, deny stream
                 await newState.channel.permissionOverwrites.edit(newState.member.id, {
-                    Stream: false,
-                    Video: true,
+                    [PermissionFlagsBits.Stream]: false,
+                    [PermissionFlagsBits.Video]: true,
                 });
                 break;
             case 'stream_only':
                  // Allow stream, deny video
                 await newState.channel.permissionOverwrites.edit(newState.member.id, {
-                    Stream: true,
-                    Video: false,
+                    [PermissionFlagsBits.Stream]: true,
+                    [PermissionFlagsBits.Video]: false,
                 });
                 break;
             case 'disallowed':
                 // Deny both
                 await newState.channel.permissionOverwrites.edit(newState.member.id, {
-                    Stream: false,
-                    Video: false,
+                    [PermissionFlagsBits.Stream]: false,
+                    [PermissionFlagsBits.Video]: false,
                 });
                 break;
         }

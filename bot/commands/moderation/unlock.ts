@@ -1,7 +1,7 @@
 
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, TextChannel, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
-import type { Command } from '../../../src/types';
-import { getServerConfig } from '../../../src/lib/db';
+import type { Command } from '@/types';
+import { getServerConfig } from '@/lib/db';
 
 const UnlockCommand: Command = {
     data: new SlashCommandBuilder()
@@ -35,13 +35,13 @@ const UnlockCommand: Command = {
         try {
             // Check if channel is actually locked
              const currentPermissions = channel.permissionOverwrites.cache.get(everyoneRole.id);
-            if (!currentPermissions || !currentPermissions.deny.has('SendMessages')) {
+            if (!currentPermissions || !currentPermissions.deny.has(PermissionFlagsBits.SendMessages)) {
                  await interaction.editReply({ content: `Le salon ${channel} n'est pas verrouillé.` });
                  return;
             }
 
             await channel.permissionOverwrites.edit(everyoneRole, {
-                SendMessages: null, // null restores the default permission
+                [PermissionFlagsBits.SendMessages]: null, // null restores the default permission
             });
 
             await interaction.editReply({ content: `Le salon ${channel} a été déverrouillé.` });

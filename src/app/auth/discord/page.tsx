@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 // This is a simplified auth page. In a real-world scenario, you'd handle
 // loading states, errors, and session management more robustly.
 
-export default function DiscordAuthPage() {
+function AuthProcessor() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [message, setMessage] = useState('Vérification de votre session...');
@@ -64,13 +64,22 @@ export default function DiscordAuthPage() {
     }, [searchParams, router]);
 
     return (
+        <div className="flex flex-col items-center gap-4">
+            {!error && <Loader2 className="w-12 h-12 animate-spin text-primary" />}
+            <p className={`text-xl ${error ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {message}
+            </p>
+        </div>
+    );
+}
+
+
+export default function DiscordAuthPage() {
+    return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
-            <div className="flex flex-col items-center gap-4">
-                {!error && <Loader2 className="w-12 h-12 animate-spin text-primary" />}
-                <p className={`text-xl ${error ? 'text-destructive' : 'text-muted-foreground'}`}>
-                    {message}
-                </p>
-            </div>
+            <Suspense fallback={<Loader2 className="w-12 h-12 animate-spin text-primary" />}>
+                <AuthProcessor />
+            </Suspense>
         </div>
     );
 }

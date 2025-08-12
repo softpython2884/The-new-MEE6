@@ -1,6 +1,8 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -18,105 +20,127 @@ import {
   SelectValue,
   SelectGroup,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { ToyBrick } from 'lucide-react';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
-const mockRoles = [
-  { id: 'r1', name: '@everyone' },
-  { id: 'r2', name: 'Modérateur' },
-  { id: 'r3', name: 'Admin' },
-];
+const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
+
+// Types
+interface ServerBuilderConfig {
+    enabled: boolean;
+    premium: boolean;
+    command_permissions: { [key: string]: string | null };
+}
+interface DiscordRole {
+    id: string;
+    name: string;
+}
 
 const builderCommands = [
   {
     name: '/iacreateserv',
+    key: 'iacreateserv',
     description: 'Génère une structure de serveur complète.',
-    defaultRole: 'Admin',
   },
   {
     name: '/iaeditserv',
+    key: 'iaeditserv',
     description: 'Modifie la structure du serveur.',
-    defaultRole: 'Admin',
   },
    {
     name: '/iadeleteserv',
+    key: 'iadeleteserv',
     description: 'Supprime des éléments du serveur.',
-    defaultRole: 'Admin',
   },
    {
     name: '/iaresetserv',
+    key: 'iaresetserv',
     description: 'Réinitialise la structure du serveur.',
-    defaultRole: 'Admin',
   },
 ];
 
-
 function ServerBuilderPageContent({ isPremium }: { isPremium: boolean }) {
+    const params = useParams();
+    const serverId = params.serverId as string;
+    const { toast } = useToast();
+
+    const [config, setConfig] = useState<ServerBuilderConfig | null>(null);
+    const [roles, setRoles] = useState<DiscordRole[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!serverId) return;
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [configRes, serverDetailsRes] = await Promise.all([
+                    fetch(`${API_URL}/get-config/${serverId}/server-builder`),
+                    fetch(`${API_URL}/get-server-details/${serverId}`)
+                ]);
+                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
+                
+                const configData = await configRes.json();
+                const serverDetailsData = await serverDetailsRes.json();
+                
+                setConfig(configData);
+                setRoles(serverDetailsData.roles);
+            } catch (error) {
+                toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [serverId, toast]);
+
+    const saveConfig = async (newConfig: ServerBuilderConfig) => {
+        setConfig(newConfig); // Optimistic update
+        try {
+            await fetch(`${API_URL}/update-config/${serverId}/server-builder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig),
+            });
+        } catch (error) {
+            toast({ title: "Erreur de sauvegarde", variant: "destructive" });
+        }
+    };
+    
+    const handleValueChange = (key: keyof ServerBuilderConfig, value: any) => {
+        if (!config) return;
+        saveConfig({ ...config, [key]: value });
+    };
+
+    const handlePermissionChange = (commandKey: string, roleId: string) => {
+        if (!config) return;
+        const newPermissions = { ...config.command_permissions, [commandKey]: roleId === 'none' ? null : roleId };
+        handleValueChange('command_permissions', newPermissions);
+    };
+
+    if (loading || !config) {
+        return <Skeleton className="w-full h-[500px]" />;
+    }
+
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <div className="space-y-8">
-            {/* Section Options */}
             <Card>
                 <CardHeader>
-                <h2 className="text-xl font-bold">Options du Constructeur</h2>
-                <p className="text-muted-foreground">
-                    Définissez les paramètres de base pour la génération de la structure du serveur.
-                </p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold">Options du Constructeur</h2>
+                            <p className="text-muted-foreground">
+                                Activez ou désactivez le module et gérez ses permissions.
+                            </p>
+                        </div>
+                        <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                    </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                    <div>
-                    <Label
-                        htmlFor="theme"
-                        className="font-bold text-sm uppercase text-muted-foreground"
-                    >
-                        Thème de base
-                    </Label>
-                    <p className="text-sm text-muted-foreground/80">
-                        L'IA utilisera ce thème comme point de départ.
-                    </p>
-                    </div>
-                    <Select defaultValue="gaming">
-                    <SelectTrigger id="theme" className="w-full md:w-[280px]">
-                        <SelectValue placeholder="Sélectionner un thème" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="gaming">Gaming</SelectItem>
-                        <SelectItem value="pro">Professionnel</SelectItem>
-                        <SelectItem value="rp">Roleplay</SelectItem>
-                        <SelectItem value="community">Communauté</SelectItem>
-                        <SelectItem value="stream">Streaming</SelectItem>
-                    </SelectContent>
-                    </Select>
-                </div>
-                <Separator />
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                    <div>
-                    <Label
-                        htmlFor="detail-level"
-                        className="font-bold text-sm uppercase text-muted-foreground"
-                    >
-                        Niveau de détail
-                    </Label>
-                    <p className="text-sm text-muted-foreground/80">
-                        Définit la complexité de la structure à générer.
-                    </p>
-                    </div>
-                    <Select defaultValue="standard">
-                    <SelectTrigger id="detail-level" className="w-full md:w-[280px]">
-                        <SelectValue placeholder="Sélectionner un niveau" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="minimal">Minimal</SelectItem>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="full">Complet</SelectItem>
-                    </SelectContent>
-                    </Select>
-                </div>
-                </CardContent>
             </Card>
 
             <Separator />
@@ -131,7 +155,7 @@ function ServerBuilderPageContent({ isPremium }: { isPremium: boolean }) {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {builderCommands.map((command) => (
-                    <Card key={command.name}>
+                    <Card key={command.key}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                         <ToyBrick className="w-5 h-5 text-primary" />
@@ -142,22 +166,22 @@ function ServerBuilderPageContent({ isPremium }: { isPremium: boolean }) {
                     <CardContent>
                         <div className="space-y-2">
                         <Label
-                            htmlFor={`role-select-${command.name}`}
+                            htmlFor={`role-select-${command.key}`}
                             className="text-sm font-medium"
                         >
                             Rôle minimum requis
                         </Label>
                         <Select
-                            defaultValue={
-                            mockRoles.find((r) => r.name === command.defaultRole)?.id
-                            }
+                            value={config.command_permissions?.[command.key] || 'none'}
+                            onValueChange={(value) => handlePermissionChange(command.key, value)}
                         >
-                            <SelectTrigger id={`role-select-${command.name}`} className="w-full">
+                            <SelectTrigger id={`role-select-${command.key}`} className="w-full">
                             <SelectValue placeholder="Sélectionner un rôle" />
                             </SelectTrigger>
                             <SelectContent>
                             <SelectGroup>
-                                {mockRoles.map((role) => (
+                                <SelectItem value="none">Admin seulement</SelectItem>
+                                {roles.filter(r => r.name !== '@everyone').map((role) => (
                                 <SelectItem key={role.id} value={role.id}>
                                     {role.name}
                                 </SelectItem>

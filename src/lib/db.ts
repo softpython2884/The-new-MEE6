@@ -138,8 +138,8 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'anti-bot': { 
-        enabled: false, 
-        mode: 'disabled', 
+        enabled: true, 
+        mode: 'approval-required', 
         approval_channel_id: null, 
         whitelisted_bots: [] 
     },
@@ -154,7 +154,7 @@ const defaultConfigs: DefaultConfigs = {
         premium: true
     },
     'image-filter': { 
-        enabled: false, 
+        enabled: true, 
         sensitivity: 'medium',
         premium: true
     },
@@ -191,9 +191,31 @@ const defaultConfigs: DefaultConfigs = {
             'event-list': null
         }
     },
-    'smart-voice': { enabled: true, interactive_channels: [], creation_threshold: 4 },
-    'content-ai': { enabled: true, default_tone: 'familiar', custom_instructions: '' },
-    'server-builder': { enabled: true, base_theme: 'gaming', detail_level: 'standard' },
+    'smart-voice': { 
+        enabled: true, 
+        premium: true,
+        interactive_channels: [], 
+        creation_threshold: 4 
+    },
+    'content-ai': { 
+        enabled: true, 
+        premium: true,
+        default_tone: 'familiar', 
+        custom_instructions: '',
+        command_permissions: {
+            iacontent: null
+        }
+    },
+    'server-builder': { 
+        enabled: true, 
+        premium: true,
+        command_permissions: {
+            iacreateserv: null,
+            iaeditserv: null,
+            iadeleteserv: null,
+            iaresetserv: null,
+        }
+    },
     // D'autres modules peuvent être ajoutés ici
 };
 

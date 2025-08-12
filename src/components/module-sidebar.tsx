@@ -23,7 +23,8 @@ import {
   Wrench,
   MessageSquare,
   Voicemail,
-  Palette
+  Palette,
+  DatabaseBackup
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ const navCategories = [
             { href: 'filtre-image-ia', label: 'Filtre d\'Image IA', icon: ScanSearch, isPremium: true },
             { href: 'anti-raid', label: 'Anti-Raid & Liens', icon: Fingerprint, isPremium: true },
             { href: 'captcha', label: 'Captcha', icon: Fingerprint, isPremium: true },
+            { href: 'backup', label: 'Backup', icon: DatabaseBackup },
         ]
     },
     {

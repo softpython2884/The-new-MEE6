@@ -1,7 +1,7 @@
 
 import express from 'express';
 import cors from 'cors';
-import { Client } from 'discord.js';
+import { Client, CategoryChannel, ChannelType } from 'discord.js';
 import { updateServerConfig, getServerConfig, getAllBotServers } from '../src/lib/db';
 import { verifyAndConsumeAuthToken } from './auth';
 
@@ -11,7 +11,7 @@ export function startApi(client: Client) {
     const app = express();
 
     app.use(cors()); 
-    app.use(express.json());
+    app.use(express.json({ limit: '50mb' })); // Increase limit for large backups
 
     app.use((req, res, next) => {
         console.log(`[Bot API] Requête reçue : ${req.method} ${req.path}`);
@@ -134,6 +134,79 @@ export function startApi(client: Client) {
         } catch (error) {
             console.error(`[Bot API] Error fetching details for multiple servers:`, error);
             res.status(500).json({ error: 'Erreur interne du serveur.' });
+        }
+    });
+
+    /**
+     * Endpoint to export server structure as JSON for the backup module.
+     */
+    app.get('/api/backup/:guildId/export', async (req, res) => {
+        const { guildId } = req.params;
+        const guild = await client.guilds.fetch(guildId).catch(() => null);
+        if (!guild) {
+            return res.status(404).json({ error: 'Serveur non trouvé.' });
+        }
+
+        try {
+            const backup = {
+                name: guild.name,
+                id: guild.id,
+                exportedAt: new Date().toISOString(),
+                roles: guild.roles.cache
+                    .filter(role => !role.managed) // Don't save integrated roles (bots)
+                    .map(role => ({
+                        name: role.name,
+                        color: role.hexColor,
+                        hoist: role.hoist,
+                        permissions: role.permissions.bitfield.toString(),
+                        mentionable: role.mentionable,
+                    })),
+                channels: guild.channels.cache
+                    .filter(c => c.type !== ChannelType.GuildVoice) // Start with categories and text channels
+                    .map(channel => {
+                        const baseChannelData = {
+                            type: channel.type,
+                            name: channel.name,
+                            permissionOverwrites: channel.permissionOverwrites.cache.map(ow => ({
+                                id: ow.id,
+                                type: ow.type,
+                                allow: ow.allow.bitfield.toString(),
+                                deny: ow.deny.bitfield.toString(),
+                            })),
+                        };
+                        if (channel instanceof CategoryChannel) {
+                            return {
+                                ...baseChannelData,
+                                children: channel.children.cache.map(child => ({
+                                    type: child.type,
+                                    name: child.name,
+                                    topic: 'topic' in child ? child.topic : null,
+                                    nsfw: 'nsfw' in child ? child.nsfw : false,
+                                    permissionOverwrites: child.permissionOverwrites.cache.map(ow => ({
+                                        id: ow.id,
+                                        type: ow.type,
+                                        allow: ow.allow.bitfield.toString(),
+                                        deny: ow.deny.bitfield.toString(),
+                                    }))
+                                }))
+                            };
+                        }
+                        if (!channel.parentId) {
+                             return { // Channels without category
+                                ...baseChannelData,
+                                topic: 'topic' in channel ? channel.topic : null,
+                                nsfw: 'nsfw' in channel ? channel.nsfw : false,
+                            };
+                        }
+                        return null;
+                    }).filter(c => c !== null)
+            };
+
+            res.json(backup);
+
+        } catch (error) {
+            console.error(`[Backup API] Erreur lors de l'exportation pour ${guildId}:`, error);
+            res.status(500).json({ error: 'Erreur interne du serveur lors de l\'exportation.' });
         }
     });
 

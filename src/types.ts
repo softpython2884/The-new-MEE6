@@ -33,7 +33,8 @@ export type Module =
     | 'general-commands'
     | 'community-assistant'
     | 'auto-translation'
-    | 'lock';
+    | 'lock'
+    | 'backup';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

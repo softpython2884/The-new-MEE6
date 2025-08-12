@@ -25,12 +25,12 @@ import {
   GraduationCap,
   Wrench,
   HelpCircle,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from './ui/badge';
-import { Separator } from './ui/separator';
 
 const navCategories = [
     {
@@ -99,9 +99,9 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
           <Badge className="mt-1 border-0 bg-orange-600/80 text-white">Premium</Badge>
         </div>
       </div>
-      <nav className="flex flex-col gap-1 overflow-y-auto pr-2">
+      <nav className="flex-1 space-y-2 overflow-y-auto pr-2">
         {navCategories.map((category) => (
-            <div key={category.name} className="mb-4">
+            <div key={category.name}>
                 <h3 className="px-3 py-2 text-xs font-bold uppercase text-muted-foreground">{category.name}</h3>
                 <div className="flex flex-col gap-1">
                     {category.items.map((item) => {

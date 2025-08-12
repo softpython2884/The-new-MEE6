@@ -5,12 +5,12 @@ import { usePathname } from 'next/navigation';
 import {
   ArrowRightLeft,
   Bot,
-  CircleDollarSign,
   GanttChart,
   Gauge,
-  MessageSquare,
   ShieldCheck,
   Users,
+  MessageSquare,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,17 +18,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from './ui/badge';
 
 const navItems = [
-  { href: '/dashboard/arrivals-departures', label: 'Arrivées et départs', icon: ArrowRightLeft },
-  { href: '/dashboard/auto-roles', label: 'Rôles automatiques', icon: Users },
-  { href: '/dashboard/levels', label: 'Niveaux', icon: Gauge },
-  { href: '/dashboard/economy', label: 'Économie', icon: CircleDollarSign },
-  { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, isNew: true },
-  { href: '/dashboard/moderation', label: 'Modération', icon: ShieldCheck },
-  { href: '/dashboard/auto-moderation', label: 'Auto-Modération', icon: Bot },
-  { href: '/dashboard/reaction-roles', label: 'Rôles-Réactions', icon: GanttChart },
+  { href: 'moderation', label: 'Modération', icon: ShieldCheck },
+  { href: 'auto-moderation', label: 'Auto-Modération', icon: Bot },
+  { href: 'messages', label: 'Messages', icon: MessageSquare, isNew: true },
+  { href: 'niveaux', label: 'Niveaux', icon: Gauge },
+  { href: 'suggestions-ia', label: 'Suggestions IA', icon: Sparkles },
+  { href: 'roles-reactions', label: 'Rôles-Réactions', icon: GanttChart },
+  { href: 'arrivées-departs', label: 'Arrivées et départs', icon: ArrowRightLeft },
+  { href: 'roles-automatiques', label: 'Rôles automatiques', icon: Users },
 ];
 
-export function ModuleSidebar() {
+export function ModuleSidebar({ serverId }: { serverId: string }) {
   const pathname = usePathname();
 
   return (
@@ -40,14 +40,15 @@ export function ModuleSidebar() {
         </Avatar>
         <div>
           <h2 className="font-semibold text-white">La ruche des abeilles 🌸</h2>
-          <Badge className="bg-orange-600/80 text-white border-0 mt-1">Premium</Badge>
+          <Badge className="mt-1 border-0 bg-orange-600/80 text-white">Premium</Badge>
         </div>
       </div>
       <nav className="flex flex-col gap-1">
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const fullPath = `/dashboard/${serverId}/${item.href}`;
+          const isActive = pathname === fullPath;
           return (
-            <Link key={item.label} href={item.href}>
+            <Link key={item.label} href={fullPath}>
               <Button
                 variant={isActive ? 'secondary' : 'ghost'}
                 className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}

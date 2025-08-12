@@ -20,16 +20,26 @@ import {
   ToyBrick,
   GraduationCap,
   Wrench,
-  Users,
-  Palette,
   MessageSquare,
   Voicemail,
-  ClipboardList
+  Palette
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from './ui/badge';
+import { useEffect, useState } from 'react';
+import { Skeleton } from './ui/skeleton';
+
+
+const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
+
+interface ServerDetails {
+    id: string;
+    name: string;
+    icon: string | null;
+    isPremium: boolean;
+}
 
 const navCategories = [
     {
@@ -84,21 +94,59 @@ const navCategories = [
     }
 ];
 
+function SidebarHeaderSkeleton() {
+    return (
+        <div className="mb-6 flex items-center gap-3 px-2">
+            <Skeleton className="h-12 w-12 rounded-lg" />
+            <div className="space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-5 w-20" />
+            </div>
+        </div>
+    );
+}
+
+
 export function ModuleSidebar({ serverId }: { serverId: string }) {
   const pathname = usePathname();
+  const [serverDetails, setServerDetails] = useState<ServerDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!serverId) return;
+    setLoading(true);
+    fetch(`${API_URL}/get-server-details/${serverId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && !data.error) {
+          setServerDetails(data);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [serverId]);
 
   return (
     <aside className="flex h-full w-72 flex-col bg-card p-4">
-      <div className="mb-6 flex items-center gap-3 px-2">
-        <Avatar className="h-12 w-12 rounded-lg">
-          <AvatarImage src="https://placehold.co/64x64/f1c40f/000000.png" data-ai-hint="beehive" />
-          <AvatarFallback>LR</AvatarFallback>
-        </Avatar>
-        <div>
-          <h2 className="font-semibold text-white">La ruche des abeilles 🌸</h2>
-          <Badge className="mt-1 border-0 bg-orange-600/80 text-white">Premium</Badge>
+      {loading ? (
+        <SidebarHeaderSkeleton />
+      ) : serverDetails ? (
+        <div className="mb-6 flex items-center gap-3 px-2">
+            <Avatar className="h-12 w-12 rounded-lg">
+            {serverDetails.icon ? (
+                <AvatarImage src={serverDetails.icon} />
+            ) : (
+                <AvatarFallback>{serverDetails.name.charAt(0)}</AvatarFallback>
+            )}
+            </Avatar>
+            <div>
+            <h2 className="font-semibold text-white">{serverDetails.name}</h2>
+            {serverDetails.isPremium && <Badge className="mt-1 border-0 bg-orange-600/80 text-white">Premium</Badge>}
+            </div>
         </div>
-      </div>
+      ) : (
+         <SidebarHeaderSkeleton /> // Show skeleton on error too
+      )}
       <nav className="flex-1 space-y-2 overflow-y-auto pr-2">
         {navCategories.map((category) => (
             <div key={category.name}>

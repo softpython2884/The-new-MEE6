@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -19,7 +20,7 @@ interface ModerationConfig {
   enabled: boolean;
   log_channel_id: string | null;
   dm_user_on_action: boolean;
-  // TODO: Add presets type
+  premium: boolean;
 }
 
 interface DiscordChannel {
@@ -80,6 +81,8 @@ export default function ModerationPage() {
         const configData = await configRes.json();
         if (configRes.ok) {
           setConfig(configData);
+        } else {
+          console.error("Failed to fetch module config:", configData.message);
         }
 
         // Fetch server details (which includes channels and roles)
@@ -88,6 +91,8 @@ export default function ModerationPage() {
         if (serverDetailsRes.ok) {
             setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0)); // Text channels
             setRoles(serverDetailsData.roles);
+        } else {
+           console.error("Failed to fetch server details:", serverDetailsData.error);
         }
 
       } catch (error) {
@@ -130,11 +135,11 @@ export default function ModerationPage() {
 
 
   if (loading) {
-    return <div>Chargement de la configuration...</div>; // TODO: Use Skeleton Loader
+    return <ModerationPageSkeleton />;
   }
 
   if (!config) {
-    return <div>Impossible de charger la configuration.</div>;
+    return <div>Impossible de charger la configuration. Veuillez rafraîchir la page.</div>;
   }
 
   return (
@@ -231,7 +236,7 @@ export default function ModerationPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        {roles.filter(r => r.name !== '@everyone').map(role => (
+                                        {roles.filter(r => r.name !== '@everyone').sort((a,b) => (a.name > b.name) ? 1 : -1).map(role => (
                                             <SelectItem key={role.id} value={role.id}>
                                                 <div className="flex items-center gap-2">
                                                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getRoleColor(role.color) }}></span>
@@ -267,4 +272,68 @@ export default function ModerationPage() {
       </div>
     </div>
   );
+}
+
+
+function ModerationPageSkeleton() {
+  return (
+    <div className="space-y-8 text-white max-w-4xl">
+        <div>
+            <Skeleton className="h-8 w-64 mb-2" />
+            <Skeleton className="h-4 w-96" />
+        </div>
+        <Separator />
+        <div className="space-y-6">
+            <div>
+                <Skeleton className="h-6 w-32 mb-2" />
+                <Skeleton className="h-4 w-80" />
+            </div>
+            <Card>
+                <CardContent className="pt-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <Skeleton className="h-4 w-32 mb-2" />
+                            <Skeleton className="h-3 w-64" />
+                        </div>
+                        <Skeleton className="h-10 w-[240px]" />
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                         <div>
+                            <Skeleton className="h-4 w-48 mb-2" />
+                            <Skeleton className="h-3 w-72" />
+                        </div>
+                        <Skeleton className="h-6 w-11 rounded-full" />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+        <Separator />
+        <div className="space-y-6">
+           <div>
+                <Skeleton className="h-6 w-32 mb-2" />
+                <Skeleton className="h-4 w-80" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[...Array(4)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Skeleton className="h-6 w-6 rounded-full" />
+                                <Skeleton className="h-6 w-32" />
+                            </CardTitle>
+                            <Skeleton className="h-4 w-full mt-2" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-40" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    </div>
+  )
 }

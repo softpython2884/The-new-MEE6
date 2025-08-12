@@ -1,3 +1,4 @@
+
 import type {
   SlashCommandBuilder,
   CommandInteraction,
@@ -27,7 +28,8 @@ export type Module =
     | 'smart-events'
     | 'smart-voice'
     | 'content-ai'
-    | 'server-builder';
+    | 'server-builder'
+    | 'premium';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

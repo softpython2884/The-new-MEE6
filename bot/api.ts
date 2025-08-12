@@ -80,32 +80,28 @@ export function startApi(client: Client) {
     });
 
     /**
-     * Endpoint pour récupérer les données d'un serveur (nom, icône, etc.)
+     * Endpoint pour récupérer les données d'un serveur (nom, icône, rôles, salons, statut premium).
      */
      app.get('/api/get-server-details/:guildId', async (req, res) => {
         const { guildId } = req.params;
         try {
-            const allServers = getAllBotServers();
-            let serverDetails = allServers.find(s => s.id === guildId);
-
-            if (!serverDetails) {
-                const guild = await client.guilds.fetch(guildId).catch(() => null);
-                 if (guild) {
-                     return res.json({
-                        id: guild.id,
-                        name: guild.name,
-                        icon: guild.iconURL()
-                     });
-                }
+            const guild = await client.guilds.fetch(guildId).catch(() => null);
+            if (!guild) {
                 return res.status(404).json({ error: 'Serveur non trouvé.' });
             }
-            
-            const guild = await client.guilds.fetch(guildId).catch(() => null);
-            if (guild) {
-                serverDetails.name = guild.name;
-                serverDetails.icon = guild.iconURL();
-            }
 
+            // Fetch server config to get premium status
+            const premiumConfig = await getServerConfig(guildId, 'moderation'); // Can be any module, just to check premium status.
+
+            const serverDetails = {
+                id: guild.id,
+                name: guild.name,
+                icon: guild.iconURL(),
+                isPremium: premiumConfig?.premium || false,
+                channels: Array.from(guild.channels.cache.values()).map(c => ({ id: c.id, name: c.name, type: c.type })),
+                roles: Array.from(guild.roles.cache.values()).map(r => ({ id: r.id, name: r.name, color: r.color })),
+            };
+            
             res.json(serverDetails);
         } catch (error) {
             console.error(`[Bot API] Erreur lors de la récupération des détails pour ${guildId}:`, error);

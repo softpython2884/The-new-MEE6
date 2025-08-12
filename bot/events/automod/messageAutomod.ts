@@ -53,9 +53,21 @@ export async function execute(message: Message) {
     if (rules.external_links_enabled) {
         const allowedDomains = (rules.external_links_allowed_domains as string[]) || [];
         const links = message.content.match(urlRegex);
-        if (links && links.some(link => !allowedDomains.some(domain => new URL(link).hostname.includes(domain)))) {
-             await handleAction(message, 'external_links', rules.external_links_action as string, `l'envoi de liens externes non autorisés.`);
-             return;
+        if (links) {
+            const hasForbiddenLink = links.some(link => {
+                try {
+                    const url = new URL(link);
+                    // Check if the link's hostname or its subdomains are NOT included in the allowed domains.
+                    return !allowedDomains.some(domain => url.hostname === domain || url.hostname.endsWith('.' + domain));
+                } catch (e) {
+                    // Invalid URL, treat as a forbidden link for safety
+                    return true;
+                }
+            });
+            if (hasForbiddenLink) {
+                 await handleAction(message, 'external_links', rules.external_links_action as string, `l'envoi de liens externes non autorisés.`);
+                 return;
+            }
         }
     }
 
@@ -141,14 +153,17 @@ async function handleAction(message: Message, ruleName: string, action: string, 
             break;
             
         case 'mute':
-            console.log(`[Automod] Mute action triggered for ${message.author.tag} due to ${ruleName}. Implementation needed.`);
             try {
                 // Attempt to mute the user
                 const member = await message.guild?.members.fetch(message.author.id);
-                // Mute for 5 minutes as a default spam punishment
-                await member?.timeout(5 * 60 * 1000, `AutoMod: ${ruleName}`); 
-                await sendWarning(`> **${message.author.toString()}, vous avez été rendu muet pour avoir enfreint la règle : ${reason}**`);
-                await message.delete(); // Also delete the offending message
+                if (member && member.moderatable) {
+                    // Mute for 5 minutes as a default spam punishment
+                    await member.timeout(5 * 60 * 1000, `AutoMod: ${ruleName}`); 
+                    await sendWarning(`> **${message.author.toString()}, vous avez été rendu muet pour avoir enfreint la règle : ${reason}**`);
+                    await message.delete(); // Also delete the offending message
+                } else {
+                     throw new Error('Member not found or cannot be muted.');
+                }
             } catch(e) {
                 console.error(`[Automod] Failed to apply mute for ${message.author.tag}:`, e);
                 // Fallback to delete if mute fails (e.g. permissions)

@@ -153,7 +153,7 @@ export default function AutoModerationPage() {
                                 <SelectValue placeholder="Sélectionner un rôle..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {roles.map(role => (
+                                {roles.filter(r => r.name !== '@everyone').map(role => (
                                     <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -192,7 +192,7 @@ export default function AutoModerationPage() {
                             <SelectContent>
                                 <SelectItem value="warn">Avertir l'utilisateur</SelectItem>
                                 <SelectItem value="delete">Supprimer le message</SelectItem>
-                                <SelectItem value="mute">Rendre muet (bientôt)</SelectItem>
+                                <SelectItem value="mute">Rendre muet</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -203,7 +203,7 @@ export default function AutoModerationPage() {
                             <Textarea 
                                 placeholder="mot1,expression 2,mot3" 
                                 value={(config.forbidden_vocabulary_words || []).join(',')}
-                                onChange={(e) => handleValueChange('forbidden_vocabulary_words', e.target.value.split(',').map(w => w.trim()).filter(Boolean))}
+                                onBlur={(e) => handleValueChange('forbidden_vocabulary_words', e.target.value.split(',').map(w => w.trim()).filter(Boolean))}
                             />
                         </div>
                     )}
@@ -213,7 +213,7 @@ export default function AutoModerationPage() {
                             <Textarea 
                                 placeholder="youtube.com,twitter.com"
                                 value={(config.external_links_allowed_domains || []).join(',')}
-                                onChange={(e) => handleValueChange('external_links_allowed_domains', e.target.value.split(',').map(d => d.trim()).filter(Boolean))}
+                                onBlur={(e) => handleValueChange('external_links_allowed_domains', e.target.value.split(',').map(d => d.trim()).filter(Boolean))}
                              />
                         </div>
                     )}

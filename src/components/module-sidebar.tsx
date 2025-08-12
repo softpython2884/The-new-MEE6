@@ -9,9 +9,6 @@ import {
   Mic,
   FileClock,
   Sparkles,
-  Users,
-  MessageSquare,
-  BookUser,
   Languages,
   Lock,
   Camera,
@@ -19,13 +16,12 @@ import {
   Fingerprint,
   Ticket,
   Calendar,
-  Cpu,
-  Palette,
   ToyBrick,
   GraduationCap,
   Wrench,
   HelpCircle,
-  Settings,
+  Palette,
+  Terminal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -38,7 +34,7 @@ const navCategories = [
         items: [
             { href: 'commandes-generales', label: 'Commandes', icon: Wrench },
             { href: 'assistant-communautaire', label: 'Assistant Communautaire', icon: HelpCircle },
-            { href: 'traduction-automatique', label: 'Traduction Automatique', icon: Languages, isPremium: true },
+            { href: 'traduction-automatique', label: 'Traduction Auto', icon: Languages, isPremium: true },
             { href: 'logs', label: 'Logs', icon: FileClock },
         ]
     },
@@ -71,6 +67,7 @@ const navCategories = [
         name: 'Vocaux',
         items: [
             { href: 'vocaux-ia', label: 'IA Vocaux', icon: Mic, isPremium: true },
+            { href: 'commandes-vocales', label: 'Commandes vocales', icon: Terminal },
         ]
     },
      {
@@ -108,7 +105,7 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
                       const fullPath = `/dashboard/${serverId}/${item.href}`;
                       const isActive = pathname === fullPath;
                       return (
-                        <Link key={item.label} href={fullPath}>
+                        <Link key={item.label} href={fullPath} legacyBehavior={false}>
                           <Button
                             variant={isActive ? 'secondary' : 'ghost'}
                             className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}

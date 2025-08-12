@@ -22,7 +22,7 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
   return (
     <TooltipProvider delayDuration={0}>
       <aside className="flex h-full w-20 flex-col items-center gap-3 bg-[#202225] py-4">
-        <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto">
+        <div className="flex flex-col items-center gap-3">
           {servers.map((server) => {
             const isActive = server.id === serverId;
             return (
@@ -49,16 +49,18 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
             );
           })}
         </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="flex size-12 items-center justify-center rounded-full bg-card text-green-400 transition-all hover:bg-green-400 hover:text-white">
-              <Plus size={24} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>Ajouter un serveur</p>
-          </TooltipContent>
-        </Tooltip>
+        <div className="mt-auto">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="flex size-12 items-center justify-center rounded-full bg-card text-green-400 transition-all hover:bg-green-400 hover:text-white">
+                <Plus size={24} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Ajouter un serveur</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </aside>
     </TooltipProvider>
   );

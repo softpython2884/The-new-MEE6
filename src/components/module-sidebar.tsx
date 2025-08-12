@@ -26,7 +26,7 @@ const navItems = [
   { href: 'createur-contenu-ia', label: 'Créateur de Contenu IA', icon: Palette },
   { href: 'constructeur-serveur-ia', label: 'Constructeur de Serveur IA', icon: Layout },
   { href: 'salons-vocaux-intelligents', label: 'Salons Vocaux Intelligents', icon: Mic },
-  { href: 'logs', label: 'Logs & Notifications', icon: FileClock, isNew: true },
+  { href: 'logs', label: 'Logs & Notifications', icon: FileClock },
   { href: 'roles-reactions', label: 'Rôles-Réactions', icon: Sparkles },
   { href: 'roles-automatiques', label: 'Rôles automatiques', icon: Users },
   { href: 'messages', label: 'Messages', icon: MessageSquare },
@@ -47,23 +47,18 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
           <Badge className="mt-1 border-0 bg-orange-600/80 text-white">Premium</Badge>
         </div>
       </div>
-      <nav className="flex flex-col gap-1 overflow-y-auto">
+      <nav className="flex flex-col gap-1">
         {navItems.map((item) => {
           const fullPath = `/dashboard/${serverId}/${item.href}`;
           const isActive = pathname === fullPath;
           return (
-            <Link key={item.label} href={fullPath} legacyBehavior={false}>
+            <Link key={item.label} href={fullPath}>
               <Button
                 variant={isActive ? 'secondary' : 'ghost'}
                 className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}
               >
                   <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
                   <span>{item.label}</span>
-                  {item.isNew && (
-                    <Badge variant="default" className="ml-auto h-5">
-                      NEW
-                    </Badge>
-                  )}
               </Button>
             </Link>
           );

@@ -48,13 +48,13 @@ export function ModuleSidebar() {
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
-            <Link key={item.label} href={item.href} passHref legacyBehavior>
+            <Link key={item.label} href={item.href} passHref>
               <Button
                 variant={isActive ? 'secondary' : 'ghost'}
                 className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}
                 asChild
               >
-                <a>
+                <>
                   <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
                   <span>{item.label}</span>
                   {item.isNew && (
@@ -62,7 +62,7 @@ export function ModuleSidebar() {
                       NEW
                     </Badge>
                   )}
-                </a>
+                </>
               </Button>
             </Link>
           );

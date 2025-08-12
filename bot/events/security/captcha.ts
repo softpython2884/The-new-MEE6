@@ -9,8 +9,9 @@ export async function execute(member: GuildMember) {
     if (member.user.bot) return;
 
     const captchaConfig = await getServerConfig(member.guild.id, 'captcha');
+    const isPremium = captchaConfig?.premium || false;
 
-    if (!captchaConfig?.enabled || !captchaConfig.verification_channel) {
+    if (!captchaConfig?.enabled || !isPremium || !captchaConfig.verification_channel || !captchaConfig.verified_role_id) {
         return;
     }
     

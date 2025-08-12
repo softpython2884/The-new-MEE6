@@ -1,8 +1,9 @@
 
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -11,22 +12,102 @@ import { Badge } from '@/components/ui/badge';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
-const mockChannels = [
-  { id: 'c1', name: 'general' },
-  { id: 'c2', name: 'annonces' },
-  { id: 'c3', name: 'logs' },
-  { id: 'c4', name: 'verification' },
-];
+const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
-const mockRoles = [
-  { id: 'r1', name: '@everyone' },
-  { id: 'r2', name: 'Modérateur' },
-  { id: 'r3', name: 'Admin' },
-  { id: 'r4', name: 'Membre vérifié' },
-];
+// Types
+interface CaptchaConfig {
+    enabled: boolean;
+    verification_channel: string | null;
+    verified_role_id: string | null;
+}
+
+interface DiscordChannel {
+    id: string;
+    name: string;
+    type: number;
+}
+
+interface DiscordRole {
+    id: string;
+    name: string;
+}
+
+function CaptchaPageSkeleton() {
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-72 mt-2" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </CardContent>
+        </Card>
+    )
+}
 
 function CaptchaPageContent({ isPremium }: { isPremium: boolean }) {
+    const params = useParams();
+    const serverId = params.serverId as string;
+    const { toast } = useToast();
+
+    const [config, setConfig] = useState<CaptchaConfig | null>(null);
+    const [channels, setChannels] = useState<DiscordChannel[]>([]);
+    const [roles, setRoles] = useState<DiscordRole[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!serverId) return;
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [configRes, serverDetailsRes] = await Promise.all([
+                    fetch(`${API_URL}/get-config/${serverId}/captcha`),
+                    fetch(`${API_URL}/get-server-details/${serverId}`)
+                ]);
+                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
+                
+                const configData = await configRes.json();
+                const serverDetailsData = await serverDetailsRes.json();
+                setConfig(configData);
+                setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0));
+                setRoles(serverDetailsData.roles);
+
+            } catch (error) {
+                toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [serverId, toast]);
+    
+    const saveConfig = async (newConfig: CaptchaConfig) => {
+        setConfig(newConfig); // Optimistic update
+        try {
+            await fetch(`${API_URL}/update-config/${serverId}/captcha`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig),
+            });
+        } catch (error) {
+            toast({ title: "Erreur de sauvegarde", variant: "destructive" });
+        }
+    };
+    
+    const handleValueChange = (key: keyof CaptchaConfig, value: any) => {
+        if (!config) return;
+        saveConfig({ ...config, [key]: value });
+    };
+
+    if (loading || !config) {
+        return <CaptchaPageSkeleton />;
+    }
+
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <Card>
@@ -44,7 +125,7 @@ function CaptchaPageContent({ isPremium }: { isPremium: boolean }) {
                                 Active ou désactive complètement le module.
                             </p>
                         </div>
-                        <Switch id="enable-captcha" defaultChecked />
+                        <Switch id="enable-captcha" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
                     </div>
                     <Separator />
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
@@ -54,14 +135,15 @@ function CaptchaPageContent({ isPremium }: { isPremium: boolean }) {
                             Le salon où les nouveaux membres effectueront la vérification.
                         </p>
                         </div>
-                        <Select defaultValue="c4">
+                        <Select value={config.verification_channel || 'none'} onValueChange={(val) => handleValueChange('verification_channel', val === 'none' ? null : val)}>
                             <SelectTrigger id="verification-channel" className="w-full md:w-[280px]">
                                 <SelectValue placeholder="Sélectionner un salon" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
                                     <SelectLabel>Salons textuels</SelectLabel>
-                                    {mockChannels.map(channel => (
+                                    <SelectItem value="none">Aucun</SelectItem>
+                                    {channels.map(channel => (
                                         <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
                                     ))}
                                 </SelectGroup>
@@ -76,48 +158,18 @@ function CaptchaPageContent({ isPremium }: { isPremium: boolean }) {
                             Ce rôle est attribué après une vérification réussie.
                         </p>
                         </div>
-                        <Select defaultValue="r4">
+                        <Select value={config.verified_role_id || 'none'} onValueChange={(val) => handleValueChange('verified_role_id', val === 'none' ? null : val)}>
                             <SelectTrigger id="verified-role" className="w-full md:w-[280px]">
                                 <SelectValue placeholder="Sélectionner un rôle" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
                                     <SelectLabel>Rôles</SelectLabel>
-                                    {mockRoles.map(role => (
+                                     <SelectItem value="none">Aucun</SelectItem>
+                                    {roles.filter(r => r.name !== '@everyone').map(role => (
                                         <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                                     ))}
                                 </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <Separator />
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                        <div>
-                        <Label htmlFor="captcha-type" className="font-bold text-sm uppercase text-muted-foreground">Type de Captcha</Label>
-                        </div>
-                        <Select defaultValue="text">
-                            <SelectTrigger id="captcha-type" className="w-full md:w-[280px]">
-                                <SelectValue placeholder="Sélectionner un type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="text">Texte simple</SelectItem>
-                                <SelectItem value="image">Image avec code</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <Separator />
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                        <div>
-                        <Label htmlFor="captcha-difficulty" className="font-bold text-sm uppercase text-muted-foreground">Difficulté</Label>
-                        </div>
-                        <Select defaultValue="medium">
-                            <SelectTrigger id="captcha-difficulty" className="w-full md:w-[280px]">
-                                <SelectValue placeholder="Sélectionner un niveau" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="easy">Facile</SelectItem>
-                                <SelectItem value="medium">Moyenne</SelectItem>
-                                <SelectItem value="hard">Difficile</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -145,7 +197,7 @@ export default function CaptchaPage() {
             <Separator />
 
             {loading ? (
-                <Skeleton className="h-96 w-full" />
+                <CaptchaPageSkeleton />
             ) : (
                 <CaptchaPageContent isPremium={serverInfo?.isPremium || false} />
             )}

@@ -147,7 +147,12 @@ const defaultConfigs: DefaultConfigs = {
         enabled: true,
         mode: 'allowed',
     },
-    'captcha': { enabled: true, verification_channel: null, type: 'text', difficulty: 'medium', verified_role_id: null },
+    'captcha': { 
+        enabled: false, 
+        verification_channel: null, 
+        verified_role_id: null,
+        premium: true
+    },
     'image-filter': { 
         enabled: false, 
         sensitivity: 'medium',
@@ -155,12 +160,12 @@ const defaultConfigs: DefaultConfigs = {
     },
     'moderation-ai': { enabled: true, mode: 'monitor' },
     'adaptive-anti-raid': { 
-        enabled: true, 
+        enabled: false, 
         premium: true,
-        raid_detection_enabled: true, 
+        raid_detection_enabled: false, 
         raid_sensitivity: 'medium', 
         raid_action: 'lockdown',
-        link_scanner_enabled: true,
+        link_scanner_enabled: false,
         link_scanner_action: 'delete',
         alert_channel_id: null
     },

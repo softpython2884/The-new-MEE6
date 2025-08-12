@@ -138,10 +138,14 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'anti-bot': { 
-        enabled: false, 
+        enabled: true, 
         mode: 'disabled', 
         approval_channel_id: null, 
         whitelisted_bots: [] 
+    },
+    'webcam': {
+        enabled: true,
+        mode: 'allowed',
     },
     'captcha': { enabled: true, verification_channel: null, type: 'text', difficulty: 'medium', verified_role_id: null },
     'image-filter': { enabled: true, sensitivity: 'medium' },

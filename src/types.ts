@@ -34,7 +34,8 @@ export type Module =
     | 'community-assistant'
     | 'auto-translation'
     | 'lock'
-    | 'backup';
+    | 'backup'
+    | 'webcam';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

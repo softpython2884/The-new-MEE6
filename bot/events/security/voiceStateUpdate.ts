@@ -24,7 +24,18 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
 
     const webcamConfig = await getServerConfig(newState.guild.id, 'webcam');
 
-    if (!webcamConfig?.enabled || webcamConfig.mode === 'allowed') {
+    if (!webcamConfig?.enabled) {
+        return;
+    }
+    
+    // The 'allowed' mode means we don't interfere with Discord's default permissions.
+    if (webcamConfig.mode === 'allowed') {
+        // We should also clear any existing overwrites by the bot for this user in this channel
+        // in case the mode was previously more restrictive.
+        const existingOverwrite = newState.channel.permissionOverwrites.cache.get(newState.member.id);
+        if (existingOverwrite) {
+            await existingOverwrite.delete().catch(e => console.error(`[Webcam Control] Failed to clear old permissions for ${newState.member?.user.tag}:`, e));
+        }
         return;
     }
 

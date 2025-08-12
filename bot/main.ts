@@ -5,8 +5,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { loadCommands } from './handlers/commandHandler';
-import type { Command } from '../src/types';
-import { initializeDatabase, syncGuilds, getServerConfig } from '../src/lib/db';
+import type { Command } from '@/types';
+import { initializeDatabase, syncGuilds, getServerConfig } from '@/lib/db';
 import { startApi } from './api';
 import { initializeBotAuth } from './auth';
 
@@ -88,29 +88,13 @@ client.once(Events.ClientReady, async (readyClient) => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
     
     // Set the bot's presence
-    readyClient.user.setActivity('Marcustacée', { type: ActivityType.Playing });
+    readyClient.user.setPresence({
+        activities: [{ name: 'Marcustacée', type: ActivityType.Playing }],
+        status: 'online',
+    });
     
     // Sync guilds with the database
     await syncGuilds(readyClient);
-
-    // --- User's Requested Logging ---
-    console.log("--- Bot Server & Admin Report ---");
-    for (const guild of readyClient.guilds.cache.values()) {
-        console.log(`[Server] ${guild.name} (${guild.id})`);
-        try {
-            const members = await guild.members.fetch();
-            const admins = members.filter(member => member.permissions.has(PermissionFlagsBits.Administrator));
-            if (admins.size > 0) {
-                 console.log(`  [Admins] ${admins.map(admin => `${admin.user.tag} (${admin.id})`).join(', ')}`);
-            } else {
-                console.log("  [Admins] No members with Administrator permissions found.");
-            }
-        } catch (error) {
-            console.log(`  [Admins] Could not fetch members for ${guild.name}:`, error);
-        }
-    }
-    console.log("--- End Report ---");
-    // ---------------------------------
 
     // Load and register slash commands
     await loadCommands(client);

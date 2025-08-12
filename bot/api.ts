@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import { Client, CategoryChannel, ChannelType } from 'discord.js';
-import { updateServerConfig, getServerConfig, getAllBotServers } from '../src/lib/db';
+import { updateServerConfig, getServerConfig, getAllBotServers } from '@/lib/db';
 import { verifyAndConsumeAuthToken } from './auth';
 
 const API_PORT = process.env.BOT_API_PORT || 3001;
@@ -10,8 +10,18 @@ const API_PORT = process.env.BOT_API_PORT || 3001;
 export function startApi(client: Client) {
     const app = express();
 
-    app.use(cors()); 
-    app.use(express.json({ limit: '50mb' })); // Increase limit for large backups
+    // Options CORS pour autoriser les requêtes depuis n'importe quelle origine.
+    // C'est utile pour le développement local.
+    const corsOptions = {
+      origin: '*',
+      optionsSuccessStatus: 200 // Pour les navigateurs plus anciens
+    };
+
+    app.use(cors(corsOptions));
+    // Gérer les requêtes pre-flight pour toutes les routes
+    app.options('*', cors(corsOptions));
+
+    app.use(express.json({ limit: '50mb' })); // Augmenter la limite pour les grosses sauvegardes
 
     app.use((req, res, next) => {
         console.log(`[Bot API] Requête reçue : ${req.method} ${req.path}`);

@@ -138,7 +138,7 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'anti-bot': { 
-        enabled: true, 
+        enabled: false, 
         mode: 'disabled', 
         approval_channel_id: null, 
         whitelisted_bots: [] 
@@ -169,7 +169,17 @@ const defaultConfigs: DefaultConfigs = {
         link_scanner_action: 'delete',
         alert_channel_id: null
     },
-    'private-rooms': { enabled: true, creation_channel: null, category_id: null, embed_message: '', archive_summary: true },
+    'private-rooms': { 
+        enabled: true, 
+        creation_channel: null, 
+        category_id: null, 
+        embed_message: 'Cliquez sur le bouton ci-dessous pour créer un salon privé.', 
+        archive_summary: true,
+        command_permissions: {
+            addprivate: null,
+            privateresum: null,
+        }
+    },
     'smart-events': { enabled: true, suggest_time: true, templates: 'quiz', rsvp_tracking: true, recurring_events: false },
     'smart-voice': { enabled: true, interactive_channels: [], creation_threshold: 4 },
     'content-ai': { enabled: true, default_tone: 'familiar', custom_instructions: '' },

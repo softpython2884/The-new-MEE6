@@ -1,11 +1,12 @@
 
-import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags } from 'discord.js';
+
+import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags, ChannelType, OverwriteType } from 'discord.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { loadCommands } from './handlers/commandHandler';
 import type { Command } from '../src/types';
-import { initializeDatabase, syncGuilds } from '../src/lib/db';
+import { initializeDatabase, syncGuilds, getServerConfig } from '../src/lib/db';
 import { startApi } from './api';
 import { initializeBotAuth } from './auth';
 
@@ -130,11 +131,57 @@ client.on(Events.InteractionCreate, async interaction => {
         return;
     }
     
-    // TODO: Handle button interactions for modules like Anti-Bot and Private-Rooms
     if (interaction.isButton()) {
         console.log(`[Interaction] Button clicked: ${interaction.customId}`);
-        // Example: if (interaction.customId.startsWith('approve_bot_')) { ... }
-        // Example: if (interaction.customId === 'create_private_room') { ... }
+        if (interaction.customId === 'create_private_room') {
+            if (!interaction.guild || !interaction.member) return;
+            const config = getServerConfig(interaction.guild.id, 'private-rooms');
+            if (!config || !config.enabled || !config.category_id) {
+                await interaction.reply({ content: "Le système de salons privés n'est pas correctement configuré.", flags: MessageFlags.Ephemeral });
+                return;
+            }
+
+            try {
+                await interaction.deferReply({ ephemeral: true });
+
+                const channelName = `ticket-${interaction.user.username}`;
+                const existingChannel = interaction.guild.channels.cache.find(c => c.name === channelName && c.parentId === config.category_id);
+                if(existingChannel) {
+                    await interaction.editReply(`Vous avez déjà un salon privé ouvert : ${existingChannel}`);
+                    return;
+                }
+
+                const channel = await interaction.guild.channels.create({
+                    name: channelName,
+                    type: ChannelType.GuildText,
+                    parent: config.category_id,
+                    permissionOverwrites: [
+                        {
+                            id: interaction.guild.id, // @everyone
+                            deny: [PermissionFlagsBits.ViewChannel],
+                            type: OverwriteType.Role
+                        },
+                        {
+                            id: interaction.user.id,
+                            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles],
+                            type: OverwriteType.Member
+                        },
+                         {
+                            id: client.user!.id,
+                            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
+                            type: OverwriteType.Member
+                        },
+                    ],
+                });
+
+                await channel.send(`Bienvenue ${interaction.user}, votre salon privé a été créé. Décrivez votre problème ici.`);
+                await interaction.editReply(`Votre salon privé a été créé : ${channel}`);
+
+            } catch (error) {
+                console.error('[PrivateRoom] Error creating channel:', error);
+                await interaction.editReply({ content: 'Une erreur est survenue lors de la création du salon.' });
+            }
+        }
         return;
     }
 

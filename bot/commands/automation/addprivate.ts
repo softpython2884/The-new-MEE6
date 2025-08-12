@@ -1,6 +1,6 @@
 
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -28,18 +28,35 @@ const AddPrivateCommand: Command = {
             return;
         }
         
-        // TODO: In a real implementation, you would send a message with a button to the creation_channel.
-        // For example:
-        // const channel = await interaction.guild.channels.fetch(privateRoomsConfig.creation_channel);
-        // const embed = new EmbedBuilder()...
-        // const row = new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setCustomId('create_private_room')...);
-        // await channel.send({ embeds: [embed], components: [row] });
+        try {
+            const channel = await interaction.guild.channels.fetch(privateRoomsConfig.creation_channel) as TextChannel;
+            if (!channel) {
+                await interaction.reply({ content: "Le salon de création configuré n'existe plus.", flags: MessageFlags.Ephemeral });
+                return;
+            }
 
-        const embed = new EmbedBuilder()
-            .setColor(0x00FF00)
-            .setDescription(`✅ Le panneau de création de salon privé serait envoyé dans le salon <#${privateRoomsConfig.creation_channel}>. (Implémentation à venir)`);
+            const embed = new EmbedBuilder()
+                .setColor(0x3498DB)
+                .setTitle('Créer un salon privé')
+                .setDescription(privateRoomsConfig.embed_message || 'Cliquez sur le bouton ci-dessous pour créer un salon privé.')
+                .setFooter({ text: interaction.guild.name, iconURL: interaction.guild.iconURL() || undefined });
+
+            const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('create_private_room')
+                    .setLabel('Créer un salon')
+                    .setStyle(ButtonStyle.Success)
+                    .setEmoji('➕')
+            );
             
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await channel.send({ embeds: [embed], components: [row] });
+
+            await interaction.reply({ content: `✅ Le panneau de création de salon privé a été envoyé avec succès dans ${channel}.`, flags: MessageFlags.Ephemeral });
+
+        } catch (error) {
+            console.error('[AddPrivate] Error sending private room panel:', error);
+            await interaction.reply({ content: 'Une erreur est survenue lors de l\'envoi du panneau.', flags: MessageFlags.Ephemeral });
+        }
     },
 };
 

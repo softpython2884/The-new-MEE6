@@ -1,5 +1,4 @@
 
-
 import { Events, Message } from 'discord.js';
 import { imageFilterFlow } from '../../../src/ai/flows/image-filter-flow';
 import fetch from 'node-fetch';
@@ -17,8 +16,9 @@ async function imageUrlToDataUri(url: string): Promise<string> {
     if (!contentType || !imageMimeTypes.includes(contentType)) {
         throw new Error('Invalid content type for image.');
     }
-    const buffer = await response.buffer();
-    return `data:${contentType};base64,${buffer.toString('base64')}`;
+    const buffer = await response.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    return `data:${contentType};base64,${base64}`;
 }
 
 

@@ -1,3 +1,4 @@
+// This file is obsolete and can be removed, vocaux-ia/page.tsx is used instead.
 'use client';
 
 export default function SmartVoicePage() {

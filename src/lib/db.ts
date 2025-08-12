@@ -297,19 +297,17 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
  */
 export function updateServerConfig(guildId: string, module: Module, configData: ModuleConfig) {
     try {
-        // Le statut premium est géré globalement par setPremiumStatus, mais on s'assure qu'il est bien dans l'objet
-        const currentConfig = getServerConfig(guildId, module);
-        const isPremium = currentConfig?.premium || configData.premium || false;
-        
+        // Le statut premium est géré globalement par setPremiumStatus, et récupéré par getServerConfig.
+        // Nous n'avons pas besoin de le lire ou de le réécrire ici, juste de ne pas l'inclure dans la string JSON.
         const { premium, ...restConfig } = configData;
         const configString = JSON.stringify(restConfig);
         
         const stmt = db.prepare(`
-            INSERT INTO server_configs (guild_id, module, config, premium)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO server_configs (guild_id, module, config)
+            VALUES (?, ?, ?)
             ON CONFLICT(guild_id, module) DO UPDATE SET config = excluded.config;
         `);
-        stmt.run(guildId, module, configString, isPremium ? 1 : 0);
+        stmt.run(guildId, module, configString);
         // console.log(`[Database] Configuration mise à jour pour le serveur ${guildId}, module ${module}.`);
     } catch (error) {
         console.error(`[Database] Erreur lors de la mise à jour de la config pour ${guildId} (module: ${module}):`, error);

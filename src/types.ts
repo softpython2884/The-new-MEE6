@@ -35,7 +35,8 @@ export type Module =
     | 'auto-translation'
     | 'lock'
     | 'backup'
-    | 'webcam';
+    | 'webcam'
+    | 'mod-training';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

@@ -158,7 +158,11 @@ const defaultConfigs: DefaultConfigs = {
         sensitivity: 'medium',
         premium: true
     },
-    'moderation-ai': { enabled: true, mode: 'monitor' },
+    'moderation-ai': { 
+        enabled: true,
+        mode: 'monitor',
+        premium: true
+    },
     'adaptive-anti-raid': { 
         enabled: false, 
         premium: true,
@@ -215,6 +219,14 @@ const defaultConfigs: DefaultConfigs = {
             iadeleteserv: null,
             iaresetserv: null,
         }
+    },
+    'mod-training': {
+        enabled: false,
+        premium: true,
+        onboarding_flow_enabled: true,
+        dm_delay: 'immediate',
+        mentor_messages: 'Bienvenue sur le serveur, {user} ! Voici quelques règles à connaître...',
+        auto_role_assignment: false,
     },
     // D'autres modules peuvent être ajoutés ici
 };

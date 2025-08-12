@@ -1,6 +1,8 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -19,35 +21,111 @@ import {
   SelectGroup,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Palette } from 'lucide-react';
+import { Palette, Switch } from 'lucide-react';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
-const mockRoles = [
-  { id: 'r1', name: '@everyone' },
-  { id: 'r2', name: 'Modérateur' },
-  { id: 'r3', name: 'Admin' },
-];
+const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
+
+// Types
+interface ContentAiConfig {
+    enabled: boolean;
+    premium: boolean;
+    default_tone: 'familiar' | 'professional' | 'narrative';
+    custom_instructions: string;
+    command_permissions: { [key: string]: string | null };
+}
+interface DiscordRole {
+    id: string;
+    name: string;
+}
 
 const contentCommand = {
     name: '/iacontent',
+    key: 'iacontent',
     description: 'Rédige des règles, annonces et génère des images avec l\'IA.',
-    defaultRole: 'Admin'
 };
 
 function AiContentCreatorPageContent({ isPremium }: { isPremium: boolean }) {
+    const params = useParams();
+    const serverId = params.serverId as string;
+    const { toast } = useToast();
+
+    const [config, setConfig] = useState<ContentAiConfig | null>(null);
+    const [roles, setRoles] = useState<DiscordRole[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!serverId) return;
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [configRes, serverDetailsRes] = await Promise.all([
+                    fetch(`${API_URL}/get-config/${serverId}/content-ai`),
+                    fetch(`${API_URL}/get-server-details/${serverId}`)
+                ]);
+                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
+                
+                const configData = await configRes.json();
+                const serverDetailsData = await serverDetailsRes.json();
+                
+                setConfig(configData);
+                setRoles(serverDetailsData.roles);
+            } catch (error) {
+                toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [serverId, toast]);
+
+    const saveConfig = async (newConfig: ContentAiConfig) => {
+        setConfig(newConfig); // Optimistic update
+        try {
+            await fetch(`${API_URL}/update-config/${serverId}/content-ai`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig),
+            });
+        } catch (error) {
+            toast({ title: "Erreur de sauvegarde", variant: "destructive" });
+        }
+    };
+    
+    const handleValueChange = (key: keyof ContentAiConfig, value: any) => {
+        if (!config) return;
+        saveConfig({ ...config, [key]: value });
+    };
+
+    const handlePermissionChange = (commandKey: string, roleId: string) => {
+        if (!config) return;
+        const newPermissions = { ...config.command_permissions, [commandKey]: roleId === 'none' ? null : roleId };
+        handleValueChange('command_permissions', newPermissions);
+    };
+    
+    if (loading || !config) {
+        return <Skeleton className="w-full h-[500px]" />;
+    }
+
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <div className="space-y-8">
             {/* Section Options */}
             <Card>
                 <CardHeader>
-                <h2 className="text-xl font-bold">Options du Créateur</h2>
-                <p className="text-muted-foreground">
-                    Définissez le ton et les instructions par défaut pour la génération de contenu.
-                </p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold">Options du Créateur</h2>
+                            <p className="text-muted-foreground">
+                                Définissez le ton et les instructions par défaut pour la génération de contenu.
+                            </p>
+                        </div>
+                        <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
@@ -59,7 +137,7 @@ function AiContentCreatorPageContent({ isPremium }: { isPremium: boolean }) {
                         Ton par défaut
                     </Label>
                     </div>
-                    <Select defaultValue="familiar">
+                    <Select value={config.default_tone} onValueChange={(val: 'familiar' | 'professional' | 'narrative') => handleValueChange('default_tone', val)}>
                     <SelectTrigger id="default-tone" className="w-full md:w-[280px]">
                         <SelectValue placeholder="Sélectionner un ton" />
                     </SelectTrigger>
@@ -85,6 +163,8 @@ function AiContentCreatorPageContent({ isPremium }: { isPremium: boolean }) {
                     id="custom-tone"
                     placeholder="Adopte un ton humoristique et utilise beaucoup d'emojis..."
                     rows={4}
+                    defaultValue={config.custom_instructions}
+                    onBlur={(e) => handleValueChange('custom_instructions', e.target.value)}
                     />
                 </div>
                 </CardContent>
@@ -117,19 +197,19 @@ function AiContentCreatorPageContent({ isPremium }: { isPremium: boolean }) {
                         Rôle minimum requis
                     </Label>
                     <Select
-                        defaultValue={
-                        mockRoles.find((r) => r.name === contentCommand.defaultRole)?.id
-                        }
+                        value={config.command_permissions[contentCommand.key] || 'none'}
+                        onValueChange={(value) => handlePermissionChange(contentCommand.key, value)}
                     >
                         <SelectTrigger id={`role-select-${contentCommand.name}`} className="w-full">
                         <SelectValue placeholder="Sélectionner un rôle" />
                         </SelectTrigger>
                         <SelectContent>
                         <SelectGroup>
-                            {mockRoles.map((role) => (
-                            <SelectItem key={role.id} value={role.id}>
-                                {role.name}
-                            </SelectItem>
+                             <SelectItem value="none">Admin seulement</SelectItem>
+                             {roles.filter(r => r.name !== '@everyone').map((role) => (
+                                <SelectItem key={role.id} value={role.id}>
+                                    {role.name}
+                                </SelectItem>
                             ))}
                         </SelectGroup>
                         </SelectContent>

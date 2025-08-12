@@ -1,8 +1,8 @@
 
-
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
+import { generateTextContent, generateImage } from '../../../src/ai/flows/content-creation-flow';
 
 const IAContentCommand: Command = {
     data: new SlashCommandBuilder()
@@ -40,10 +40,10 @@ const IAContentCommand: Command = {
             return;
         }
 
-        const contentAiConfig = await getServerConfig(interaction.guild.id, 'content-ai');
+        const config = await getServerConfig(interaction.guild.id, 'content-ai');
 
-        if (!contentAiConfig?.enabled) {
-            await interaction.reply({ content: "Le module Créateur de Contenu IA est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+        if (!config?.enabled || !config.premium) {
+            await interaction.reply({ content: "Le module Créateur de Contenu IA est désactivé ou non-premium sur ce serveur.", flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -53,34 +53,42 @@ const IAContentCommand: Command = {
 
         try {
             switch (subcommand) {
-                case 'rule': {
-                    const topic = interaction.options.getString('topic', true);
-                    // TODO: Call Genkit flow to generate a rule text.
-                    const embed = new EmbedBuilder()
-                        .setColor(0x00BFFF)
-                        .setTitle(`📝 Règle générée pour : ${topic}`)
-                        .setDescription(`Voici une proposition de règle sur le thème "${topic}". (Implémentation IA à venir)`);
-                    await interaction.editReply({ embeds: [embed] });
-                    break;
-                }
+                case 'rule':
                 case 'announcement': {
                     const topic = interaction.options.getString('topic', true);
-                    // TODO: Call Genkit flow to generate an announcement text.
+                    const result = await generateTextContent({
+                        type: subcommand as 'rule' | 'announcement',
+                        topic: topic,
+                        tone: config.default_tone,
+                        customInstructions: config.custom_instructions
+                    });
+
                     const embed = new EmbedBuilder()
-                        .setColor(0x9932CC)
-                        .setTitle(`📢 Annonce générée pour : ${topic}`)
-                        .setDescription(`Voici une proposition d'annonce sur le thème "${topic}". (Implémentation IA à venir)`);
+                        .setColor(subcommand === 'rule' ? 0x00BFFF : 0x9932CC)
+                        .setTitle(`${subcommand === 'rule' ? '📝' : '📢'} Contenu généré pour : ${topic}`)
+                        .setDescription(result.generatedText);
                     await interaction.editReply({ embeds: [embed] });
                     break;
                 }
                 case 'image': {
                     const prompt = interaction.options.getString('prompt', true);
-                    // TODO: Call Genkit flow to generate an image and get the URL.
-                    const embed = new EmbedBuilder()
-                        .setColor(0xFFD700)
-                        .setTitle('🖼️ Image en cours de génération...')
-                        .setDescription(`Votre image pour le prompt : "${prompt}" est en cours de création. (Implémentation IA à venir)`);
-                    await interaction.editReply({ embeds: [embed] });
+                    
+                    await interaction.editReply({ content: '🖼️ Votre image est en cours de création, veuillez patienter...' });
+
+                    const result = await generateImage({
+                        prompt: prompt,
+                    });
+
+                    if (result.imageDataUri) {
+                        const imageBuffer = Buffer.from(result.imageDataUri.split(',')[1], 'base64');
+                        const embed = new EmbedBuilder()
+                            .setColor(0xFFD700)
+                            .setTitle(`Image générée pour : "${prompt}"`)
+                            .setImage(`attachment://generated_image.png`);
+                        await interaction.editReply({ embeds: [embed], files: [{ attachment: imageBuffer, name: 'generated_image.png' }] });
+                    } else {
+                        throw new Error('La génération d\'image a échoué.');
+                    }
                     break;
                 }
             }

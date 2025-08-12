@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -25,9 +26,9 @@ export default function LogsPage() {
   return (
     <div className="space-y-8 text-white max-w-4xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Logs & Notifications</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Logs</h1>
         <p className="text-muted-foreground mt-2">
-            Choisissez les actions à enregistrer et où envoyer les notifications de log.
+            Configurer les journaux d'événements du serveur.
         </p>
       </div>
       

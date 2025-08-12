@@ -2,15 +2,15 @@
 import express from 'express';
 import cors from 'cors';
 import { Client } from 'discord.js';
-import { updateServerConfig, getServerConfig, getAllBotServers, IServer } from '../src/lib/db';
+import { updateServerConfig, getServerConfig, getAllBotServers } from '../src/lib/db';
 
 const API_PORT = process.env.BOT_API_PORT || 3001;
 
 // Middleware simple pour la vérification du secret partagé
 const verifyInternalSecret = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const secret = req.headers['x-internal-secret'];
-    if (secret !== process.env.INTERNAL_API_SECRET) {
-        console.warn(`[Bot API] Tentative d'accès non autorisé avec le secret : ${secret}`);
+    if (!process.env.INTERNAL_API_SECRET || secret !== process.env.INTERNAL_API_SECRET) {
+        console.warn(`[Bot API] Tentative d'accès non autorisé.`);
         return res.status(403).json({ error: 'Forbidden' });
     }
     next();
@@ -19,8 +19,9 @@ const verifyInternalSecret = (req: express.Request, res: express.Response, next:
 export function startApi(client: Client) {
     const app = express();
 
-    app.use(cors()); // Pour l'instant, on laisse ouvert, on pourra restreindre plus tard
+    app.use(cors()); // Pour l'instant, on laisse ouvert, on pourra restreindre plus tard.
     app.use(express.json());
+    app.use(verifyInternalSecret); // Appliquer le middleware de sécurité à toutes les routes de l'API
 
     app.use((req, res, next) => {
         console.log(`[Bot API] Requête reçue : ${req.method} ${req.path}`);
@@ -28,10 +29,9 @@ export function startApi(client: Client) {
     });
 
     /**
-     * Endpoint pour mettre à jour la configuration d'un serveur.
-     * Sécurisé par un secret partagé.
+     * Endpoint pour mettre à jour la configuration d'un module pour un serveur.
      */
-    app.post('/api/update-config/:guildId/:module', verifyInternalSecret, async (req, res) => {
+    app.post('/api/update-config/:guildId/:module', async (req, res) => {
         const { guildId, module } = req.params;
         const configData = req.body;
 
@@ -53,15 +53,14 @@ export function startApi(client: Client) {
     });
 
     /**
-     * Endpoint pour récupérer la configuration d'un serveur.
-     * Sécurisé par un secret partagé.
+     * Endpoint pour récupérer la configuration d'un module pour un serveur.
      */
-    app.get('/api/get-config/:guildId/:module', verifyInternalSecret, async (req, res) => {
+    app.get('/api/get-config/:guildId/:module', async (req, res) => {
         const { guildId, module } = req.params;
         try {
             const config = await getServerConfig(guildId, module);
             if (!config) {
-                return res.status(404).json({ error: 'Configuration non trouvée.' });
+                return res.status(404).json({ message: 'Configuration non trouvée. Utilisation des valeurs par défaut.' });
             }
             res.json(config);
         } catch (error) {
@@ -72,16 +71,26 @@ export function startApi(client: Client) {
 
     /**
      * Endpoint pour récupérer les données d'un serveur (nom, icône, etc.)
-     * Sécurisé par un secret partagé.
      */
-     app.get('/api/get-server-details/:guildId', verifyInternalSecret, async (req, res) => {
+     app.get('/api/get-server-details/:guildId', async (req, res) => {
         const { guildId } = req.params;
         try {
+            // Note: In a real app, you might want to fetch fresh data from Discord API
+            // instead of relying solely on the DB cache for details.
             const allServers = getAllBotServers(); // Ceci vient de la DB
             const serverDetails = allServers.find(s => s.id === guildId);
 
             if (!serverDetails) {
-                return res.status(404).json({ error: 'Serveur non trouvé dans la base de données.' });
+                // Try fetching from the client directly if not in DB (e.g., bot was just added)
+                const guild = await client.guilds.fetch(guildId);
+                if (guild) {
+                     return res.json({
+                        id: guild.id,
+                        name: guild.name,
+                        icon: guild.iconURL()
+                     });
+                }
+                return res.status(404).json({ error: 'Serveur non trouvé.' });
             }
             res.json(serverDetails);
         } catch (error) {
@@ -95,5 +104,3 @@ export function startApi(client: Client) {
         console.log(`[Bot API] Le serveur API interne écoute sur le port ${API_PORT}`);
     });
 }
-
-    

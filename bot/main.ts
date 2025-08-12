@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { loadCommands } from './handlers/commandHandler';
 import type { Command } from '@/types';
-import { syncGuilds, initializeDatabase } from '@/lib/db';
+import { initializeDatabase, syncGuilds } from '@/lib/db';
 import { startApi } from './api';
 import { initializeBotAuth } from './auth';
 

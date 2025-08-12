@@ -2,7 +2,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { Client, Collection } from 'discord.js';
+import { Client } from 'discord.js';
 import type { Module, ModuleConfig, DefaultConfigs } from '@/types';
 
 // Assurez-vous que le répertoire de la base de données existe
@@ -30,13 +30,49 @@ const createConfigTable = () => {
 };
 
 // --- Configurations par défaut pour les nouveaux serveurs ---
+// Basé sur la documentation fournie
 const defaultConfigs: DefaultConfigs = {
-    'moderation': { enabled: true, log_channel_id: null, dm_user_on_action: true },
-    'auto-moderation': { enabled: true },
-    'anti-bot': { enabled: false, mode: 'disabled' },
-    'captcha': { enabled: false },
-    'logs': { enabled: true, log_channel_id: null },
-    // Ajoutez d'autres configurations par défaut ici
+    'moderation': { enabled: true, log_channel_id: null, dm_user_on_action: true, presets: [] },
+    'auto-moderation': { 
+        enabled: true,
+        'forbidden-vocabulary': { enabled: false },
+        'discord-invites': { enabled: true },
+        'external-links': { enabled: false },
+        'excessive-caps': { enabled: true },
+        'excessive-emojis': { enabled: false },
+        'excessive-mentions': { enabled: true },
+        'forbidden-pings': { enabled: false },
+        'message-spam': { enabled: true },
+        'forbidden-markdown': { enabled: false }
+    },
+    'logs': { 
+        enabled: true, 
+        log_channel_id: null,
+        'log-messages': true,
+        'log-members': true,
+        'log-channels': false,
+        'log-roles': false,
+        'log-moderation': true,
+    },
+    'anti-bot': { enabled: false, mode: 'disabled', approval_channel_id: null, whitelisted_bots: [] },
+    'captcha': { enabled: true, verification_channel: null, type: 'text', difficulty: 'medium', verified_role_id: null },
+    'image-filter': { enabled: true, sensitivity: 'medium' },
+    'moderation-ai': { enabled: true, mode: 'monitor' },
+    'adaptive-anti-raid': { 
+        enabled: true, 
+        raid_detection_enabled: true, 
+        raid_sensitivity: 'medium', 
+        raid_action: 'lockdown',
+        link_scanner_enabled: true,
+        link_scanner_action: 'delete',
+        alert_channel_id: null
+    },
+    'private-rooms': { enabled: true, creation_channel: null, category_id: null, embed_message: '', archive_summary: true },
+    'smart-events': { enabled: true, suggest_time: true, templates: 'quiz', rsvp_tracking: true, recurring_events: false },
+    'smart-voice': { enabled: true, interactive_channels: [], creation_threshold: 4 },
+    'content-ai': { enabled: true, default_tone: 'familiar', custom_instructions: '' },
+    'server-builder': { enabled: true, base_theme: 'gaming', detail_level: 'standard' },
+    // D'autres modules peuvent être ajoutés ici
 };
 
 /**
@@ -58,7 +94,7 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
         const stmt = db.prepare('SELECT config FROM server_configs WHERE guild_id = ? AND module = ?');
         const result = stmt.get(guildId, module) as { config: string } | undefined;
 
-        if (result) {
+        if (result && result.config) {
             return JSON.parse(result.config);
         } else {
             // Si aucune config n'est trouvée, on insère la config par défaut et on la retourne
@@ -110,11 +146,12 @@ export async function syncGuilds(client: Client) {
     const stmt = db.prepare('SELECT 1 FROM server_configs WHERE guild_id = ? AND module = ?');
 
     for (const oauthGuild of guilds.values()) {
+        const guild = await oauthGuild.fetch();
         for (const moduleName of Object.keys(defaultConfigs) as Module[]) {
-             const existing = stmt.get(oauthGuild.id, moduleName);
+             const existing = stmt.get(guild.id, moduleName);
              if (!existing) {
-                 console.log(`[Database] Ajout de la configuration par défaut du module '${moduleName}' pour le nouveau serveur ${oauthGuild.name} (${oauthGuild.id})`);
-                 updateServerConfig(oauthGuild.id, moduleName, defaultConfigs[moduleName]!);
+                 console.log(`[Database] Ajout de la configuration par défaut du module '${moduleName}' pour le nouveau serveur ${guild.name} (${guild.id})`);
+                 updateServerConfig(guild.id, moduleName, defaultConfigs[moduleName]!);
              }
         }
     }
@@ -123,17 +160,13 @@ export async function syncGuilds(client: Client) {
 
 // Fonction pour récupérer la liste de tous les serveurs sur lesquels le bot est présent.
 // Utile pour le panel afin d'afficher la liste des serveurs.
+// Cette fonction est appelée par l'API du bot, qui a accès au client Discord.
+// Pour l'instant on se base sur la DB.
 export function getAllBotServers(): { id: string; name: string; icon: string | null }[] {
     try {
-        // Cette requête est un peu plus complexe. Elle récupère tous les guild_id uniques,
-        // puis on pourrait la joindre à une autre table `guild_details` si on voulait stocker
-        // le nom et l'icône directement dans la DB.
-        // Pour l'instant, on se contente de retourner une liste vide,
-        // car le panel récupérera les détails via l'API du bot qui a accès au client Discord.
         const stmt = db.prepare('SELECT DISTINCT guild_id FROM server_configs');
         const rows = stmt.all() as { guild_id: string }[];
-        // On retourne juste les IDs, le panel devra demander les détails pour chaque ID.
-        return rows.map(row => ({ id: row.guild_id, name: 'Unknown', icon: null }));
+        return rows.map(row => ({ id: row.guild_id, name: 'Unknown Server', icon: null }));
     } catch (error) {
         console.error('[Database] Erreur lors de la récupération de tous les serveurs:', error);
         return [];

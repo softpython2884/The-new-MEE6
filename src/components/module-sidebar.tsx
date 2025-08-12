@@ -69,8 +69,8 @@ const navCategories = [
     {
         name: 'Vocaux',
         items: [
-            { href: 'vocaux-ia', label: 'IA Vocaux', icon: Mic, isPremium: true },
-            { href: 'commandes-vocales', label: 'Contrôle manuel', icon: Voicemail },
+             { href: 'controle-manuel', label: 'Contrôle manuel', icon: Voicemail },
+             { href: 'vocaux-ia', label: 'IA Vocaux', icon: Mic, isPremium: true },
         ]
     },
      {
@@ -88,7 +88,7 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-64 flex-col bg-card p-4">
+    <aside className="flex h-full w-72 flex-col bg-card p-4">
       <div className="mb-6 flex items-center gap-3 px-2">
         <Avatar className="h-12 w-12 rounded-lg">
           <AvatarImage src="https://placehold.co/64x64/f1c40f/000000.png" data-ai-hint="beehive" />

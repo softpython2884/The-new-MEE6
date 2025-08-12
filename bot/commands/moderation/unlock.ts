@@ -1,6 +1,7 @@
 
-import { SlashCommandBuilder, CommandInteraction, PermissionFlagsBits, ChannelType, TextChannel, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, TextChannel, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
+import { getServerConfig } from '../../../src/lib/db';
 
 const UnlockCommand: Command = {
     data: new SlashCommandBuilder()
@@ -13,34 +14,36 @@ const UnlockCommand: Command = {
                 .addChannelTypes(ChannelType.GuildText)
                 .setRequired(false)),
     async execute(interaction: ChatInputCommandInteraction) {
-        // TODO: First, check if the module is enabled for this server
-        // const config = await db.getServerConfig(interaction.guildId);
-        // if (!config.modules.lock.enabled) {
-        //     await interaction.reply({ content: "Le module de verrouillage est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
-        //     return;
-        // }
-        
         if (!interaction.guild) {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
 
+        const config = await getServerConfig(interaction.guild.id, 'lock');
+        if (!config?.enabled) {
+            await interaction.reply({ content: "Le module de verrouillage est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            return;
+        }
+        
+        // TODO: Check for command permissions from config
+
         const channel = (interaction.options.getChannel('channel') || interaction.channel) as TextChannel;
         const everyoneRole = interaction.guild.roles.everyone;
 
         try {
-            // TODO: Here, you would fetch the saved permissions from your database and restore them.
-            // For example: const savedPermissions = await db.getPermissions(channel.id);
-            // await channel.permissionOverwrites.set(savedPermissions);
-            // await db.deletePermissions(channel.id);
-            
-            // For now, we'll just restore the SendMessages permission for @everyone.
-            // A real implementation would restore the exact previous state.
+            // Check if channel is actually locked
+             const currentPermissions = channel.permissionOverwrites.cache.get(everyoneRole.id);
+            if (!currentPermissions || !currentPermissions.deny.has('SendMessages')) {
+                 await interaction.reply({ content: `Le salon ${channel} n'est pas verrouillé.`, flags: MessageFlags.Ephemeral });
+                 return;
+            }
+
             await channel.permissionOverwrites.edit(everyoneRole, {
                 SendMessages: null, // null restores the default permission
             });
 
-            await interaction.reply({ content: `Le salon ${channel} a été déverrouillé.` });
+            await interaction.reply({ content: `Le salon ${channel} a été déverrouillé.`, flags: MessageFlags.Ephemeral });
+            await channel.send(`🔓 **Salon déverrouillé** par ${interaction.user.toString()}.`);
 
         } catch (error) {
             console.error('Erreur lors du déverrouillage du salon:', error);

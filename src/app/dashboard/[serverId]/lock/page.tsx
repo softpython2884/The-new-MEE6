@@ -1,149 +1,240 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Lock, ChevronDown } from 'lucide-react';
+import { Lock, ChevronDown, Trash2, PlusCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
+const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
-const mockRoles = [
-  { id: 'r1', name: '@everyone' },
-  { id: 'r2', name: 'Modérateur' },
-  { id: 'r3', name: 'Admin' },
-  { id: 'r4', name: 'Membre' },
-  { id: 'r5', name: 'VIP' },
-  { id: 'r6', name: 'Partenaire' },
-  { id: 'r7', name: 'Testeur' },
-];
+// Types
+interface LockConfig {
+    enabled: boolean;
+    exempt_roles: string[];
+    command_permissions: { [key: string]: string | null };
+}
+
+interface DiscordRole {
+    id: string;
+    name: string;
+}
 
 const lockCommands = [
-    {
-        name: '/lock',
-        description: 'Verrouille un salon pour le rôle @everyone.',
-        defaultRole: 'Modérateur'
-    },
-    {
-        name: '/unlock',
-        description: 'Déverrouille un salon précédemment verrouillé.',
-        defaultRole: 'Modérateur'
-    },
+    { name: '/lock', key: 'lock', description: 'Verrouille un salon pour le rôle @everyone.' },
+    { name: '/unlock', key: 'unlock', description: 'Déverrouille un salon précédemment verrouillé.' },
 ];
 
-export default function LockPage() {
-  const [selectedRoles, setSelectedRoles] = useState<string[]>(['r5']); // VIP is selected by default
-
-  const handleRoleToggle = (roleId: string) => {
-    setSelectedRoles(prev => 
-      prev.includes(roleId) ? prev.filter(id => id !== roleId) : [...prev, roleId]
-    );
-  };
-
-  const getRoleName = (roleId: string) => mockRoles.find(r => r.id === roleId)?.name || '';
-
-  return (
-    <div className="space-y-8 text-white max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Lock/Unlock</h1>
-        <p className="text-muted-foreground mt-2">
-          Verrouille ou déverrouille un salon. Les permissions exactes d'avant le verrouillage sont restaurées.
-        </p>
-      </div>
-      
-      <Separator />
-
-      {/* Section Options */}
-      <Card>
-        <CardHeader>
-            <h2 className="text-xl font-bold">Options de Verrouillage</h2>
-            <p className="text-muted-foreground">
-                Configurez les rôles qui ne seront pas affectés par la commande /lock.
-            </p>
-        </CardHeader>
-        <CardContent>
-            <div className="space-y-2">
-                <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés du verrouillage</Label>
-                <p className="text-sm text-muted-foreground/80">
-                    Les utilisateurs avec ces rôles pourront toujours parler dans les salons verrouillés.
-                </p>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between">
-                           <div className="flex-1 text-left truncate">
-                                {selectedRoles.length > 0 
-                                    ? selectedRoles.map(id => (
-                                        <Badge key={id} variant="secondary" className="mr-1 mb-1">{getRoleName(id)}</Badge>
-                                    ))
-                                    : "Sélectionner des rôles..."}
-                            </div>
-                            <ChevronDown className="ml-2 h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                        <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {mockRoles.map(role => (
-                             <DropdownMenuCheckboxItem
-                                key={role.id}
-                                checked={selectedRoles.includes(role.id)}
-                                onCheckedChange={() => handleRoleToggle(role.id)}
-                                onSelect={(e) => e.preventDefault()} // Prevent closing menu on select
-                             >
-                                {role.name}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+function LockPageSkeleton() {
+    return (
+        <div className="space-y-8">
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-96 mt-2" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-24 w-full" />
+                </CardContent>
+            </Card>
+            <Separator />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[...Array(2)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-32" />
+                            <Skeleton className="h-4 w-full mt-2" />
+                        </CardHeader>
+                        <CardContent>
+                            <Skeleton className="h-10 w-full" />
+                        </CardContent>
+                    </Card>
+                ))}
             </div>
-        </CardContent>
-      </Card>
-      
-      <Separator />
+        </div>
+    );
+}
 
-      {/* Section Commandes */}
-       <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold">Commandes</h2>
-          <p className="text-muted-foreground">
-            Gérez les permissions pour chaque commande de ce module.
-          </p>
+export default function LockPage() {
+    const params = useParams();
+    const serverId = params.serverId as string;
+    const { toast } = useToast();
+
+    const [config, setConfig] = useState<LockConfig | null>(null);
+    const [roles, setRoles] = useState<DiscordRole[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!serverId) return;
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [configRes, serverDetailsRes] = await Promise.all([
+                    fetch(`${API_URL}/get-config/${serverId}/lock`),
+                    fetch(`${API_URL}/get-server-details/${serverId}`)
+                ]);
+                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
+                
+                const configData = await configRes.json();
+                const serverDetailsData = await serverDetailsRes.json();
+
+                setConfig(configData);
+                setRoles(serverDetailsData.roles.filter((r: DiscordRole) => r.name !== '@everyone'));
+            } catch (error) {
+                toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [serverId, toast]);
+
+    const saveConfig = async (newConfig: LockConfig) => {
+        setConfig(newConfig); // Optimistic update
+        try {
+            await fetch(`${API_URL}/update-config/${serverId}/lock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig),
+            });
+        } catch (error) {
+            toast({ title: "Erreur de sauvegarde", variant: "destructive" });
+        }
+    };
+
+    const handleValueChange = (key: keyof LockConfig, value: any) => {
+        if (!config) return;
+        saveConfig({ ...config, [key]: value });
+    };
+
+    const handlePermissionChange = (commandKey: string, roleId: string) => {
+        if (!config) return;
+        const newPermissions = { ...config.command_permissions, [commandKey]: roleId === 'none' ? null : roleId };
+        handleValueChange('command_permissions', newPermissions);
+    };
+
+    const handleRoleToggle = (roleId: string) => {
+        if (!config) return;
+        const newExemptRoles = config.exempt_roles.includes(roleId)
+            ? config.exempt_roles.filter(id => id !== roleId)
+            : [...config.exempt_roles, roleId];
+        handleValueChange('exempt_roles', newExemptRoles);
+    };
+
+    if (loading || !config) {
+        return <LockPageSkeleton />;
+    }
+
+    return (
+        <div className="space-y-8 text-white max-w-4xl">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Lock/Unlock</h1>
+                <p className="text-muted-foreground mt-2">
+                    Verrouille ou déverrouille un salon. Les permissions exactes d'avant le verrouillage sont restaurées.
+                </p>
+            </div>
+            
+            <Separator />
+
+            {/* Section Options */}
+            <Card>
+                <CardHeader>
+                    <h2 className="text-xl font-bold">Options de Verrouillage</h2>
+                    <p className="text-muted-foreground">
+                        Configurez les rôles qui ne seront pas affectés par la commande /lock.
+                    </p>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-2">
+                        <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés du verrouillage</Label>
+                        <p className="text-sm text-muted-foreground/80">
+                            Les utilisateurs avec ces rôles pourront toujours parler dans les salons verrouillés.
+                        </p>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between">
+                                    <div className="flex-1 text-left truncate">
+                                        {config.exempt_roles.length > 0 
+                                            ? config.exempt_roles.map(id => (
+                                                <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
+                                            ))
+                                            : "Sélectionner des rôles..."}
+                                    </div>
+                                    <ChevronDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {roles.map(role => (
+                                    <DropdownMenuCheckboxItem
+                                        key={role.id}
+                                        checked={config.exempt_roles.includes(role.id)}
+                                        onCheckedChange={() => handleRoleToggle(role.id)}
+                                        onSelect={(e) => e.preventDefault()} // Prevent closing menu on select
+                                    >
+                                        {role.name}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </CardContent>
+            </Card>
+            
+            <Separator />
+
+            {/* Section Commandes */}
+            <div className="space-y-6">
+                <div>
+                    <h2 className="text-xl font-bold">Commandes</h2>
+                    <p className="text-muted-foreground">
+                        Gérez les permissions pour chaque commande de ce module.
+                    </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {lockCommands.map(command => (
+                        <Card key={command.key}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Lock className="w-5 h-5 text-primary" />
+                                    <span>{command.name}</span>
+                                </CardTitle>
+                                <CardDescription>{command.description}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`role-select-${command.key}`} className="text-sm font-medium">Rôle minimum requis</Label>
+                                    <Select 
+                                        value={config.command_permissions[command.key] || 'none'}
+                                        onValueChange={(value) => handlePermissionChange(command.key, value)}
+                                    >
+                                        <SelectTrigger id={`role-select-${command.key}`} className="w-full">
+                                            <SelectValue placeholder="Sélectionner un rôle" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                <SelectItem value="none">Désactivé (Admin seulement)</SelectItem>
+                                                {roles.map(role => (
+                                                    <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {lockCommands.map(command => (
-                 <Card key={command.name}>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Lock className="w-5 h-5 text-primary" />
-                            <span>{command.name}</span>
-                        </CardTitle>
-                        <CardDescription>{command.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                             <Label htmlFor={`role-select-${command.name}`} className="text-sm font-medium">Rôle minimum requis</Label>
-                            <Select defaultValue={mockRoles.find(r => r.name === command.defaultRole)?.id}>
-                                <SelectTrigger id={`role-select-${command.name}`} className="w-full">
-                                    <SelectValue placeholder="Sélectionner un rôle" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        {mockRoles.map(role => (
-                                            <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

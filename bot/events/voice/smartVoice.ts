@@ -1,7 +1,7 @@
 
 
-import { Events, VoiceState, ActivityType, Collection } from 'discord.js';
-// import { smartVoiceFlow } from '../../../src/ai/flows/smart-voice-flow';
+import { Events, VoiceState, ActivityType, Collection, ChannelType } from 'discord.js';
+import { smartVoiceFlow } from '../../../src/ai/flows/smart-voice-flow';
 import { getServerConfig } from '../../../src/lib/db';
 import type { InteractiveChannel } from '../../../src/types';
 
@@ -15,7 +15,7 @@ export const name = Events.VoiceStateUpdate;
 export async function execute(oldState: VoiceState, newState: VoiceState) {
     // Determine the relevant channel and if it's a join/leave event
     const channel = newState.channel || oldState.channel;
-    if (!channel || !newState.guild) return;
+    if (!channel || !newState.guild || channel.type !== ChannelType.GuildVoice) return;
 
     const smartVoiceConfig = await getServerConfig(newState.guild.id, 'smart-voice');
 
@@ -23,7 +23,8 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
     const interactiveChannels = (smartVoiceConfig?.interactive_channels as InteractiveChannel[]) || [];
     const interactiveChannelInfo = interactiveChannels.find(c => c.id === channel.id);
     
-    if (!smartVoiceConfig?.enabled || !interactiveChannelInfo) {
+    // Also check if the module is premium, as it is a premium feature
+    if (!smartVoiceConfig?.enabled || !smartVoiceConfig?.premium || !interactiveChannelInfo) {
         return;
     }
 
@@ -47,21 +48,21 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
     console.log(`[Smart-Voice] Updating channel ${channel.name}. Theme: ${interactiveChannelInfo.theme}, Activities: ${activities.join(', ')}`);
 
     try {
-        // const result = await smartVoiceFlow({
-        //     theme: interactiveChannelInfo.theme,
-        //     activities: activities,
-        // });
+        const result = await smartVoiceFlow({
+            theme: interactiveChannelInfo.theme,
+            activities: activities,
+        });
 
-        // if (result.channelName && result.channelTopic) {
-        //     await channel.setName(result.channelName);
-        //     await channel.setTopic(result.channelTopic);
+        if (result.channelName && result.channelTopic) {
+            await channel.setName(result.channelName);
+            // Voice channels don't have topics, but we can log it or use it elsewhere. For now, we just log.
+            // await channel.setTopic(result.channelTopic); 
             
-        //     console.log(`[Smart-Voice] Renamed channel ${channel.id} to "${result.channelName}"`);
+            console.log(`[Smart-Voice] Renamed channel ${channel.id} to "${result.channelName}". Topic suggestion: "${result.channelTopic}"`);
             
-        //     // Update cache to prevent spam
-        //     channelUpdateCache.set(channel.id, Date.now());
-        // }
-        console.log('[Smart-Voice] IA Flow call is temporarily disabled.');
+            // Update cache to prevent spam
+            channelUpdateCache.set(channel.id, Date.now());
+        }
 
 
     } catch (error) {

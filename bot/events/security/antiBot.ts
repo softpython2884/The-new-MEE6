@@ -1,6 +1,6 @@
 
 
-import { Events, GuildMember, EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle, AuditLogEvent } from 'discord.js';
+import { Events, GuildMember, EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle, AuditLogEvent, MessageFlags } from 'discord.js';
 import { getServerConfig } from '../../../src/lib/db';
 
 
@@ -14,8 +14,8 @@ export async function execute(member: GuildMember) {
 
     const antibotConfig = await getServerConfig(member.guild.id, 'anti-bot');
 
-    // 2. Check if the module is enabled
-    if (!antibotConfig?.enabled || antibotConfig.mode === 'off') {
+    // 2. Check if the module is enabled by checking the mode
+    if (!antibotConfig || antibotConfig.mode === 'disabled') {
         return;
     }
     
@@ -30,10 +30,11 @@ export async function execute(member: GuildMember) {
 
     console.log(`[Anti-Bot] Non-whitelisted bot ${member.user.tag} joined ${member.guild.name}. Mode: ${antibotConfig.mode}`);
 
+    // This mode is an alias for auto-block, any non-whitelisted bot is removed.
     if (antibotConfig.mode === 'auto-block' || antibotConfig.mode === 'whitelist-only') {
         try {
             await member.kick('Politique Anti-Bot : Ce bot n\'est pas sur la liste blanche.');
-            // TODO: Log this action to the moderation log channel
+            // TODO: Log this action to the main log channel if configured
             console.log(`[Anti-Bot] Kicked bot ${member.user.tag} from ${member.guild.name}.`);
         } catch (error) {
             console.error(`[Anti-Bot] Failed to kick bot ${member.user.tag}:`, error);

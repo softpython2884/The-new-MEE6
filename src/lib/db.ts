@@ -137,7 +137,12 @@ const defaultConfigs: DefaultConfigs = {
             backup: null
         }
     },
-    'anti-bot': { enabled: false, mode: 'disabled', approval_channel_id: null, whitelisted_bots: [] },
+    'anti-bot': { 
+        enabled: false, 
+        mode: 'disabled', 
+        approval_channel_id: null, 
+        whitelisted_bots: [] 
+    },
     'captcha': { enabled: true, verification_channel: null, type: 'text', difficulty: 'medium', verified_role_id: null },
     'image-filter': { enabled: true, sensitivity: 'medium' },
     'moderation-ai': { enabled: true, mode: 'monitor' },

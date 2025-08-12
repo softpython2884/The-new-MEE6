@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Draftbot',
+  title: 'Marcus',
   description: 'A modern dashboard for Discord bot management.',
 };
 

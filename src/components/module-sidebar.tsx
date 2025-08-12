@@ -4,14 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ArrowRightLeft,
-  BookUser,
   Bot,
   CircleDollarSign,
   GanttChart,
   Gauge,
   MessageSquare,
   ShieldCheck,
-  UserRoundCog,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,7 @@ import { Badge } from './ui/badge';
 
 const navItems = [
   { href: '/dashboard/arrivals-departures', label: 'Arrivées et départs', icon: ArrowRightLeft },
-  { href: '/dashboard/auto-roles', label: 'Rôles automatiques', icon: UserRoundCog },
+  { href: '/dashboard/auto-roles', label: 'Rôles automatiques', icon: Users },
   { href: '/dashboard/levels', label: 'Niveaux', icon: Gauge },
   { href: '/dashboard/economy', label: 'Économie', icon: CircleDollarSign },
   { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare, isNew: true },
@@ -48,21 +47,18 @@ export function ModuleSidebar() {
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
-            <Link key={item.label} href={item.href} passHref>
+            <Link key={item.label} href={item.href}>
               <Button
                 variant={isActive ? 'secondary' : 'ghost'}
                 className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}
-                asChild
               >
-                <>
-                  <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
-                  <span>{item.label}</span>
-                  {item.isNew && (
-                    <Badge variant="default" className="ml-auto h-5">
-                      NEW
-                    </Badge>
-                  )}
-                </>
+                <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
+                <span>{item.label}</span>
+                {item.isNew && (
+                  <Badge variant="default" className="ml-auto h-5">
+                    NEW
+                  </Badge>
+                )}
               </Button>
             </Link>
           );

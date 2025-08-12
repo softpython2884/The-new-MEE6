@@ -1,27 +1,38 @@
+
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-// Données fictives pour les salons et les rôles. Celles-ci seront remplacées par des données réelles plus tard.
-const mockChannels = [
-  { id: 'c1', name: 'general' },
-  { id: 'c2', name: 'annonces' },
-  { id: 'c3', name: 'logs' },
-  { id: 'c4', name: 'modération-logs' },
-];
+const API_URL = 'http://localhost:3001/api';
 
-const mockRoles = [
-  { id: 'r1', name: '@everyone', color: '#ffffff' },
-  { id: 'r2', name: 'Modérateur', color: '#3498db' },
-  { id: 'r3', name: 'Admin', color: '#e74c3c' },
-  { id: 'r4', name: 'Membre', color: '#2ecc71' },
-];
+// Types pour la configuration et les données du serveur
+interface ModerationConfig {
+  enabled: boolean;
+  log_channel_id: string | null;
+  dm_user_on_action: boolean;
+  // TODO: Add presets type
+}
+
+interface DiscordChannel {
+  id: string;
+  name: string;
+  type: number;
+}
+
+interface DiscordRole {
+    id: string;
+    name: string;
+    color: number;
+}
+
 
 const moderationCommands = [
     {
@@ -47,6 +58,81 @@ const moderationCommands = [
 ];
 
 export default function ModerationPage() {
+  const params = useParams();
+  const serverId = params.serverId as string;
+
+  const [config, setConfig] = useState<ModerationConfig | null>(null);
+  const [channels, setChannels] = useState<DiscordChannel[]>([]);
+  const [roles, setRoles] = useState<DiscordRole[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // --- Data Fetching ---
+  useEffect(() => {
+    if (!serverId) return;
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch module config
+        const configRes = await fetch(`${API_URL}/get-config/${serverId}/moderation`);
+        const configData = await configRes.json();
+        if (configRes.ok) {
+          setConfig(configData);
+        }
+
+        // Fetch server details (which includes channels and roles)
+        const serverDetailsRes = await fetch(`${API_URL}/get-server-details/${serverId}`);
+        const serverDetailsData = await serverDetailsRes.json();
+        if (serverDetailsRes.ok) {
+            setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0)); // Text channels
+            setRoles(serverDetailsData.roles);
+        }
+
+      } catch (error) {
+        console.error("Failed to fetch data", error);
+        // TODO: show toast error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [serverId]);
+
+  // --- Data Saving ---
+  const handleConfigChange = async (key: keyof ModerationConfig, value: any) => {
+    if (!config) return;
+
+    const newConfig = { ...config, [key]: value };
+    setConfig(newConfig);
+
+    try {
+      await fetch(`${API_URL}/update-config/${serverId}/moderation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newConfig),
+      });
+      // TODO: show toast success
+    } catch (error) {
+      console.error("Failed to update config", error);
+      // TODO: show toast error and revert state
+    }
+  };
+  
+  const getRoleColor = (color: number) => {
+    if (color === 0) return '#FFFFFF';
+    return `#${color.toString(16).padStart(6, '0')}`;
+  }
+
+
+  if (loading) {
+    return <div>Chargement de la configuration...</div>; // TODO: Use Skeleton Loader
+  }
+
+  if (!config) {
+    return <div>Impossible de charger la configuration.</div>;
+  }
+
   return (
     <div className="space-y-8 text-white max-w-4xl">
       <div>
@@ -76,14 +162,17 @@ export default function ModerationPage() {
                     Le salon où envoyer les logs de modération.
                   </p>
                 </div>
-                 <Select defaultValue="c4">
+                 <Select 
+                    value={config.log_channel_id || ''}
+                    onValueChange={(value) => handleConfigChange('log_channel_id', value)}
+                 >
                     <SelectTrigger className="w-[240px]">
                         <SelectValue placeholder="Sélectionner un salon" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectGroup>
                             <SelectLabel>Salons textuels</SelectLabel>
-                            {mockChannels.map(channel => (
+                            {channels.map(channel => (
                                 <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
                             ))}
                         </SelectGroup>
@@ -98,7 +187,11 @@ export default function ModerationPage() {
                     Envoyer un message privé à l'utilisateur lorsqu'une sanction est appliquée.
                   </p>
                 </div>
-                <Switch id="dm-sanction" defaultChecked />
+                <Switch 
+                    id="dm-sanction" 
+                    checked={config.dm_user_on_action}
+                    onCheckedChange={(checked) => handleConfigChange('dm_user_on_action', checked)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -128,16 +221,16 @@ export default function ModerationPage() {
                     <CardContent>
                         <div className="space-y-2">
                              <Label htmlFor={`role-select-${command.name}`} className="text-sm font-medium">Rôle minimum requis</Label>
-                            <Select defaultValue={mockRoles.find(r => r.name === command.defaultRole)?.id}>
+                            <Select>
                                 <SelectTrigger id={`role-select-${command.name}`} className="w-full">
                                     <SelectValue placeholder="Sélectionner un rôle" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        {mockRoles.map(role => (
+                                        {roles.filter(r => r.name !== '@everyone').map(role => (
                                             <SelectItem key={role.id} value={role.id}>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: role.color }}></span>
+                                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getRoleColor(role.color) }}></span>
                                                     {role.name}
                                                 </div>
                                             </SelectItem>

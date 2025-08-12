@@ -1,33 +1,120 @@
+
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Wrench } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
-const mockRoles = [
-  { id: 'r1', name: '@everyone', color: '#ffffff' },
-  { id: 'r2', name: 'Modérateur', color: '#3498db' },
-  { id: 'r3', name: 'Admin', color: '#e74c3c' },
-  { id: 'r4', name: 'Membre', color: '#2ecc71' },
-];
+const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
+
+// Types
+interface GeneralCommandsConfig {
+  command_permissions: { [key: string]: string | null };
+  command_enabled: { [key: string]: boolean };
+}
+interface DiscordRole {
+    id: string;
+    name: string;
+    color: number;
+}
+interface ServerData {
+    roles: DiscordRole[];
+}
 
 const generalCommands = [
-    {
-        name: '/invite',
-        description: 'Génère un lien d\'invitation pour le bot.',
-        defaultRole: '@everyone'
-    },
-    {
-        name: '/ping',
-        description: 'Vérifie la latence du bot.',
-        defaultRole: '@everyone'
-    },
+    { name: '/invite', key: 'invite', description: 'Génère un lien d\'invitation pour le bot.' },
+    { name: '/ping', key: 'ping', description: 'Vérifie la latence du bot.' },
 ];
 
 export default function GeneralCommandsPage() {
+    const params = useParams();
+    const serverId = params.serverId as string;
+    const { toast } = useToast();
+
+    const [config, setConfig] = useState<GeneralCommandsConfig | null>(null);
+    const [serverData, setServerData] = useState<ServerData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!serverId) return;
+
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [configRes, serverDetailsRes] = await Promise.all([
+                    fetch(`${API_URL}/get-config/${serverId}/general-commands`),
+                    fetch(`${API_URL}/get-server-details/${serverId}`)
+                ]);
+
+                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
+                
+                const configData = await configRes.json();
+                const serverDetailsData = await serverDetailsRes.json();
+                
+                setConfig(configData);
+                setServerData(serverDetailsData);
+            } catch (error) {
+                console.error("Failed to fetch data", error);
+                toast({
+                    title: "Erreur",
+                    description: "Impossible de charger les données.",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [serverId, toast]);
+
+    const saveConfig = async (newConfig: GeneralCommandsConfig) => {
+        setConfig(newConfig); // Optimistic update
+        try {
+            const response = await fetch(`${API_URL}/update-config/${serverId}/general-commands`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig),
+            });
+            if (!response.ok) throw new Error('Failed to save config');
+        } catch (error) {
+            console.error('Failed to update config', error);
+            toast({
+                title: "Erreur de sauvegarde",
+                description: "La configuration n'a pas pu être enregistrée.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const handlePermissionChange = (commandKey: string, roleId: string) => {
+        if (!config) return;
+        const newPermissions = { ...config.command_permissions, [commandKey]: roleId === 'none' ? null : roleId };
+        saveConfig({ ...config, command_permissions: newPermissions });
+    };
+    
+    const handleEnabledChange = (commandKey: string, enabled: boolean) => {
+        if (!config) return;
+        const newEnabled = { ...config.command_enabled, [commandKey]: enabled };
+        saveConfig({ ...config, command_enabled: newEnabled });
+    };
+
+    const getRoleColor = (color: number) => {
+        if (color === 0) return '#99aab5';
+        return `#${color.toString(16).padStart(6, '0')}`;
+    }
+
+    if (loading || !config || !serverData) {
+        return <PageSkeleton />;
+    }
+
   return (
     <div className="space-y-8 text-white max-w-4xl">
       <div>
@@ -39,7 +126,6 @@ export default function GeneralCommandsPage() {
       
       <Separator />
 
-      {/* Section Commandes */}
        <div className="space-y-6">
         <div>
           <h2 className="text-xl font-bold">Commandes</h2>
@@ -56,23 +142,30 @@ export default function GeneralCommandsPage() {
                                 <Wrench className="w-5 h-5 text-primary" />
                                 <span>{command.name}</span>
                             </div>
-                            <Switch defaultChecked/>
+                            <Switch 
+                                checked={config.command_enabled?.[command.key] ?? true}
+                                onCheckedChange={(checked) => handleEnabledChange(command.key, checked)}
+                            />
                         </CardTitle>
                         <CardDescription>{command.description}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2">
-                             <Label htmlFor={`role-select-${command.name}`} className="text-sm font-medium">Rôle minimum requis</Label>
-                            <Select defaultValue={mockRoles.find(r => r.name === command.defaultRole)?.id}>
-                                <SelectTrigger id={`role-select-${command.name}`} className="w-full">
+                            <Label htmlFor={`role-select-${command.key}`} className="text-sm font-medium">Rôle minimum requis</Label>
+                            <Select 
+                                value={config.command_permissions?.[command.key] || 'none'}
+                                onValueChange={(value) => handlePermissionChange(command.key, value)}
+                            >
+                                <SelectTrigger id={`role-select-${command.key}`} className="w-full">
                                     <SelectValue placeholder="Sélectionner un rôle" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        {mockRoles.map(role => (
+                                        <SelectItem value="none">@everyone</SelectItem>
+                                        {serverData.roles.filter(r => r.name !== '@everyone').map(role => (
                                             <SelectItem key={role.id} value={role.id}>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: role.color }}></span>
+                                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getRoleColor(role.color) }}></span>
                                                     {role.name}
                                                 </div>
                                             </SelectItem>
@@ -88,4 +181,41 @@ export default function GeneralCommandsPage() {
       </div>
     </div>
   );
+}
+
+function PageSkeleton() {
+    return (
+        <div className="space-y-8 text-white max-w-4xl">
+            <div>
+                <Skeleton className="h-8 w-64 mb-2" />
+                <Skeleton className="h-4 w-96" />
+            </div>
+            <Separator />
+            <div className="space-y-6">
+                <div>
+                    <Skeleton className="h-6 w-32 mb-2" />
+                    <Skeleton className="h-4 w-80" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[...Array(2)].map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center justify-between">
+                                    <Skeleton className="h-6 w-32" />
+                                    <Skeleton className="h-6 w-11 rounded-full" />
+                                </CardTitle>
+                                <Skeleton className="h-4 w-full mt-2" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2">
+                                    <Skeleton className="h-4 w-40" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 }

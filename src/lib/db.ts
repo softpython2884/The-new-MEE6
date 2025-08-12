@@ -65,6 +65,25 @@ const defaultConfigs: DefaultConfigs = {
             mute: null,
         }
     },
+    'general-commands': {
+        enabled: true,
+        command_permissions: {
+            invite: null, // null means @everyone
+            ping: null,
+        },
+        command_enabled: {
+            invite: true,
+            ping: true,
+        }
+    },
+    'community-assistant': {
+        enabled: true,
+        confidence_threshold: 75,
+        knowledge_base: [],
+        command_permissions: {
+            faq: null
+        }
+    },
     'auto-moderation': { 
         enabled: true,
         'forbidden-vocabulary': { enabled: false },
@@ -133,9 +152,16 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
             // Merge with default config to ensure all keys are present
             const defaultConfig = defaultConfigs[module] || {};
             const finalConfig = { ...defaultConfig, ...config };
-             if (config.command_permissions) {
+
+            // Deep merge for nested objects like command_permissions
+             if (defaultConfig.command_permissions && config.command_permissions) {
                 finalConfig.command_permissions = { ...defaultConfig.command_permissions, ...config.command_permissions };
             }
+             if (defaultConfig.command_enabled && config.command_enabled) {
+                finalConfig.command_enabled = { ...defaultConfig.command_enabled, ...config.command_enabled };
+            }
+
+
             finalConfig.premium = !!result.premium;
             
             return finalConfig;

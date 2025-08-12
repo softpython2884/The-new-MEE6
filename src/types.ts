@@ -29,7 +29,9 @@ export type Module =
     | 'smart-voice'
     | 'content-ai'
     | 'server-builder'
-    | 'premium';
+    | 'premium'
+    | 'general-commands'
+    | 'community-assistant';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale
@@ -45,4 +47,10 @@ export type DefaultConfigs = {
 export interface InteractiveChannel {
     id: string;
     theme: 'gaming' | 'social' | 'music';
+}
+
+export interface KnowledgeBaseItem {
+    id: string;
+    question: string;
+    answer: string;
 }

@@ -1,18 +1,25 @@
 
 import { SlashCommandBuilder, CommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
+import { getServerConfig } from '../../../src/lib/db';
 
 const InviteCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('invite')
         .setDescription('Génère un lien pour inviter le bot sur un serveur.'),
     async execute(interaction: ChatInputCommandInteraction) {
-        // TODO: Fetch configuration from database for this server (interaction.guildId)
-        // const config = await db.getServerConfig(interaction.guildId);
-        // if (!config.modules.commands.invite_cmd) {
-        //     await interaction.reply({ content: "Cette commande est désactivée sur ce serveur.", flags: MessageFlags.Ephemeral });
-        //     return;
-        // }
+        if (!interaction.guildId) {
+             await interaction.reply({ content: "Une erreur est survenue.", flags: MessageFlags.Ephemeral });
+             return;
+        }
+
+        const config = await getServerConfig(interaction.guildId, 'general-commands');
+        if (!config?.command_enabled?.invite) {
+            await interaction.reply({ content: "Cette commande est désactivée sur ce serveur.", flags: MessageFlags.Ephemeral });
+            return;
+        }
+
+        // TODO: Check for role permissions from config.command_permissions.invite
 
         const clientId = process.env.DISCORD_CLIENT_ID;
         if (!clientId) {
@@ -34,7 +41,7 @@ const InviteCommand: Command = {
         await interaction.reply({
             content: "Cliquez sur le bouton ci-dessous pour m'ajouter à votre serveur !",
             components: [row],
-            flags: MessageFlags.Ephemeral, // Recommended to not spam the channel
+            flags: MessageFlags.Ephemeral,
         });
     },
 };

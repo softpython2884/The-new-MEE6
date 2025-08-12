@@ -8,3 +8,5 @@ import '@/ai/flows/moderation-ai-flow.ts';
 import '@/ai/flows/smart-voice-flow.ts';
 import '@/ai/flows/faq-flow.ts';
 import '@/ai/flows/auto-translate-flow.ts';
+import '@/ai/flows/moderation-ai-flow.ts';
+

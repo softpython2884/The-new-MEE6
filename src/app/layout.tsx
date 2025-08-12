@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Discord Panel Revamp',
+  title: 'Draftbot',
   description: 'A modern dashboard for Discord bot management.',
 };
 
@@ -18,11 +18,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
         ></link>
       </head>
-      <body className="font-body antialiased">
+      <body className="font-sans antialiased">
         {children}
         <Toaster />
       </body>

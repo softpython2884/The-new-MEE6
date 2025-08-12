@@ -20,7 +20,13 @@ const verifyInternalSecret = (req: express.Request, res: express.Response, next:
 export function startApi(client: Client) {
     const app = express();
 
-    app.use(cors()); // Pour l'instant, on laisse ouvert, on pourra restreindre plus tard.
+    const panelUrl = process.env.PANEL_BASE_URL || 'http://localhost:9002';
+    const corsOptions = {
+        origin: panelUrl,
+        optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+    };
+
+    app.use(cors(corsOptions)); 
     app.use(express.json());
 
     app.use((req, res, next) => {

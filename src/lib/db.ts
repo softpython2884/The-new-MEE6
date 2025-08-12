@@ -59,10 +59,10 @@ const defaultConfigs: DefaultConfigs = {
         presets: [], 
         premium: false,
         command_permissions: {
-            ban: null,
-            unban: null,
-            kick: null,
-            mute: null,
+            ban: '8', // Default to Admin, adjust as needed
+            unban: '8',
+            kick: '8',
+            mute: '8',
         }
     },
     'general-commands': {
@@ -104,6 +104,11 @@ const defaultConfigs: DefaultConfigs = {
         'log-channels': false,
         'log-roles': false,
         'log-moderation': true,
+    },
+    'auto-translation': {
+        enabled: false,
+        mode: 'inline',
+        channels: [],
     },
     'anti-bot': { enabled: false, mode: 'disabled', approval_channel_id: null, whitelisted_bots: [] },
     'captcha': { enabled: true, verification_channel: null, type: 'text', difficulty: 'medium', verified_role_id: null },

@@ -31,7 +31,8 @@ export type Module =
     | 'server-builder'
     | 'premium'
     | 'general-commands'
-    | 'community-assistant';
+    | 'community-assistant'
+    | 'auto-translation';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

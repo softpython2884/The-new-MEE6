@@ -6,11 +6,13 @@
     "dev": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && npm run bot:build",
+    "start": "npm run bot:start & next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "bot:dev": "tsx --watch bot/main.ts"
+    "bot:dev": "tsx --watch bot/main.ts",
+    "bot:build": "tsc -p bot/tsconfig.json",
+    "bot:start": "node dist/bot/main.js"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",

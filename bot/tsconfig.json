@@ -1,4 +1,3 @@
-
 {
   "compilerOptions": {
     "target": "es2020",
@@ -12,7 +11,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["../src/*"]
-    }
+    },
+    "resolveJsonModule": true
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

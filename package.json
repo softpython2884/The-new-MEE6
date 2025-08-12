@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bot:dev": "tsx --watch bot/main.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",

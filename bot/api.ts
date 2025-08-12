@@ -20,13 +20,9 @@ const verifyInternalSecret = (req: express.Request, res: express.Response, next:
 export function startApi(client: Client) {
     const app = express();
 
-    const panelUrl = process.env.PANEL_BASE_URL || 'http://localhost:9002';
-    const corsOptions = {
-        origin: panelUrl,
-        optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
-    };
-
-    app.use(cors(corsOptions)); 
+    // Utilisation de CORS avec la configuration par défaut pour autoriser toutes les origines.
+    // C'est sécuritaire dans ce contexte car l'authentification se fait via d'autres mécanismes (token, secret interne).
+    app.use(cors()); 
     app.use(express.json());
 
     app.use((req, res, next) => {

@@ -1,5 +1,5 @@
 
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -10,7 +10,7 @@ const PremiumCommand: Command = {
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -40,7 +40,7 @@ const PremiumCommand: Command = {
 
         } catch (error) {
             console.error('[PremiumCommand] Error checking premium status:', error);
-            await interaction.reply({ content: 'Une erreur est survenue lors de la vérification du statut premium.', ephemeral: true });
+            await interaction.reply({ content: 'Une erreur est survenue lors de la vérification du statut premium.', flags: MessageFlags.Ephemeral });
         }
     },
 };

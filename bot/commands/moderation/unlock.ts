@@ -1,5 +1,5 @@
 
-import { SlashCommandBuilder, CommandInteraction, PermissionFlagsBits, ChannelType, TextChannel, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction, PermissionFlagsBits, ChannelType, TextChannel, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 
 const UnlockCommand: Command = {
@@ -16,12 +16,12 @@ const UnlockCommand: Command = {
         // TODO: First, check if the module is enabled for this server
         // const config = await db.getServerConfig(interaction.guildId);
         // if (!config.modules.lock.enabled) {
-        //     await interaction.reply({ content: "Le module de verrouillage est désactivé sur ce serveur.", ephemeral: true });
+        //     await interaction.reply({ content: "Le module de verrouillage est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
         //     return;
         // }
         
         if (!interaction.guild) {
-            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -44,7 +44,7 @@ const UnlockCommand: Command = {
 
         } catch (error) {
             console.error('Erreur lors du déverrouillage du salon:', error);
-            await interaction.reply({ content: 'Une erreur est survenue lors du déverrouillage du salon.', ephemeral: true });
+            await interaction.reply({ content: 'Une erreur est survenue lors du déverrouillage du salon.', flags: MessageFlags.Ephemeral });
         }
     },
 };

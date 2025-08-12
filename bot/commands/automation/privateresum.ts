@@ -1,6 +1,6 @@
 
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -14,14 +14,14 @@ const PrivateResumCommand: Command = {
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
 
         const privateRoomsConfig = await getServerConfig(interaction.guild.id, 'private-rooms');
 
         if (!privateRoomsConfig?.enabled || !privateRoomsConfig.archive_summary) {
-            await interaction.reply({ content: "La fonctionnalité de résumé IA pour les salons privés est désactivée.", ephemeral: true });
+            await interaction.reply({ content: "La fonctionnalité de résumé IA pour les salons privés est désactivée.", flags: MessageFlags.Ephemeral });
             return;
         }
         

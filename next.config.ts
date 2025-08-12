@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_BOT_API_URL: process.env.BOT_API_URL,
+    NEXT_PUBLIC_DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
   },
   images: {
     remotePatterns: [

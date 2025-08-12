@@ -1,6 +1,6 @@
 
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, TextChannel, User } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, TextChannel, User, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -27,14 +27,14 @@ const BanCommand: Command = {
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
 
         // 1. Check if the module is enabled for this server from DB
         const config = await getServerConfig(interaction.guild.id, 'moderation');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de modération (Bans & Kicks) est désactivé sur ce serveur.", ephemeral: true });
+            await interaction.reply({ content: "Le module de modération (Bans & Kicks) est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -45,13 +45,13 @@ const BanCommand: Command = {
 
         // You can't ban yourself
         if (targetUser.id === moderator.id) {
-            await interaction.reply({ content: 'Vous ne pouvez pas vous bannir vous-même.', ephemeral: true });
+            await interaction.reply({ content: 'Vous ne pouvez pas vous bannir vous-même.', flags: MessageFlags.Ephemeral });
             return;
         }
         
         // You can't ban the bot
         if (targetUser.id === interaction.client.user.id) {
-            await interaction.reply({ content: 'Vous ne pouvez pas me bannir.', ephemeral: true });
+            await interaction.reply({ content: 'Vous ne pouvez pas me bannir.', flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -61,7 +61,7 @@ const BanCommand: Command = {
         if (targetMember && interaction.member && 'roles' in interaction.member) {
             const moderatorMember = await interaction.guild.members.fetch(moderator.id);
             if (targetMember.roles.highest.position >= moderatorMember.roles.highest.position) {
-                 await interaction.reply({ content: 'Vous ne pouvez pas bannir un membre avec un rôle égal ou supérieur au vôtre.', ephemeral: true });
+                 await interaction.reply({ content: 'Vous ne pouvez pas bannir un membre avec un rôle égal ou supérieur au vôtre.', flags: MessageFlags.Ephemeral });
                  return;
             }
         }
@@ -69,7 +69,7 @@ const BanCommand: Command = {
         // Check if bot has permissions to ban
         const botMember = await interaction.guild.members.fetch(interaction.client.user.id);
         if (targetMember && !targetMember.bannable) {
-            await interaction.reply({ content: 'Je n\'ai pas la permission de bannir cet utilisateur. Vérifiez la hiérarchie des rôles.', ephemeral: true });
+            await interaction.reply({ content: 'Je n\'ai pas la permission de bannir cet utilisateur. Vérifiez la hiérarchie des rôles.', flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -132,9 +132,9 @@ const BanCommand: Command = {
                 .setDescription(`❌ Une erreur est survenue lors du bannissement de **${targetUser.tag}**.`);
 
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             } else {
-                 await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     },

@@ -34,6 +34,7 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
   const featurePath = pathname.split('/').pop() || 'moderation';
   const [servers, setServers] = useState<ServerInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inviteUrl, setInviteUrl] = useState<string>('#');
 
   useEffect(() => {
     const fetchServers = async () => {
@@ -64,6 +65,13 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
         }
     };
     fetchServers();
+
+    // Construct the invite URL
+    const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
+    if (clientId) {
+        setInviteUrl(`https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=8&scope=bot%20applications.commands`);
+    }
+
   }, []);
 
   return (
@@ -106,9 +114,11 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
         <div className="mt-auto">
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="flex size-12 items-center justify-center rounded-full bg-card-foreground/10 text-green-400 transition-all hover:bg-green-400 hover:text-white">
-                <Plus size={24} />
-              </button>
+                <a href={inviteUrl} target="_blank" rel="noopener noreferrer">
+                    <button className="flex size-12 items-center justify-center rounded-full bg-card-foreground/10 text-green-400 transition-all hover:bg-green-400 hover:text-white">
+                        <Plus size={24} />
+                    </button>
+                </a>
             </TooltipTrigger>
             <TooltipContent side="right">
               <p>Ajouter un serveur</p>

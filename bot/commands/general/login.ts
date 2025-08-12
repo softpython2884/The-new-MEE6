@@ -1,5 +1,5 @@
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { Command } from '@/types';
 import { generateAuthToken } from '../../auth';
 
@@ -11,7 +11,7 @@ const LoginCommand: Command = {
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -49,14 +49,14 @@ const LoginCommand: Command = {
             await interaction.reply({
                 embeds: [embed],
                 components: [row],
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
 
         } catch (error) {
             console.error('[LoginCommand] Error generating auth token link:', error);
             await interaction.reply({
                 content: 'Une erreur est survenue lors de la création de votre lien de connexion. Veuillez réessayer plus tard.',
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
         }
     },

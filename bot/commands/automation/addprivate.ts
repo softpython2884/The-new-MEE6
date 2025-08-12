@@ -1,6 +1,6 @@
 
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -12,19 +12,19 @@ const AddPrivateCommand: Command = {
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
 
         const privateRoomsConfig = await getServerConfig(interaction.guild.id, 'private-rooms');
 
         if (!privateRoomsConfig?.enabled) {
-            await interaction.reply({ content: "Le module de salons privés est désactivé sur ce serveur.", ephemeral: true });
+            await interaction.reply({ content: "Le module de salons privés est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
             return;
         }
         
         if (!privateRoomsConfig.creation_channel) {
-            await interaction.reply({ content: "Aucun salon de création n'a été configuré. Veuillez le définir dans le dashboard.", ephemeral: true });
+            await interaction.reply({ content: "Aucun salon de création n'a été configuré. Veuillez le définir dans le dashboard.", flags: MessageFlags.Ephemeral });
             return;
         }
         
@@ -39,7 +39,7 @@ const AddPrivateCommand: Command = {
             .setColor(0x00FF00)
             .setDescription(`✅ Le panneau de création de salon privé serait envoyé dans le salon <#${privateRoomsConfig.creation_channel}>. (Implémentation à venir)`);
             
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     },
 };
 

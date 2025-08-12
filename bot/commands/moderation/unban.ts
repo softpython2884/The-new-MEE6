@@ -1,6 +1,6 @@
 
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, TextChannel, AutocompleteInteraction, ApplicationCommandOptionChoiceData } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, TextChannel, AutocompleteInteraction, ApplicationCommandOptionChoiceData, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -43,13 +43,13 @@ const UnbanCommand: Command = {
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
 
         const config = await getServerConfig(interaction.guild.id, 'moderation');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de modération est désactivé sur ce serveur.", ephemeral: true });
+            await interaction.reply({ content: "Le module de modération est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -92,9 +92,9 @@ const UnbanCommand: Command = {
                 .setDescription(`❌ Impossible de débannir l'utilisateur avec l'ID **${userIdToUnban}**. Vérifiez si l'ID est correct et si l'utilisateur est bien banni.`);
 
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             } else {
-                 await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     },

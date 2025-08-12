@@ -1,6 +1,6 @@
 
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -16,14 +16,14 @@ const IADeleteServCommand: Command = {
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
         
         const serverBuilderConfig = await getServerConfig(interaction.guild.id, 'server-builder');
         
         if (!serverBuilderConfig?.enabled) {
-            await interaction.reply({ content: "Le module Server Builder IA est désactivé sur ce serveur.", ephemeral: true });
+            await interaction.reply({ content: "Le module Server Builder IA est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
             return;
         }
 

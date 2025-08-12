@@ -1,5 +1,5 @@
 
-import { SlashCommandBuilder, CommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 
 const InviteCommand: Command = {
@@ -10,13 +10,13 @@ const InviteCommand: Command = {
         // TODO: Fetch configuration from database for this server (interaction.guildId)
         // const config = await db.getServerConfig(interaction.guildId);
         // if (!config.modules.commands.invite_cmd) {
-        //     await interaction.reply({ content: "Cette commande est désactivée sur ce serveur.", ephemeral: true });
+        //     await interaction.reply({ content: "Cette commande est désactivée sur ce serveur.", flags: MessageFlags.Ephemeral });
         //     return;
         // }
 
         const clientId = process.env.DISCORD_CLIENT_ID;
         if (!clientId) {
-            await interaction.reply({ content: "Une erreur de configuration empêche la création du lien d'invitation.", ephemeral: true });
+            await interaction.reply({ content: "Une erreur de configuration empêche la création du lien d'invitation.", flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -34,7 +34,7 @@ const InviteCommand: Command = {
         await interaction.reply({
             content: "Cliquez sur le bouton ci-dessous pour m'ajouter à votre serveur !",
             components: [row],
-            ephemeral: true, // Recommended to not spam the channel
+            flags: MessageFlags.Ephemeral, // Recommended to not spam the channel
         });
     },
 };

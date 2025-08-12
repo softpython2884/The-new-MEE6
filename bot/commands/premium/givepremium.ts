@@ -1,5 +1,5 @@
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { setPremiumStatus } from '../../../src/lib/db';
 
@@ -21,7 +21,7 @@ const GivePremiumCommand: Command = {
         const ownerId = '556529963877138442'; // Your Discord User ID
 
         if (interaction.user.id !== ownerId) {
-            await interaction.reply({ content: 'Cette commande est réservée au propriétaire du bot.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande est réservée au propriétaire du bot.', flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -32,7 +32,7 @@ const GivePremiumCommand: Command = {
             // Check if the bot is in the target guild
             const guild = await interaction.client.guilds.fetch(guildId).catch(() => null);
             if (!guild) {
-                await interaction.reply({ content: `Je ne suis pas sur le serveur avec l'ID \`${guildId}\`.`, ephemeral: true });
+                await interaction.reply({ content: `Je ne suis pas sur le serveur avec l'ID \`${guildId}\`.`, flags: MessageFlags.Ephemeral });
                 return;
             }
 
@@ -44,11 +44,11 @@ const GivePremiumCommand: Command = {
                 .setDescription(`Le statut premium pour le serveur **${guild.name}** (\`${guildId}\`) a été mis à **${status ? 'Activé' : 'Désactivé'}**.`)
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
         } catch (error) {
             console.error('[GivePremium] Error setting premium status:', error);
-            await interaction.reply({ content: 'Une erreur est survenue lors de la mise à jour du statut premium.', ephemeral: true });
+            await interaction.reply({ content: 'Une erreur est survenue lors de la mise à jour du statut premium.', flags: MessageFlags.Ephemeral });
         }
     },
 };

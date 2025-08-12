@@ -1,6 +1,6 @@
 
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, TextChannel } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, TextChannel, MessageFlags } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -21,13 +21,13 @@ const KickCommand: Command = {
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', ephemeral: true });
+            await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
 
         const config = await getServerConfig(interaction.guild.id, 'moderation');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de modération (Bans & Kicks) est désactivé sur ce serveur.", ephemeral: true });
+            await interaction.reply({ content: "Le module de modération (Bans & Kicks) est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -36,32 +36,32 @@ const KickCommand: Command = {
         const moderator = interaction.user;
 
         if (targetUser.id === moderator.id) {
-            await interaction.reply({ content: 'Vous ne pouvez pas vous expulser vous-même.', ephemeral: true });
+            await interaction.reply({ content: 'Vous ne pouvez pas vous expulser vous-même.', flags: MessageFlags.Ephemeral });
             return;
         }
         
         if (targetUser.id === interaction.client.user.id) {
-            await interaction.reply({ content: 'Vous ne pouvez pas m\'expulser.', ephemeral: true });
+            await interaction.reply({ content: 'Vous ne pouvez pas m\'expulser.', flags: MessageFlags.Ephemeral });
             return;
         }
 
         const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
 
         if (!targetMember) {
-             await interaction.reply({ content: 'Cet utilisateur n\'est pas sur le serveur.', ephemeral: true });
+             await interaction.reply({ content: 'Cet utilisateur n\'est pas sur le serveur.', flags: MessageFlags.Ephemeral });
              return;
         }
         
         if (interaction.member && 'roles' in interaction.member) {
             const moderatorMember = await interaction.guild.members.fetch(moderator.id);
             if (targetMember.roles.highest.position >= moderatorMember.roles.highest.position) {
-                 await interaction.reply({ content: 'Vous ne pouvez pas expulser un membre avec un rôle égal ou supérieur au vôtre.', ephemeral: true });
+                 await interaction.reply({ content: 'Vous ne pouvez pas expulser un membre avec un rôle égal ou supérieur au vôtre.', flags: MessageFlags.Ephemeral });
                  return;
             }
         }
         
         if (!targetMember.kickable) {
-            await interaction.reply({ content: 'Je n\'ai pas la permission d\'expulser cet utilisateur. Vérifiez la hiérarchie des rôles.', ephemeral: true });
+            await interaction.reply({ content: 'Je n\'ai pas la permission d\'expulser cet utilisateur. Vérifiez la hiérarchie des rôles.', flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -113,7 +113,7 @@ const KickCommand: Command = {
             const errorEmbed = new EmbedBuilder()
                 .setColor(0xFF0000)
                 .setDescription(`❌ Une erreur est survenue lors de l'expulsion de **${targetUser.tag}**.`);
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     },
 };

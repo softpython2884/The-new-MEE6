@@ -8,14 +8,16 @@ const InviteCommand: Command = {
         .setName('invite')
         .setDescription('Génère un lien pour inviter le bot sur un serveur.'),
     async execute(interaction: ChatInputCommandInteraction) {
+        await interaction.deferReply({ ephemeral: true });
+
         if (!interaction.guildId) {
-             await interaction.reply({ content: "Une erreur est survenue.", flags: MessageFlags.Ephemeral });
+             await interaction.editReply({ content: "Une erreur est survenue." });
              return;
         }
 
         const config = await getServerConfig(interaction.guildId, 'general-commands');
         if (!config?.command_enabled?.invite) {
-            await interaction.reply({ content: "Cette commande est désactivée sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Cette commande est désactivée sur ce serveur." });
             return;
         }
 
@@ -23,7 +25,7 @@ const InviteCommand: Command = {
 
         const clientId = process.env.DISCORD_CLIENT_ID;
         if (!clientId) {
-            await interaction.reply({ content: "Une erreur de configuration empêche la création du lien d'invitation.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Une erreur de configuration empêche la création du lien d'invitation." });
             return;
         }
 
@@ -38,10 +40,9 @@ const InviteCommand: Command = {
         const row = new ActionRowBuilder<ButtonBuilder>()
             .addComponents(inviteButton);
 
-        await interaction.reply({
+        await interaction.editReply({
             content: "Cliquez sur le bouton ci-dessous pour m'ajouter à votre serveur !",
             components: [row],
-            flags: MessageFlags.Ephemeral,
         });
     },
 };

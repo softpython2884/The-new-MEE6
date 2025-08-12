@@ -23,11 +23,13 @@ const IAResetServCommand: Command = {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        await interaction.deferReply({ ephemeral: true });
 
         const serverBuilderConfig = await getServerConfig(interaction.guild.id, 'server-builder');
 
         if (!serverBuilderConfig?.enabled) {
-            await interaction.reply({ content: "Le module Server Builder IA est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module Server Builder IA est désactivé sur ce serveur." });
             return;
         }
 
@@ -38,8 +40,6 @@ const IAResetServCommand: Command = {
         // 2. Delete all existing channels and roles (or a subset).
         // 3. Call the same flow as /iacreateserv to generate the new structure.
         
-        await interaction.deferReply({ ephemeral: true });
-
         const embed = new EmbedBuilder()
             .setColor(0xFFA500)
             .setTitle('🚀 Réinitialisation du Serveur par l\'IA')

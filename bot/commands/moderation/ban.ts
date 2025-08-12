@@ -31,10 +31,12 @@ const BanCommand: Command = {
             return;
         }
 
+        await interaction.deferReply({ ephemeral: true });
+
         // 1. Check if the module is enabled for this server from DB
         const config = await getServerConfig(interaction.guild.id, 'moderation');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de modération (Bans & Kicks) est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module de modération (Bans & Kicks) est désactivé sur ce serveur." });
             return;
         }
 
@@ -45,13 +47,13 @@ const BanCommand: Command = {
 
         // You can't ban yourself
         if (targetUser.id === moderator.id) {
-            await interaction.reply({ content: 'Vous ne pouvez pas vous bannir vous-même.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Vous ne pouvez pas vous bannir vous-même.' });
             return;
         }
         
         // You can't ban the bot
         if (targetUser.id === interaction.client.user.id) {
-            await interaction.reply({ content: 'Vous ne pouvez pas me bannir.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Vous ne pouvez pas me bannir.' });
             return;
         }
 
@@ -61,7 +63,7 @@ const BanCommand: Command = {
         if (targetMember && interaction.member && 'roles' in interaction.member) {
             const moderatorMember = await interaction.guild.members.fetch(moderator.id);
             if (targetMember.roles.highest.position >= moderatorMember.roles.highest.position) {
-                 await interaction.reply({ content: 'Vous ne pouvez pas bannir un membre avec un rôle égal ou supérieur au vôtre.', flags: MessageFlags.Ephemeral });
+                 await interaction.editReply({ content: 'Vous ne pouvez pas bannir un membre avec un rôle égal ou supérieur au vôtre.' });
                  return;
             }
         }
@@ -69,7 +71,7 @@ const BanCommand: Command = {
         // Check if bot has permissions to ban
         const botMember = await interaction.guild.members.fetch(interaction.client.user.id);
         if (targetMember && !targetMember.bannable) {
-            await interaction.reply({ content: 'Je n\'ai pas la permission de bannir cet utilisateur. Vérifiez la hiérarchie des rôles.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Je n\'ai pas la permission de bannir cet utilisateur. Vérifiez la hiérarchie des rôles.' });
             return;
         }
 
@@ -103,7 +105,7 @@ const BanCommand: Command = {
                 .setColor(0x00FF00)
                 .setDescription(`✅ **${targetUser.tag}** a été banni avec succès.`);
             
-            await interaction.reply({ embeds: [replyEmbed] });
+            await interaction.editReply({ embeds: [replyEmbed] });
 
             // 4. Send log if enabled
             if (config.log_channel_id) {
@@ -131,11 +133,7 @@ const BanCommand: Command = {
                 .setColor(0xFF0000)
                 .setDescription(`❌ Une erreur est survenue lors du bannissement de **${targetUser.tag}**.`);
 
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
-            } else {
-                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
-            }
+            await interaction.editReply({ embeds: [errorEmbed] });
         }
     },
 };

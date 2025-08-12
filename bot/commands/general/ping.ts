@@ -8,21 +8,23 @@ const PingCommand: Command = {
         .setName('ping')
         .setDescription('Vérifie la latence du bot.'),
     async execute(interaction: ChatInputCommandInteraction) {
+        await interaction.deferReply({ ephemeral: true });
+
         if (!interaction.guildId) {
-             await interaction.reply({ content: "Une erreur est survenue.", flags: MessageFlags.Ephemeral });
+             await interaction.editReply({ content: "Une erreur est survenue." });
              return;
         }
         
         const config = await getServerConfig(interaction.guildId, 'general-commands');
         if (!config?.command_enabled?.ping) {
-            await interaction.reply({ content: "Cette commande est désactivée sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Cette commande est désactivée sur ce serveur." });
             return;
         }
 
         // TODO: Check for role permissions from config.command_permissions.ping
-
-        const sent = await interaction.reply({ content: 'Pinging...', fetchReply: true });
-        const latency = sent.createdTimestamp - interaction.createdTimestamp;
+        await interaction.editReply('Pinging...');
+        const reply = await interaction.fetchReply();
+        const latency = reply.createdTimestamp - interaction.createdTimestamp;
         const apiLatency = Math.round(interaction.client.ws.ping);
         await interaction.editReply(`Pong! Latence du bot : ${latency}ms. Latence de l'API : ${apiLatency}ms.`);
     },

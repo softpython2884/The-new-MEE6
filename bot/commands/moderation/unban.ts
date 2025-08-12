@@ -47,9 +47,11 @@ const UnbanCommand: Command = {
             return;
         }
 
+        await interaction.deferReply({ ephemeral: true });
+
         const config = await getServerConfig(interaction.guild.id, 'moderation');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de modération est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module de modération est désactivé sur ce serveur." });
             return;
         }
 
@@ -66,7 +68,7 @@ const UnbanCommand: Command = {
                 .setColor(0x00FF00)
                 .setDescription(`✅ **${targetUser.tag}** a été débanni avec succès.`);
             
-            await interaction.reply({ embeds: [replyEmbed] });
+            await interaction.editReply({ embeds: [replyEmbed] });
 
             if (config.log_channel_id) {
                 const logChannel = interaction.guild.channels.cache.get(config.log_channel_id as string) as TextChannel;
@@ -91,11 +93,7 @@ const UnbanCommand: Command = {
                 .setColor(0xFF0000)
                 .setDescription(`❌ Impossible de débannir l'utilisateur avec l'ID **${userIdToUnban}**. Vérifiez si l'ID est correct et si l'utilisateur est bien banni.`);
 
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
-            } else {
-                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
-            }
+            await interaction.editReply({ embeds: [errorEmbed] });
         }
     },
 };

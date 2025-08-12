@@ -21,10 +21,12 @@ const IAEditServCommand: Command = {
             return;
         }
         
+        await interaction.deferReply({ ephemeral: true });
+
         const serverBuilderConfig = await getServerConfig(interaction.guild.id, 'server-builder');
 
         if (!serverBuilderConfig?.enabled) {
-            await interaction.reply({ content: "Le module Server Builder IA est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module Server Builder IA est désactivé sur ce serveur." });
             return;
         }
 
@@ -35,8 +37,6 @@ const IAEditServCommand: Command = {
         // 2. The flow would return a set of actions to perform (e.g., create channel, edit role).
         // 3. The bot would then parse these actions and apply them.
         
-        await interaction.deferReply({ ephemeral: true });
-
         const embed = new EmbedBuilder()
             .setColor(0x00BFFF)
             .setTitle('🚀 Lancement de l\'Éditeur de Serveur IA')

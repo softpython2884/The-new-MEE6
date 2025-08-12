@@ -37,10 +37,12 @@ const IACreateServCommand: Command = {
             return;
         }
 
+        await interaction.deferReply({ ephemeral: true });
+
         const serverBuilderConfig = await getServerConfig(interaction.guild.id, 'server-builder');
 
         if (!serverBuilderConfig?.enabled) {
-            await interaction.reply({ content: "Le module Server Builder IA est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module Server Builder IA est désactivé sur ce serveur." });
             return;
         }
 
@@ -55,8 +57,6 @@ const IACreateServCommand: Command = {
         //    - It would require careful handling of rate limits.
         //    - It should probably be done in a way that can be resumed if it fails.
         // 4. For now, we defer the reply and send a confirmation message.
-
-        await interaction.deferReply({ ephemeral: true });
 
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)

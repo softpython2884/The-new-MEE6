@@ -28,10 +28,12 @@ const MuteCommand: Command = {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        await interaction.deferReply({ ephemeral: true });
 
         const config = await getServerConfig(interaction.guild.id, 'moderation');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de modération est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module de modération est désactivé sur ce serveur." });
             return;
         }
 
@@ -42,12 +44,12 @@ const MuteCommand: Command = {
 
         const durationMs = ms(durationString);
         if (!durationMs) {
-            await interaction.reply({ content: 'Durée invalide. Utilisez un format comme `10m`, `1h`, ou `7d`.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Durée invalide. Utilisez un format comme `10m`, `1h`, ou `7d`.' });
             return;
         }
         // Discord API limit is 28 days for timeouts
         if (durationMs > ms('28d')) {
-             await interaction.reply({ content: 'La durée du mute ne peut pas dépasser 28 jours.', flags: MessageFlags.Ephemeral });
+             await interaction.editReply({ content: 'La durée du mute ne peut pas dépasser 28 jours.' });
             return;
         }
 
@@ -55,25 +57,25 @@ const MuteCommand: Command = {
         const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
 
         if (!targetMember) {
-             await interaction.reply({ content: 'Cet utilisateur n\'est pas sur le serveur.', flags: MessageFlags.Ephemeral });
+             await interaction.editReply({ content: 'Cet utilisateur n\'est pas sur le serveur.' });
              return;
         }
         
         if (targetMember.isCommunicationDisabled()) {
-             await interaction.reply({ content: 'Cet utilisateur est déjà muet.', flags: MessageFlags.Ephemeral });
+             await interaction.editReply({ content: 'Cet utilisateur est déjà muet.' });
              return;
         }
 
         if (interaction.member && 'roles' in interaction.member) {
             const moderatorMember = interaction.member as GuildMember;
             if (targetMember.roles.highest.position >= moderatorMember.roles.highest.position) {
-                 await interaction.reply({ content: 'Vous ne pouvez pas rendre muet un membre avec un rôle égal ou supérieur au vôtre.', flags: MessageFlags.Ephemeral });
+                 await interaction.editReply({ content: 'Vous ne pouvez pas rendre muet un membre avec un rôle égal ou supérieur au vôtre.' });
                  return;
             }
         }
         
         if (!targetMember.moderatable) {
-            await interaction.reply({ content: 'Je n\'ai pas la permission de rendre muet cet utilisateur. Vérifiez la hiérarchie des rôles.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Je n\'ai pas la permission de rendre muet cet utilisateur. Vérifiez la hiérarchie des rôles.' });
             return;
         }
 
@@ -102,7 +104,7 @@ const MuteCommand: Command = {
                 .setColor(0x00FF00)
                 .setDescription(`✅ **${targetUser.tag}** a été rendu muet pour **${durationString}**.`);
             
-            await interaction.reply({ embeds: [replyEmbed] });
+            await interaction.editReply({ embeds: [replyEmbed] });
 
             if (config.log_channel_id) {
                 const logChannel = interaction.guild.channels.cache.get(config.log_channel_id as string) as TextChannel;
@@ -128,7 +130,7 @@ const MuteCommand: Command = {
             const errorEmbed = new EmbedBuilder()
                 .setColor(0xFF0000)
                 .setDescription(`❌ Une erreur est survenue lors du mute de **${targetUser.tag}**.`);
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [errorEmbed] });
         }
     },
 };

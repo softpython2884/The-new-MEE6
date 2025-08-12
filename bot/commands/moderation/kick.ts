@@ -24,10 +24,12 @@ const KickCommand: Command = {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        await interaction.deferReply({ ephemeral: true });
 
         const config = await getServerConfig(interaction.guild.id, 'moderation');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de modération (Bans & Kicks) est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module de modération (Bans & Kicks) est désactivé sur ce serveur." });
             return;
         }
 
@@ -36,32 +38,32 @@ const KickCommand: Command = {
         const moderator = interaction.user;
 
         if (targetUser.id === moderator.id) {
-            await interaction.reply({ content: 'Vous ne pouvez pas vous expulser vous-même.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Vous ne pouvez pas vous expulser vous-même.' });
             return;
         }
         
         if (targetUser.id === interaction.client.user.id) {
-            await interaction.reply({ content: 'Vous ne pouvez pas m\'expulser.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Vous ne pouvez pas m\'expulser.' });
             return;
         }
 
         const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
 
         if (!targetMember) {
-             await interaction.reply({ content: 'Cet utilisateur n\'est pas sur le serveur.', flags: MessageFlags.Ephemeral });
+             await interaction.editReply({ content: 'Cet utilisateur n\'est pas sur le serveur.' });
              return;
         }
         
         if (interaction.member && 'roles' in interaction.member) {
             const moderatorMember = await interaction.guild.members.fetch(moderator.id);
             if (targetMember.roles.highest.position >= moderatorMember.roles.highest.position) {
-                 await interaction.reply({ content: 'Vous ne pouvez pas expulser un membre avec un rôle égal ou supérieur au vôtre.', flags: MessageFlags.Ephemeral });
+                 await interaction.editReply({ content: 'Vous ne pouvez pas expulser un membre avec un rôle égal ou supérieur au vôtre.' });
                  return;
             }
         }
         
         if (!targetMember.kickable) {
-            await interaction.reply({ content: 'Je n\'ai pas la permission d\'expulser cet utilisateur. Vérifiez la hiérarchie des rôles.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Je n\'ai pas la permission d\'expulser cet utilisateur. Vérifiez la hiérarchie des rôles.' });
             return;
         }
 
@@ -88,7 +90,7 @@ const KickCommand: Command = {
                 .setColor(0x00FF00)
                 .setDescription(`✅ **${targetUser.tag}** a été expulsé avec succès.`);
             
-            await interaction.reply({ embeds: [replyEmbed] });
+            await interaction.editReply({ embeds: [replyEmbed] });
 
             if (config.log_channel_id) {
                 const logChannel = interaction.guild.channels.cache.get(config.log_channel_id as string) as TextChannel;
@@ -113,7 +115,7 @@ const KickCommand: Command = {
             const errorEmbed = new EmbedBuilder()
                 .setColor(0xFF0000)
                 .setDescription(`❌ Une erreur est survenue lors de l'expulsion de **${targetUser.tag}**.`);
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [errorEmbed] });
         }
     },
 };

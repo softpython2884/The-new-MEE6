@@ -24,9 +24,11 @@ const LockCommand: Command = {
             return;
         }
         
+        await interaction.deferReply({ ephemeral: true });
+
         const config = await getServerConfig(interaction.guild.id, 'lock');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de verrouillage est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module de verrouillage est désactivé sur ce serveur." });
             return;
         }
 
@@ -40,7 +42,7 @@ const LockCommand: Command = {
             // Check if channel is already locked for @everyone
             const currentPermissions = channel.permissionOverwrites.cache.get(everyoneRole.id);
             if (currentPermissions && currentPermissions.deny.has('SendMessages')) {
-                 await interaction.reply({ content: `Le salon ${channel} est déjà verrouillé.`, flags: MessageFlags.Ephemeral });
+                 await interaction.editReply({ content: `Le salon ${channel} est déjà verrouillé.` });
                  return;
             }
 
@@ -48,12 +50,12 @@ const LockCommand: Command = {
                 SendMessages: false,
             });
 
-            await interaction.reply({ content: `Le salon ${channel} a été verrouillé.`, flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: `Le salon ${channel} a été verrouillé.` });
             await channel.send(`🔒 **Salon verrouillé** par ${interaction.user.toString()}.\nRaison : ${reason}`);
 
         } catch (error) {
             console.error('Erreur lors du verrouillage du salon:', error);
-            await interaction.reply({ content: 'Une erreur est survenue lors du verrouillage du salon.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Une erreur est survenue lors du verrouillage du salon.' });
         }
     },
 };

@@ -13,10 +13,12 @@ const PremiumCommand: Command = {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        await interaction.deferReply();
 
         try {
             // We can check any module, they all share the premium status for a guild.
-            const config = getServerConfig(interaction.guild.id, 'moderation');
+            const config = await getServerConfig(interaction.guild.id, 'moderation');
             const isPremium = config?.premium || false;
 
             const embed = new EmbedBuilder()
@@ -36,11 +38,11 @@ const PremiumCommand: Command = {
                      .addFields({ name: 'Comment obtenir le Premium ?', value: 'Visitez notre site web ou rejoignez notre serveur de support pour en savoir plus ! (Liens à venir)' });
             }
 
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
             console.error('[PremiumCommand] Error checking premium status:', error);
-            await interaction.reply({ content: 'Une erreur est survenue lors de la vérification du statut premium.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Une erreur est survenue lors de la vérification du statut premium.' });
         }
     },
 };

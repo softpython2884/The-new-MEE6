@@ -17,11 +17,13 @@ const PrivateResumCommand: Command = {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        await interaction.deferReply({ ephemeral: true });
 
         const privateRoomsConfig = await getServerConfig(interaction.guild.id, 'private-rooms');
 
         if (!privateRoomsConfig?.enabled || !privateRoomsConfig.archive_summary) {
-            await interaction.reply({ content: "La fonctionnalité de résumé IA pour les salons privés est désactivée.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "La fonctionnalité de résumé IA pour les salons privés est désactivée." });
             return;
         }
         
@@ -36,7 +38,7 @@ const PrivateResumCommand: Command = {
             .setTitle("Résumé IA")
             .setDescription(`📝 Un résumé IA de ce salon serait généré ici avant l'archivage. (Implémentation IA à venir)`);
             
-        await interaction.reply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [embed] });
     },
 };
 

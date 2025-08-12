@@ -31,15 +31,16 @@ const BackupCommand: Command = {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        await interaction.deferReply({ ephemeral: true });
 
         const config = await getServerConfig(interaction.guild.id, 'backup');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de backup est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module de backup est désactivé sur ce serveur." });
             return;
         }
 
         const subcommand = interaction.options.getSubcommand();
-        await interaction.deferReply({ ephemeral: true });
 
         if (subcommand === 'export') {
             try {

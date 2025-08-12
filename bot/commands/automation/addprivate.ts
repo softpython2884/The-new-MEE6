@@ -15,23 +15,25 @@ const AddPrivateCommand: Command = {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        await interaction.deferReply({ ephemeral: true });
 
         const privateRoomsConfig = await getServerConfig(interaction.guild.id, 'private-rooms');
 
         if (!privateRoomsConfig?.enabled) {
-            await interaction.reply({ content: "Le module de salons privés est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module de salons privés est désactivé sur ce serveur." });
             return;
         }
         
         if (!privateRoomsConfig.creation_channel) {
-            await interaction.reply({ content: "Aucun salon de création n'a été configuré. Veuillez le définir dans le dashboard.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Aucun salon de création n'a été configuré. Veuillez le définir dans le dashboard." });
             return;
         }
         
         try {
             const channel = await interaction.guild.channels.fetch(privateRoomsConfig.creation_channel) as TextChannel;
             if (!channel) {
-                await interaction.reply({ content: "Le salon de création configuré n'existe plus.", flags: MessageFlags.Ephemeral });
+                await interaction.editReply({ content: "Le salon de création configuré n'existe plus." });
                 return;
             }
 
@@ -51,11 +53,11 @@ const AddPrivateCommand: Command = {
             
             await channel.send({ embeds: [embed], components: [row] });
 
-            await interaction.reply({ content: `✅ Le panneau de création de salon privé a été envoyé avec succès dans ${channel}.`, flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: `✅ Le panneau de création de salon privé a été envoyé avec succès dans ${channel}.` });
 
         } catch (error) {
             console.error('[AddPrivate] Error sending private room panel:', error);
-            await interaction.reply({ content: 'Une erreur est survenue lors de l\'envoi du panneau.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Une erreur est survenue lors de l\'envoi du panneau.' });
         }
     },
 };

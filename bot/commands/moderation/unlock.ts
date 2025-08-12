@@ -18,10 +18,12 @@ const UnlockCommand: Command = {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        await interaction.deferReply({ ephemeral: true });
 
         const config = await getServerConfig(interaction.guild.id, 'lock');
         if (!config?.enabled) {
-            await interaction.reply({ content: "Le module de verrouillage est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module de verrouillage est désactivé sur ce serveur." });
             return;
         }
         
@@ -34,7 +36,7 @@ const UnlockCommand: Command = {
             // Check if channel is actually locked
              const currentPermissions = channel.permissionOverwrites.cache.get(everyoneRole.id);
             if (!currentPermissions || !currentPermissions.deny.has('SendMessages')) {
-                 await interaction.reply({ content: `Le salon ${channel} n'est pas verrouillé.`, flags: MessageFlags.Ephemeral });
+                 await interaction.editReply({ content: `Le salon ${channel} n'est pas verrouillé.` });
                  return;
             }
 
@@ -42,12 +44,12 @@ const UnlockCommand: Command = {
                 SendMessages: null, // null restores the default permission
             });
 
-            await interaction.reply({ content: `Le salon ${channel} a été déverrouillé.`, flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: `Le salon ${channel} a été déverrouillé.` });
             await channel.send(`🔓 **Salon déverrouillé** par ${interaction.user.toString()}.`);
 
         } catch (error) {
             console.error('Erreur lors du déverrouillage du salon:', error);
-            await interaction.reply({ content: 'Une erreur est survenue lors du déverrouillage du salon.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Une erreur est survenue lors du déverrouillage du salon.' });
         }
     },
 };

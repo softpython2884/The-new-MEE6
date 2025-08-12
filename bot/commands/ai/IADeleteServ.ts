@@ -20,10 +20,12 @@ const IADeleteServCommand: Command = {
             return;
         }
         
+        await interaction.deferReply({ ephemeral: true });
+
         const serverBuilderConfig = await getServerConfig(interaction.guild.id, 'server-builder');
         
         if (!serverBuilderConfig?.enabled) {
-            await interaction.reply({ content: "Le module Server Builder IA est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: "Le module Server Builder IA est désactivé sur ce serveur." });
             return;
         }
 
@@ -33,8 +35,6 @@ const IADeleteServCommand: Command = {
         // 1. Call a Genkit flow to understand the target and confirm the deletion plan.
         // 2. The bot would then delete the specified elements.
         
-        await interaction.deferReply({ ephemeral: true });
-
         const embed = new EmbedBuilder()
             .setColor(0xFF0000)
             .setTitle('🚀 Suppression d\'éléments par l\'IA')

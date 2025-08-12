@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -22,8 +23,9 @@ interface ModerationConfig {
   dm_user_on_action: boolean;
   premium: boolean;
   command_permissions: {
-      [command: string]: string; // command_name: role_id
+      [command: string]: string | null;
   }
+  presets: any[];
 }
 
 interface DiscordChannel {
@@ -65,6 +67,7 @@ const moderationCommands = [
 export default function ModerationPage() {
   const params = useParams();
   const serverId = params.serverId as string;
+  const { toast } = useToast();
 
   const [config, setConfig] = useState<ModerationConfig | null>(null);
   const [channels, setChannels] = useState<DiscordChannel[]>([]);
@@ -81,59 +84,63 @@ export default function ModerationPage() {
       try {
         // Fetch module config
         const configRes = await fetch(`${API_URL}/get-config/${serverId}/moderation`);
+        if (!configRes.ok) throw new Error(`HTTP error! status: ${configRes.status}`);
         const configData = await configRes.json();
-        if (configRes.ok) {
-          setConfig(configData);
-        } else if (configRes.status !== 404) { // 404 is a normal case for new configs
-          console.error("Failed to fetch module config:", configData.message);
-        }
+        setConfig(configData);
 
         // Fetch server details (which includes channels and roles)
         const serverDetailsRes = await fetch(`${API_URL}/get-server-details/${serverId}`);
+        if (!serverDetailsRes.ok) throw new Error(`HTTP error! status: ${serverDetailsRes.status}`);
         const serverDetailsData = await serverDetailsRes.json();
-        if (serverDetailsRes.ok) {
-            setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0)); // Text channels
-            setRoles(serverDetailsData.roles);
-        } else {
-           console.error("Failed to fetch server details:", serverDetailsData.error);
-        }
+        setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0)); // Text channels
+        setRoles(serverDetailsData.roles);
 
       } catch (error) {
         console.error("Failed to fetch data", error);
-        // TODO: show toast error
+        toast({
+            title: "Erreur",
+            description: "Impossible de charger les données du serveur.",
+            variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [serverId]);
+  }, [serverId, toast]);
 
   const saveConfig = async (newConfig: ModerationConfig) => {
+    setConfig(newConfig); // Optimistic UI update
     try {
-      await fetch(`${API_URL}/update-config/${serverId}/moderation`, {
+      const response = await fetch(`${API_URL}/update-config/${serverId}/moderation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(newConfig),
       });
-      // TODO: show toast success
+      if (!response.ok) throw new Error("Failed to save");
+      // toast({
+      //   title: "Succès",
+      //   description: "Configuration enregistrée.",
+      // });
     } catch (error) {
       console.error('Failed to update config', error);
-      // TODO: show toast error and revert state
+      toast({
+        title: "Erreur",
+        description: "La sauvegarde a échoué. Veuillez réessayer.",
+        variant: "destructive",
+      });
+      // Optionally revert state here
     }
   };
 
-  // --- Data Saving ---
-  const handleConfigChange = (key: keyof ModerationConfig, value: any) => {
+  const handleValueChange = (key: keyof ModerationConfig, value: any) => {
     if (!config) return;
-
-    const newConfig = { ...config, [key]: value };
-    setConfig(newConfig);
-    saveConfig(newConfig);
+    saveConfig({ ...config, [key]: value });
   };
-
+  
   const handlePermissionChange = (commandKey: string, roleId: string) => {
     if (!config) return;
     
@@ -141,9 +148,7 @@ export default function ModerationPage() {
       ...config.command_permissions,
       [commandKey]: roleId,
     };
-    const newConfig = { ...config, command_permissions: newPermissions };
-    setConfig(newConfig);
-    saveConfig(newConfig);
+    saveConfig({ ...config, command_permissions: newPermissions });
   };
   
   const getRoleColor = (color: number) => {
@@ -157,7 +162,14 @@ export default function ModerationPage() {
   }
 
   if (!config) {
-    return <div>Impossible de charger la configuration. Veuillez rafraîchir la page.</div>;
+    return (
+        <div className="flex items-center justify-center h-full">
+            <Card className="p-8">
+                <CardTitle>Erreur de chargement</CardTitle>
+                <CardDescription>Impossible de charger la configuration. Veuillez rafraîchir la page.</CardDescription>
+            </Card>
+        </div>
+    );
   }
 
   return (
@@ -190,8 +202,8 @@ export default function ModerationPage() {
                   </p>
                 </div>
                  <Select 
-                    value={config.log_channel_id || ''}
-                    onValueChange={(value) => handleConfigChange('log_channel_id', value)}
+                    value={config.log_channel_id || 'none'}
+                    onValueChange={(value) => handleValueChange('log_channel_id', value === 'none' ? null : value)}
                  >
                     <SelectTrigger className="w-[240px]">
                         <SelectValue placeholder="Sélectionner un salon" />
@@ -199,7 +211,7 @@ export default function ModerationPage() {
                     <SelectContent>
                         <SelectGroup>
                             <SelectLabel>Salons textuels</SelectLabel>
-                             <SelectItem value="">Désactivé</SelectItem>
+                             <SelectItem value="none">Désactivé</SelectItem>
                             {channels.map(channel => (
                                 <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
                             ))}
@@ -218,7 +230,7 @@ export default function ModerationPage() {
                 <Switch 
                     id="dm-sanction" 
                     checked={config.dm_user_on_action}
-                    onCheckedChange={(checked) => handleConfigChange('dm_user_on_action', checked)}
+                    onCheckedChange={(checked) => handleValueChange('dm_user_on_action', checked)}
                 />
               </div>
             </CardContent>
@@ -252,7 +264,7 @@ export default function ModerationPage() {
                         <div className="space-y-2">
                              <Label htmlFor={`role-select-${command.name}`} className="text-sm font-medium">Rôle minimum requis</Label>
                             <Select
-                                value={selectedRoleId}
+                                value={selectedRoleId || ''}
                                 onValueChange={(value) => handlePermissionChange(command.key, value)}
                             >
                                 <SelectTrigger id={`role-select-${command.name}`} className="w-full">

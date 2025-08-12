@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
+
 
 // Types pour la configuration et les données du serveur
 interface ModerationConfig {

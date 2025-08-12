@@ -25,8 +25,8 @@ export default function DiscordAuthPage() {
 
         const verifyToken = async () => {
             try {
-                // The bot's API runs on port 3001
-                const response = await fetch('http://localhost:3001/api/verify-token', {
+                const apiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
+                const response = await fetch(`${apiUrl}/verify-token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token }),

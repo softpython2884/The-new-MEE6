@@ -21,8 +21,8 @@ const LoginCommand: Command = {
         try {
             const token = generateAuthToken(user.id, guild.id);
             
-            // Note: In a production environment, the base URL should come from an environment variable.
-            const loginUrl = `http://localhost:9002/auth/discord?token=${token}`;
+            const panelUrl = process.env.PANEL_BASE_URL || 'http://localhost:9002';
+            const loginUrl = `${panelUrl}/auth/discord?token=${token}`;
 
             const embed = new EmbedBuilder()
                 .setColor(0x00BFFF)

@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  env: {
+    NEXT_PUBLIC_BOT_API_URL: process.env.BOT_API_URL,
+  },
   images: {
     remotePatterns: [
       {

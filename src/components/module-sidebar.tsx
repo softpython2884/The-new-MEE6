@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import {
   ShieldCheck,
   Hammer,
@@ -107,19 +107,32 @@ function SidebarHeaderSkeleton() {
 }
 
 
-export function ModuleSidebar({ serverId }: { serverId: string }) {
+export function ModuleSidebar({ serverId: serverIdProp }: { serverId: string }) {
   const pathname = usePathname();
+  const params = useParams();
+  const serverId = (params.serverId || serverIdProp) as string;
+
   const [serverDetails, setServerDetails] = useState<ServerDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!serverId) return;
+    if (!serverId) {
+        setLoading(true); // Keep loading if no ID is available yet
+        return;
+    }
     setLoading(true);
     fetch(`${API_URL}/get-server-details/${serverId}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+            throw new Error('Failed to fetch server details');
+        }
+        return res.json()
+      })
       .then(data => {
         if (data && !data.error) {
           setServerDetails(data);
+        } else {
+          setServerDetails(null);
         }
       })
       .catch(console.error)
@@ -145,7 +158,7 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
             </div>
         </div>
       ) : (
-         <SidebarHeaderSkeleton /> // Show skeleton on error too
+         <SidebarHeaderSkeleton /> // Show skeleton on error or if no details
       )}
       <nav className="flex-1 space-y-2 overflow-y-auto pr-2">
         {navCategories.map((category) => (
@@ -153,18 +166,21 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
                 <h3 className="px-3 py-2 text-xs font-bold uppercase text-muted-foreground">{category.name}</h3>
                 <div className="flex flex-col gap-1">
                     {category.items.map((item) => {
-                      const fullPath = `/dashboard/${serverId}/${item.href}`;
+                      const fullPath = serverId ? `/dashboard/${serverId}/${item.href}` : '#';
                       const isActive = pathname === fullPath;
                       return (
-                        <Link key={item.label} href={fullPath}>
-                          <Button
-                            variant={isActive ? 'secondary' : 'ghost'}
-                            className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}
-                          >
-                              <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
-                              <span>{item.label}</span>
-                              {item.isPremium && <Sparkles className="h-4 w-4 ml-auto text-yellow-400" />}
-                          </Button>
+                        <Link key={item.label} href={fullPath} legacyBehavior>
+                           <a className={!serverId ? 'pointer-events-none' : ''}>
+                              <Button
+                                variant={isActive ? 'secondary' : 'ghost'}
+                                className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}
+                                disabled={!serverId}
+                              >
+                                  <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
+                                  <span>{item.label}</span>
+                                  {item.isPremium && <Sparkles className="h-4 w-4 ml-auto text-yellow-400" />}
+                              </Button>
+                           </a>
                         </Link>
                       );
                     })}

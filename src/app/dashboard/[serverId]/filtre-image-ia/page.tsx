@@ -12,6 +12,7 @@ import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -78,6 +79,16 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
             </p>
             </CardHeader>
             <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Label htmlFor="enable-module" className="font-bold text-sm uppercase text-muted-foreground">Activer le filtre d'image</Label>
+                        <p className="text-sm text-muted-foreground/80">
+                           Active ou désactive complètement ce module.
+                        </p>
+                    </div>
+                    <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                </div>
+                <Separator/>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
                     <div>
                     <Label htmlFor="sensitivity" className="font-bold text-sm uppercase text-muted-foreground">Sensibilité</Label>

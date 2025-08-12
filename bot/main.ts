@@ -119,7 +119,7 @@ client.on(Events.InteractionCreate, async interaction => {
         console.log(`[Interaction] Button clicked: ${interaction.customId}`);
         if (interaction.customId === 'create_private_room') {
             if (!interaction.guild || !interaction.member) return;
-            const config = getServerConfig(interaction.guild.id, 'private-rooms');
+            const config = await getServerConfig(interaction.guild.id, 'private-rooms');
             if (!config || !config.enabled || !config.category_id) {
                 await interaction.reply({ content: "Le système de salons privés n'est pas correctement configuré.", flags: MessageFlags.Ephemeral });
                 return;
@@ -215,3 +215,5 @@ async function startBot() {
 }
 
 startBot();
+
+    

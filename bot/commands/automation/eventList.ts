@@ -22,6 +22,8 @@ const EventListCommand: Command = {
             await interaction.reply({ content: "Le module d'événements intelligents est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        // TODO: Check command permissions
 
         // TODO: In a real implementation, you would:
         // 1. Fetch upcoming GuildScheduledEvents from the Discord API.

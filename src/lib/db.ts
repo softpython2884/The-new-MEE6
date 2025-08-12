@@ -180,7 +180,17 @@ const defaultConfigs: DefaultConfigs = {
             privateresum: null,
         }
     },
-    'smart-events': { enabled: true, suggest_time: true, templates: 'quiz', rsvp_tracking: true, recurring_events: false },
+    'smart-events': { 
+        enabled: true, 
+        suggest_time: true, 
+        templates: 'quiz', 
+        rsvp_tracking: true, 
+        recurring_events: false,
+        command_permissions: {
+            'event-create': null,
+            'event-list': null
+        }
+    },
     'smart-voice': { enabled: true, interactive_channels: [], creation_threshold: 4 },
     'content-ai': { enabled: true, default_tone: 'familiar', custom_instructions: '' },
     'server-builder': { enabled: true, base_theme: 'gaming', detail_level: 'standard' },

@@ -31,6 +31,8 @@ const EventCreateCommand: Command = {
             await interaction.reply({ content: "Le module d'événements intelligents est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
             return;
         }
+        
+        // TODO: Check command permissions
 
         const title = interaction.options.getString('title', true);
         const description = interaction.options.getString('description', true);

@@ -1,52 +1,112 @@
 
 'use client';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
 import { Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
-const mockRoles = [
-  { id: 'r1', name: '@everyone' },
-  { id: 'r2', name: 'Modérateur' },
-  { id: 'r3', name: 'Admin' },
-  { id: 'r4', name: 'Membre' },
-];
+const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
+
+// Types
+interface SmartEventsConfig {
+    enabled: boolean;
+    suggest_time: boolean;
+    rsvp_tracking: boolean;
+    recurring_events: boolean;
+    templates: string;
+    command_permissions: { [key: string]: string | null };
+}
+
+interface DiscordRole {
+    id: string;
+    name: string;
+}
 
 const eventCommands = [
   {
     name: '/event-create',
+    key: 'event-create',
     description: 'Crée un nouvel événement sur le serveur.',
-    defaultRole: 'Modérateur',
   },
   {
     name: '/event-list',
+    key: 'event-list',
     description: 'Affiche la liste des événements à venir.',
-    defaultRole: '@everyone',
   },
 ];
 
 function EventsPageContent({ isPremium }: { isPremium: boolean }) {
+    const params = useParams();
+    const serverId = params.serverId as string;
+    const { toast } = useToast();
+
+    const [config, setConfig] = useState<SmartEventsConfig | null>(null);
+    const [roles, setRoles] = useState<DiscordRole[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!serverId) return;
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [configRes, serverDetailsRes] = await Promise.all([
+                    fetch(`${API_URL}/get-config/${serverId}/smart-events`),
+                    fetch(`${API_URL}/get-server-details/${serverId}`)
+                ]);
+                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
+                
+                const configData = await configRes.json();
+                const serverDetailsData = await serverDetailsRes.json();
+
+                setConfig(configData);
+                setRoles(serverDetailsData.roles);
+            } catch (error) {
+                toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [serverId, toast]);
+
+    const saveConfig = async (newConfig: SmartEventsConfig) => {
+        setConfig(newConfig); // Optimistic update
+        try {
+            await fetch(`${API_URL}/update-config/${serverId}/smart-events`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig),
+            });
+        } catch (error) {
+            toast({ title: "Erreur de sauvegarde", variant: "destructive" });
+        }
+    };
+    
+    const handleValueChange = (key: keyof SmartEventsConfig, value: any) => {
+        if (!config) return;
+        saveConfig({ ...config, [key]: value });
+    };
+
+    const handlePermissionChange = (commandKey: string, roleId: string) => {
+        if (!config) return;
+        const newPermissions = { ...config.command_permissions, [commandKey]: roleId === 'none' ? null : roleId };
+        handleValueChange('command_permissions', newPermissions);
+    };
+
+    if (loading || !config) {
+        return <Skeleton className="w-full h-[500px]" />;
+    }
+
     return (
     <PremiumFeatureWrapper isPremium={isPremium}>
         <div className="space-y-8">
@@ -59,6 +119,13 @@ function EventsPageContent({ isPremium }: { isPremium: boolean }) {
                 </p>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                 <div className="flex items-center justify-between">
+                    <div>
+                        <Label htmlFor="enable-module" className="font-bold">Activer le module Événements</Label>
+                    </div>
+                    <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                </div>
+                <Separator />
                 <div className="flex items-center justify-between">
                     <div>
                     <Label
@@ -71,7 +138,7 @@ function EventsPageContent({ isPremium }: { isPremium: boolean }) {
                         Suggérer automatiquement les heures optimales lors de la création d'un événement.
                     </p>
                     </div>
-                    <Switch id="suggest-time" defaultChecked />
+                    <Switch id="suggest-time" checked={config.suggest_time} onCheckedChange={(val) => handleValueChange('suggest_time', val)} />
                 </div>
                 <Separator />
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
@@ -86,7 +153,7 @@ function EventsPageContent({ isPremium }: { isPremium: boolean }) {
                         Activer les modèles prédéfinis pour créer des événements rapidement.
                     </p>
                     </div>
-                    <Select defaultValue="quiz">
+                    <Select value={config.templates} onValueChange={(val) => handleValueChange('templates', val)}>
                     <SelectTrigger id="event-templates" className="w-full md:w-[280px]">
                         <SelectValue placeholder="Sélectionner un modèle" />
                     </SelectTrigger>
@@ -110,7 +177,7 @@ function EventsPageContent({ isPremium }: { isPremium: boolean }) {
                         Activer le suivi, les rappels et l'attribution de rôles pour les participants.
                     </p>
                     </div>
-                    <Switch id="rsvp-tracking" defaultChecked />
+                    <Switch id="rsvp-tracking" checked={config.rsvp_tracking} onCheckedChange={(val) => handleValueChange('rsvp_tracking', val)} />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -125,7 +192,7 @@ function EventsPageContent({ isPremium }: { isPremium: boolean }) {
                         Activer les options de récurrence pour les événements.
                     </p>
                     </div>
-                    <Switch id="recurring-events" />
+                    <Switch id="recurring-events" checked={config.recurring_events} onCheckedChange={(val) => handleValueChange('recurring_events', val)} />
                 </div>
                 </CardContent>
             </Card>
@@ -142,7 +209,7 @@ function EventsPageContent({ isPremium }: { isPremium: boolean }) {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {eventCommands.map((command) => (
-                    <Card key={command.name}>
+                    <Card key={command.key}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-primary" />
@@ -153,27 +220,25 @@ function EventsPageContent({ isPremium }: { isPremium: boolean }) {
                     <CardContent>
                         <div className="space-y-2">
                         <Label
-                            htmlFor={`role-select-${command.name}`}
+                            htmlFor={`role-select-${command.key}`}
                             className="text-sm font-medium"
                         >
                             Rôle minimum requis
                         </Label>
                         <Select
-                            defaultValue={
-                            mockRoles.find((r) => r.name === command.defaultRole)?.id
-                            }
+                            value={config.command_permissions?.[command.key] || 'none'}
+                            onValueChange={(value) => handlePermissionChange(command.key, value)}
                         >
-                            <SelectTrigger id={`role-select-${command.name}`} className="w-full">
-                            <SelectValue placeholder="Sélectionner un rôle" />
+                            <SelectTrigger id={`role-select-${command.key}`} className="w-full">
+                                <SelectValue placeholder="Sélectionner un rôle" />
                             </SelectTrigger>
                             <SelectContent>
-                            <SelectGroup>
-                                {mockRoles.map((role) => (
-                                <SelectItem key={role.id} value={role.id}>
-                                    {role.name}
-                                </SelectItem>
-                                ))}
-                            </SelectGroup>
+                                <SelectGroup>
+                                    <SelectItem value="none">@everyone</SelectItem>
+                                    {roles.filter(r => r.name !== '@everyone').map(role => (
+                                        <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                                    ))}
+                                </SelectGroup>
                             </SelectContent>
                         </Select>
                         </div>
@@ -194,7 +259,7 @@ export default function EventsPage() {
     <div className="space-y-8 text-white max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            Événements & Calendrier IA
+            Événements &amp; Calendrier IA
             <Badge className="bg-yellow-400 text-yellow-900">Premium</Badge>
         </h1>
         <p className="text-muted-foreground mt-2">

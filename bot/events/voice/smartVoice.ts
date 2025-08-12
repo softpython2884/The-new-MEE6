@@ -1,7 +1,7 @@
 
 
 import { Events, VoiceState, ActivityType, Collection } from 'discord.js';
-import { smartVoiceFlow } from '../../../src/ai/flows/smart-voice-flow';
+import { smartVoiceFlow } from '@/ai/flows/smart-voice-flow';
 import { getServerConfig } from '@/lib/db';
 import type { InteractiveChannel } from '@/types';
 

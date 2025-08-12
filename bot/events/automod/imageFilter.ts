@@ -1,7 +1,7 @@
 
 
 import { Events, Message } from 'discord.js';
-import { imageFilterFlow } from '../../../src/ai/flows/image-filter-flow';
+import { imageFilterFlow } from '@/ai/flows/image-filter-flow';
 import fetch from 'node-fetch';
 import { getServerConfig } from '@/lib/db';
 

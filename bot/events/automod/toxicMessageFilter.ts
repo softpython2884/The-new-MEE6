@@ -1,7 +1,7 @@
 
 
 import { Events, Message } from 'discord.js';
-import { moderationAiFlow } from '../../../src/ai/flows/moderation-ai-flow';
+import { moderationAiFlow } from '@/ai/flows/moderation-ai-flow';
 import { getServerConfig } from '@/lib/db';
 
 

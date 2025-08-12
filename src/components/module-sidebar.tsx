@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -30,16 +31,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from './ui/badge';
 import { useEffect, useState } from 'react';
 import { Skeleton } from './ui/skeleton';
+import { useServerInfo } from '@/hooks/use-server-info';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
-
-interface ServerDetails {
-    id: string;
-    name: string;
-    icon: string | null;
-    isPremium: boolean;
-}
 
 const navCategories = [
     {
@@ -112,49 +107,25 @@ export function ModuleSidebar({ serverId: serverIdProp }: { serverId: string }) 
   const params = useParams();
   const serverId = (params.serverId || serverIdProp) as string;
 
-  const [serverDetails, setServerDetails] = useState<ServerDetails | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { serverInfo, loading } = useServerInfo();
 
-  useEffect(() => {
-    if (!serverId) {
-        setLoading(true); // Keep loading if no ID is available yet
-        return;
-    }
-    setLoading(true);
-    fetch(`${API_URL}/get-server-details/${serverId}`)
-      .then(res => {
-        if (!res.ok) {
-            throw new Error('Failed to fetch server details');
-        }
-        return res.json()
-      })
-      .then(data => {
-        if (data && !data.error) {
-          setServerDetails(data);
-        } else {
-          setServerDetails(null);
-        }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [serverId]);
 
   return (
     <aside className="flex h-full w-72 flex-col bg-card p-4">
       {loading ? (
         <SidebarHeaderSkeleton />
-      ) : serverDetails ? (
+      ) : serverInfo ? (
         <div className="mb-6 flex items-center gap-3 px-2">
             <Avatar className="h-12 w-12 rounded-lg">
-            {serverDetails.icon ? (
-                <AvatarImage src={serverDetails.icon} />
+            {serverInfo.icon ? (
+                <AvatarImage src={serverInfo.icon} />
             ) : (
-                <AvatarFallback>{serverDetails.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{serverInfo.name.charAt(0)}</AvatarFallback>
             )}
             </Avatar>
             <div>
-            <h2 className="font-semibold text-white">{serverDetails.name}</h2>
-            {serverDetails.isPremium && <Badge className="mt-1 border-0 bg-orange-600/80 text-white">Premium</Badge>}
+            <h2 className="font-semibold text-white">{serverInfo.name}</h2>
+            {serverInfo.isPremium && <Badge className="mt-1 border-0 bg-yellow-500 text-black">Premium</Badge>}
             </div>
         </div>
       ) : (

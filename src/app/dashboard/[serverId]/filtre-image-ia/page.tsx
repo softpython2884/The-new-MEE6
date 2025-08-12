@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,8 +6,47 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
+import { useServerInfo } from '@/hooks/use-server-info';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
+    return (
+      <PremiumFeatureWrapper isPremium={isPremium}>
+        <Card>
+            <CardHeader>
+            <h2 className="text-xl font-bold">Options</h2>
+            <p className="text-muted-foreground">
+                Configurez le niveau de sensibilité de la modération d'images par IA.
+            </p>
+            </CardHeader>
+            <CardContent>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+                    <div>
+                    <Label htmlFor="sensitivity" className="font-bold text-sm uppercase text-muted-foreground">Sensibilité</Label>
+                    <p className="text-sm text-muted-foreground/80">
+                        Un niveau élevé peut entraîner plus de faux positifs.
+                    </p>
+                    </div>
+                    <Select defaultValue="medium">
+                        <SelectTrigger id="sensitivity" className="w-full md:w-[280px]">
+                            <SelectValue placeholder="Sélectionner un niveau" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="low">Basse</SelectItem>
+                            <SelectItem value="medium">Moyenne</SelectItem>
+                            <SelectItem value="high">Haute</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardContent>
+        </Card>
+      </PremiumFeatureWrapper>
+    )
+}
 
 export default function ImageFilterPage() {
+    const { serverInfo, loading } = useServerInfo();
   return (
     <div className="space-y-8 text-white max-w-4xl">
       <div>
@@ -21,34 +61,11 @@ export default function ImageFilterPage() {
       
       <Separator />
 
-      <Card>
-        <CardHeader>
-          <h2 className="text-xl font-bold">Options</h2>
-           <p className="text-muted-foreground">
-            Configurez le niveau de sensibilité de la modération d'images par IA.
-          </p>
-        </CardHeader>
-        <CardContent>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                <div>
-                  <Label htmlFor="sensitivity" className="font-bold text-sm uppercase text-muted-foreground">Sensibilité</Label>
-                  <p className="text-sm text-muted-foreground/80">
-                    Un niveau élevé peut entraîner plus de faux positifs.
-                  </p>
-                </div>
-                 <Select defaultValue="medium">
-                    <SelectTrigger id="sensitivity" className="w-full md:w-[280px]">
-                        <SelectValue placeholder="Sélectionner un niveau" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="low">Basse</SelectItem>
-                        <SelectItem value="medium">Moyenne</SelectItem>
-                        <SelectItem value="high">Haute</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-        </CardContent>
-      </Card>
+       {loading ? (
+            <Skeleton className="h-48 w-full" />
+        ) : (
+            <ImageFilterPageContent isPremium={serverInfo?.isPremium || false} />
+        )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 
 
 import { Events, VoiceState, ActivityType, Collection } from 'discord.js';
-import { smartVoiceFlow } from '../../../src/ai/flows/smart-voice-flow';
+// import { smartVoiceFlow } from '../../../src/ai/flows/smart-voice-flow';
 import { getServerConfig } from '../../../src/lib/db';
 import type { InteractiveChannel } from '../../../src/types';
 
@@ -47,20 +47,22 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
     console.log(`[Smart-Voice] Updating channel ${channel.name}. Theme: ${interactiveChannelInfo.theme}, Activities: ${activities.join(', ')}`);
 
     try {
-        const result = await smartVoiceFlow({
-            theme: interactiveChannelInfo.theme,
-            activities: activities,
-        });
+        // const result = await smartVoiceFlow({
+        //     theme: interactiveChannelInfo.theme,
+        //     activities: activities,
+        // });
 
-        if (result.channelName && result.channelTopic) {
-            await channel.setName(result.channelName);
-            await channel.setTopic(result.channelTopic);
+        // if (result.channelName && result.channelTopic) {
+        //     await channel.setName(result.channelName);
+        //     await channel.setTopic(result.channelTopic);
             
-            console.log(`[Smart-Voice] Renamed channel ${channel.id} to "${result.channelName}"`);
+        //     console.log(`[Smart-Voice] Renamed channel ${channel.id} to "${result.channelName}"`);
             
-            // Update cache to prevent spam
-            channelUpdateCache.set(channel.id, Date.now());
-        }
+        //     // Update cache to prevent spam
+        //     channelUpdateCache.set(channel.id, Date.now());
+        // }
+        console.log('[Smart-Voice] IA Flow call is temporarily disabled.');
+
 
     } catch (error) {
         console.error('[Smart-Voice] Error during smart voice flow:', error);

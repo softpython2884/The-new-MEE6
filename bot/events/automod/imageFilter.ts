@@ -1,7 +1,7 @@
 
 
 import { Events, Message } from 'discord.js';
-import { imageFilterFlow } from '../../../src/ai/flows/image-filter-flow';
+// import { imageFilterFlow } from '../../../src/ai/flows/image-filter-flow';
 import fetch from 'node-fetch';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -41,24 +41,26 @@ export async function execute(message: Message) {
     console.log(`[Image-Filter] Analyzing image from ${message.author.tag} in ${message.guild.name}. Sensitivity: ${filterConfig.sensitivity}`);
 
     try {
-        const photoDataUri = await imageUrlToDataUri(imageAttachment.url);
+        // const photoDataUri = await imageUrlToDataUri(imageAttachment.url);
 
-        const result = await imageFilterFlow({
-            photoDataUri,
-            sensitivity: filterConfig.sensitivity as 'low' | 'medium' | 'high',
-        });
+        // const result = await imageFilterFlow({
+        //     photoDataUri,
+        //     sensitivity: filterConfig.sensitivity as 'low' | 'medium' | 'high',
+        // });
 
-        if (result.isCensored) {
-            console.log(`[Image-Filter] Censoring image from ${message.author.tag}. Reason: ${result.reason}`);
+        // if (result.isCensored) {
+        //     console.log(`[Image-Filter] Censoring image from ${message.author.tag}. Reason: ${result.reason}`);
             
-            // 1. Delete the message
-            await message.delete();
+        //     // 1. Delete the message
+        //     await message.delete();
 
-            // 2. Send the explanation
-            await message.channel.send({
-                content: `> **${message.author.toString()}, votre image a été supprimée par la modération automatique.**\n> **Raison :** ${result.reason}`,
-            });
-        }
+        //     // 2. Send the explanation
+        //     await message.channel.send({
+        //         content: `> **${message.author.toString()}, votre image a été supprimée par la modération automatique.**\n> **Raison :** ${result.reason}`,
+        //     });
+        // }
+        console.log('[Image-Filter] IA Flow call is temporarily disabled.');
+
 
     } catch (error) {
         console.error('[Image-Filter] Error during image analysis flow:', error);

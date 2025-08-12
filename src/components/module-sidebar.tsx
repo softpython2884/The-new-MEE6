@@ -3,14 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  ArrowRightLeft,
   Bot,
-  GanttChart,
-  Gauge,
+  Hammer,
   ShieldCheck,
   Users,
   MessageSquare,
   Sparkles,
+  Palette,
+  Layout,
+  Mic,
+  FileClock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,14 +20,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from './ui/badge';
 
 const navItems = [
-  { href: 'moderation', label: 'Modération', icon: ShieldCheck },
+  { href: 'moderation', label: 'Modération', icon: Hammer },
   { href: 'auto-moderation', label: 'Auto-Modération', icon: Bot },
-  { href: 'messages', label: 'Messages', icon: MessageSquare, isNew: true },
-  { href: 'niveaux', label: 'Niveaux', icon: Gauge },
-  { href: 'suggestions-ia', label: 'Suggestions IA', icon: Sparkles },
-  { href: 'roles-reactions', label: 'Rôles-Réactions', icon: GanttChart },
-  { href: 'arrivées-departs', label: 'Arrivées et départs', icon: ArrowRightLeft },
+  { href: 'securite', label: 'Sécurité', icon: ShieldCheck },
+  { href: 'createur-contenu-ia', label: 'Créateur de Contenu IA', icon: Palette },
+  { href: 'constructeur-serveur-ia', label: 'Constructeur de Serveur IA', icon: Layout },
+  { href: 'salons-vocaux-intelligents', label: 'Salons Vocaux Intelligents', icon: Mic },
+  { href: 'logs', label: 'Logs & Notifications', icon: FileClock, isNew: true },
+  { href: 'roles-reactions', label: 'Rôles-Réactions', icon: Sparkles },
   { href: 'roles-automatiques', label: 'Rôles automatiques', icon: Users },
+  { href: 'messages', label: 'Messages', icon: MessageSquare },
 ];
 
 export function ModuleSidebar({ serverId }: { serverId: string }) {

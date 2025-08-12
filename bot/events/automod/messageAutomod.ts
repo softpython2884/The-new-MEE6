@@ -36,10 +36,10 @@ export async function execute(message: Message) {
     // --- Rule: Forbidden Vocabulary ---
     if (rules.forbidden_vocabulary_enabled) {
         const forbiddenWords = (rules.forbidden_vocabulary_words as string[]) || [];
-        const forbiddenWord = forbiddenWords.find(word => message.content.toLowerCase().includes(word));
+        const forbiddenWord = forbiddenWords.find(word => message.content.toLowerCase().includes(word.toLowerCase()));
         if (forbiddenWord) {
-            await handleAction(message, 'forbidden_vocabulary', rules.forbidden_vocabulary_action as string, `l'utilisation de termes interdits.`);
-            return;
+            await handleAction(message, 'forbidden_vocabulary', rules.forbidden_vocabulary_action as string, `l'utilisation de termes interdits ("${forbiddenWord}")`);
+            return; // Stop processing after first violation
         }
     }
     
@@ -54,7 +54,7 @@ export async function execute(message: Message) {
         const allowedDomains = (rules.external_links_allowed_domains as string[]) || [];
         const links = message.content.match(urlRegex);
         if (links && links.some(link => !allowedDomains.some(domain => new URL(link).hostname.includes(domain)))) {
-             await handleAction(message, 'external_links', rules.external_links_action as string, `les liens externes non autorisés.`);
+             await handleAction(message, 'external_links', rules.external_links_action as string, `l'envoi de liens externes non autorisés.`);
              return;
         }
     }
@@ -65,8 +65,9 @@ export async function execute(message: Message) {
         if (content.length > 10) { // Don't check short messages
             const upperCaseCount = (content.match(/[A-Z]/g) || []).length;
             const capsPercentage = (upperCaseCount / content.length) * 100;
-            if (capsPercentage > (rules.excessive_caps_threshold_percentage as number)) {
-                await handleAction(message, 'excessive_caps', rules.excessive_caps_action as string, `l'utilisation excessive de majuscules.`);
+            const threshold = (rules.excessive_caps_threshold_percentage as number) || 70;
+            if (capsPercentage > threshold) {
+                await handleAction(message, 'excessive_caps', rules.excessive_caps_action as string, `l'utilisation excessive de majuscules (${Math.round(capsPercentage)}%).`);
                 return;
             }
         }
@@ -75,8 +76,9 @@ export async function execute(message: Message) {
     // --- Rule: Excessive Emojis ---
     if (rules.excessive_emojis_enabled) {
         const emojiCount = (message.content.match(emojiRegex) || []).length;
-        if (emojiCount > (rules.excessive_emojis_max_emojis as number)) {
-            await handleAction(message, 'excessive_emojis', rules.excessive_emojis_action as string, `l'utilisation excessive d'émojis.`);
+        const maxEmojis = (rules.excessive_emojis_max_emojis as number) || 10;
+        if (emojiCount > maxEmojis) {
+            await handleAction(message, 'excessive_emojis', rules.excessive_emojis_action as string, `l'utilisation excessive d'émojis (${emojiCount}).`);
             return;
         }
     }
@@ -84,8 +86,9 @@ export async function execute(message: Message) {
     // --- Rule: Excessive Mentions ---
     if (rules.excessive_mentions_enabled) {
         const totalMentions = message.mentions.users.size + message.mentions.roles.size;
-        if (totalMentions > (rules.excessive_mentions_max_mentions as number)) {
-            await handleAction(message, 'excessive_mentions', rules.excessive_mentions_action as string, `la mention excessive d'utilisateurs ou de rôles.`);
+        const maxMentions = (rules.excessive_mentions_max_mentions as number) || 5;
+        if (totalMentions > maxMentions) {
+            await handleAction(message, 'excessive_mentions', rules.excessive_mentions_action as string, `la mention excessive d'utilisateurs ou de rôles (${totalMentions}).`);
             return;
         }
     }
@@ -107,52 +110,50 @@ export async function execute(message: Message) {
             return;
         }
     }
-
-    // TODO: Implement other rules
-    // --- Rule: Forbidden Pings ---
-    // --- Rule: Forbidden Markdown ---
 }
 
 
 async function handleAction(message: Message, ruleName: string, action: string, reason: string) {
      console.log(`[Automod] Rule triggered: ${ruleName} by ${message.author.tag} in ${message.guild?.name}. Action: ${action}.`);
      
+     const sendWarning = async (warningMessage: string) => {
+        try {
+            const reply = await message.channel.send(warningMessage);
+            // Delete warning after a few seconds to keep chat clean
+            setTimeout(() => reply.delete().catch(console.error), 7000);
+        } catch (err) {
+            console.error(`[Automod] Failed to send warning for rule ${ruleName}:`, err);
+        }
+     };
+
      switch (action) {
          case 'delete':
             try {
                 await message.delete();
-                const reply = await message.channel.send({
-                    content: `> **${message.author.toString()}, votre message a été supprimé car il enfreint une règle : ${reason}**`,
-                });
-                setTimeout(() => reply.delete().catch(console.error), 7000);
+                await sendWarning(`> **${message.author.toString()}, votre message a été supprimé car il enfreint une règle : ${reason}**`);
             } catch (error) {
                 console.error(`[Automod] Could not delete message for rule ${ruleName}:`, error);
             }
             break;
 
         case 'warn':
-             try {
-                const reply = await message.channel.send({
-                    content: `> **${message.author.toString()}, attention, votre message enfreint une règle : ${reason}**`,
-                });
-                 // Maybe also DM the user or add to a database warning system
-            } catch (error) {
-                console.error(`[Automod] Could not send warning for rule ${ruleName}:`, error);
-            }
+             await sendWarning(`> **${message.author.toString()}, attention, votre message enfreint une règle : ${reason}**`);
             break;
             
         case 'mute':
-            // Muting is more complex. It would involve using the /mute command logic,
-            // applying a timeout, and logging the action.
-            // For now, we'll just log it.
             console.log(`[Automod] Mute action triggered for ${message.author.tag} due to ${ruleName}. Implementation needed.`);
-             try {
-                const reply = await message.channel.send({
-                    content: `> **${message.author.toString()}, vous avez été rendu muet pour avoir enfreint la règle : ${reason}**`,
-                });
-                // In a real implementation, you would apply timeout here.
-            } catch (error) {
-                console.error(`[Automod] Could not send mute message for rule ${ruleName}:`, error);
+            try {
+                // Attempt to mute the user
+                const member = await message.guild?.members.fetch(message.author.id);
+                // Mute for 5 minutes as a default spam punishment
+                await member?.timeout(5 * 60 * 1000, `AutoMod: ${ruleName}`); 
+                await sendWarning(`> **${message.author.toString()}, vous avez été rendu muet pour avoir enfreint la règle : ${reason}**`);
+                await message.delete(); // Also delete the offending message
+            } catch(e) {
+                console.error(`[Automod] Failed to apply mute for ${message.author.tag}:`, e);
+                // Fallback to delete if mute fails (e.g. permissions)
+                await message.delete().catch(console.error);
+                await sendWarning(`> **${message.author.toString()}, votre message a été supprimé car il enfreint une règle : ${reason}**`);
             }
             break;
      }

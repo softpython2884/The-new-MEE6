@@ -187,7 +187,7 @@ export default function AntiBotPage() {
                     id="whitelist"
                     placeholder="789012345678901234,987654321098765432..." 
                     rows={3} 
-                    value={(config.whitelisted_bots || []).join(',')}
+                    defaultValue={(config.whitelisted_bots || []).join(',')}
                     onBlur={(e) => handleValueChange('whitelisted_bots', e.target.value.split(',').map(id => id.trim()).filter(Boolean))}
                 />
             </div>

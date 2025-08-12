@@ -202,7 +202,7 @@ export default function AutoModerationPage() {
                             <Label>Mots/phrases interdits (séparés par une virgule)</Label>
                             <Textarea 
                                 placeholder="mot1,expression 2,mot3" 
-                                value={(config.forbidden_vocabulary_words || []).join(',')}
+                                defaultValue={(config.forbidden_vocabulary_words || []).join(',')}
                                 onBlur={(e) => handleValueChange('forbidden_vocabulary_words', e.target.value.split(',').map(w => w.trim()).filter(Boolean))}
                             />
                         </div>
@@ -212,7 +212,7 @@ export default function AutoModerationPage() {
                             <Label>Domaines autorisés (séparés par une virgule)</Label>
                             <Textarea 
                                 placeholder="youtube.com,twitter.com"
-                                value={(config.external_links_allowed_domains || []).join(',')}
+                                defaultValue={(config.external_links_allowed_domains || []).join(',')}
                                 onBlur={(e) => handleValueChange('external_links_allowed_domains', e.target.value.split(',').map(d => d.trim()).filter(Boolean))}
                              />
                         </div>
@@ -223,8 +223,8 @@ export default function AutoModerationPage() {
                             <Input 
                                 type="number" 
                                 className="w-full md:w-1/2"
-                                value={config.excessive_caps_threshold_percentage || 70}
-                                onChange={(e) => handleValueChange('excessive_caps_threshold_percentage', parseInt(e.target.value, 10))}
+                                defaultValue={config.excessive_caps_threshold_percentage || 70}
+                                onBlur={(e) => handleValueChange('excessive_caps_threshold_percentage', parseInt(e.target.value, 10))}
                             />
                         </div>
                     )}
@@ -234,8 +234,8 @@ export default function AutoModerationPage() {
                             <Input 
                                 type="number" 
                                 className="w-full md:w-1/2" 
-                                value={config.excessive_emojis_max_emojis || 10}
-                                onChange={(e) => handleValueChange('excessive_emojis_max_emojis', parseInt(e.target.value, 10))}
+                                defaultValue={config.excessive_emojis_max_emojis || 10}
+                                onBlur={(e) => handleValueChange('excessive_emojis_max_emojis', parseInt(e.target.value, 10))}
                             />
                         </div>
                     )}
@@ -245,8 +245,8 @@ export default function AutoModerationPage() {
                             <Input 
                                 type="number" 
                                 className="w-full md:w-1/2" 
-                                value={config.excessive_mentions_max_mentions || 5}
-                                onChange={(e) => handleValueChange('excessive_mentions_max_mentions', parseInt(e.target.value, 10))}
+                                defaultValue={config.excessive_mentions_max_mentions || 5}
+                                onBlur={(e) => handleValueChange('excessive_mentions_max_mentions', parseInt(e.target.value, 10))}
                             />
                         </div>
                     )}

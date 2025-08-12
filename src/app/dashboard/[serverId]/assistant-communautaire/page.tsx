@@ -232,12 +232,12 @@ function CommunityAssistantPageContent({ isPremium, serverId }: { isPremium: boo
                             <div className="space-y-2">
                                 <Input 
                                 placeholder="Entrez la question ou des mots-clés" 
-                                value={item.question}
+                                defaultValue={item.question}
                                 onBlur={(e) => handleKnowledgeBaseChange(index, 'question', e.target.value)}
                                 />
                                 <Textarea 
                                 placeholder="Entrez la réponse que le bot doit fournir" 
-                                value={item.answer}
+                                defaultValue={item.answer}
                                 onBlur={(e) => handleKnowledgeBaseChange(index, 'answer', e.target.value)}
                                 />
                             </div>

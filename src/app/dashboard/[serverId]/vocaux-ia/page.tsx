@@ -16,6 +16,7 @@ import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { InteractiveChannel } from '@/types';
+import { Switch } from '@/components/ui/switch';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -126,7 +127,7 @@ function SmartVoicePageContent({ isPremium }: { isPremium: boolean }) {
                         <p className="text-sm text-muted-foreground/80">
                             Nombre d'utilisateurs dans un salon pour créer automatiquement un nouveau salon vocal thématique.
                         </p>
-                        <Input id="creation-threshold" type="number" value={config.creation_threshold} onChange={(e) => handleValueChange('creation_threshold', parseInt(e.target.value, 10))} className="w-full md:w-[120px]" disabled />
+                        <Input id="creation-threshold" type="number" defaultValue={config.creation_threshold} onBlur={(e) => handleValueChange('creation_threshold', parseInt(e.target.value, 10))} className="w-full md:w-[120px]" disabled />
                     </div>
                 </CardContent>
             </Card>

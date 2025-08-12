@@ -96,7 +96,7 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
           <Badge className="mt-1 border-0 bg-orange-600/80 text-white">Premium</Badge>
         </div>
       </div>
-      <nav className="flex-1 space-y-2 overflow-y-auto pr-2">
+      <nav className="flex-1 space-y-2">
         {navCategories.map((category) => (
             <div key={category.name}>
                 <h3 className="px-3 py-2 text-xs font-bold uppercase text-muted-foreground">{category.name}</h3>
@@ -105,7 +105,7 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
                       const fullPath = `/dashboard/${serverId}/${item.href}`;
                       const isActive = pathname === fullPath;
                       return (
-                        <Link key={item.label} href={fullPath} legacyBehavior={false}>
+                        <Link key={item.label} href={fullPath}>
                           <Button
                             variant={isActive ? 'secondary' : 'ghost'}
                             className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}

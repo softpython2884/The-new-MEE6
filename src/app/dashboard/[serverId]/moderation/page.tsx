@@ -73,16 +73,20 @@ export default function ModerationPage() {
 
     const fetchData = async () => {
       setLoading(true);
+      const headers = {
+        'x-internal-secret': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || ''
+      };
+      
       try {
         // Fetch module config
-        const configRes = await fetch(`${API_URL}/get-config/${serverId}/moderation`);
+        const configRes = await fetch(`${API_URL}/get-config/${serverId}/moderation`, { headers });
         const configData = await configRes.json();
         if (configRes.ok) {
           setConfig(configData);
         }
 
         // Fetch server details (which includes channels and roles)
-        const serverDetailsRes = await fetch(`${API_URL}/get-server-details/${serverId}`);
+        const serverDetailsRes = await fetch(`${API_URL}/get-server-details/${serverId}`, { headers });
         const serverDetailsData = await serverDetailsRes.json();
         if (serverDetailsRes.ok) {
             setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0)); // Text channels
@@ -110,7 +114,10 @@ export default function ModerationPage() {
     try {
       await fetch(`${API_URL}/update-config/${serverId}/moderation`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'x-internal-secret': process.env.NEXT_PUBLIC_INTERNAL_API_SECRET || ''
+        },
         body: JSON.stringify(newConfig),
       });
       // TODO: show toast success

@@ -28,7 +28,9 @@ export default function DiscordAuthPage() {
                 const apiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
                 const response = await fetch(`${apiUrl}/verify-token`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({ token }),
                 });
 

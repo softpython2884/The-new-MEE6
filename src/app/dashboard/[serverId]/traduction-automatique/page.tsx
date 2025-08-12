@@ -8,9 +8,6 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
-import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -30,7 +27,7 @@ interface DiscordChannel {
     type: number;
 }
 
-function AutoTranslatePageContent({ isPremium, serverId }: { isPremium: boolean, serverId: string }) {
+function AutoTranslatePageContent({ serverId }: { serverId: string }) {
     const { toast } = useToast();
     const [config, setConfig] = useState<AutoTranslateConfig | null>(null);
     const [allChannels, setAllChannels] = useState<DiscordChannel[]>([]);
@@ -101,80 +98,77 @@ function AutoTranslatePageContent({ isPremium, serverId }: { isPremium: boolean,
     }
 
     return (
-        <PremiumFeatureWrapper isPremium={isPremium}>
-            <Card>
-                <CardHeader>
-                    <h2 className="text-xl font-bold">Options de Traduction</h2>
-                    <p className="text-muted-foreground">
-                        Activez et configurez le module de traduction automatique.
-                    </p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <Label htmlFor="enable-translation" className="font-bold text-sm uppercase text-muted-foreground">Activer la traduction</Label>
-                            <p className="text-sm text-muted-foreground/80">
-                                Active ou désactive complètement le module.
-                            </p>
-                        </div>
-                        <Switch id="enable-translation" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
-                    </div>
-                    <Separator />
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                        <Label htmlFor="translation-mode" className="font-bold text-sm uppercase text-muted-foreground">Mode de traduction</Label>
+        <Card>
+            <CardHeader>
+                <h2 className="text-xl font-bold">Options de Traduction</h2>
+                <p className="text-muted-foreground">
+                    Activez et configurez le module de traduction automatique.
+                </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Label htmlFor="enable-translation" className="font-bold text-sm uppercase text-muted-foreground">Activer la traduction</Label>
                         <p className="text-sm text-muted-foreground/80">
-                            Choisissez comment les traductions sont affichées.
+                            Active ou désactive complètement le module.
                         </p>
-                        </div>
-                        <Select value={config.mode} onValueChange={(val: 'inline' | 'replace') => handleValueChange('mode', val)}>
-                            <SelectTrigger className="w-full md:w-[280px]">
-                                <SelectValue placeholder="Sélectionner un mode" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="inline">En ligne (sous le message original)</SelectItem>
-                                <SelectItem value="replace">Remplacement (traduit directement)</SelectItem>
-                            </SelectContent>
-                        </Select>
                     </div>
-                    <Separator/>
-                    <div className="space-y-4">
-                        <div>
-                            <Label htmlFor="translation-channels" className="font-bold text-sm uppercase text-muted-foreground">Salons de traduction</Label>
-                            <p className="text-sm text-muted-foreground/80">
-                                Salons où la traduction sera active.
-                            </p>
-                        </div>
-                        {config.channels.map((channelId, index) => (
-                             <div key={index} className="flex items-center gap-2">
-                                <Select value={channelId} onValueChange={(id) => handleChannelChange(index, id)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner un salon..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            <SelectLabel>Salons textuels</SelectLabel>
-                                            {allChannels.map(channel => (
-                                                <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                                <Button variant="ghost" size="icon" onClick={() => removeChannel(index)}>
-                                    <Trash2 className="w-4 h-4 text-destructive"/>
-                                </Button>
-                            </div>
-                        ))}
-                        <Button variant="outline" size="sm" onClick={addChannel}><PlusCircle className="mr-2 h-4 w-4"/>Ajouter un salon</Button>
+                    <Switch id="enable-translation" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                </div>
+                <Separator />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                    <Label htmlFor="translation-mode" className="font-bold text-sm uppercase text-muted-foreground">Mode de traduction</Label>
+                    <p className="text-sm text-muted-foreground/80">
+                        Choisissez comment les traductions sont affichées.
+                    </p>
                     </div>
-                </CardContent>
-            </Card>
-        </PremiumFeatureWrapper>
+                    <Select value={config.mode} onValueChange={(val: 'inline' | 'replace') => handleValueChange('mode', val)}>
+                        <SelectTrigger className="w-full md:w-[280px]">
+                            <SelectValue placeholder="Sélectionner un mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="inline">En ligne (sous le message original)</SelectItem>
+                            <SelectItem value="replace">Remplacement (traduit directement)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <Separator/>
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="translation-channels" className="font-bold text-sm uppercase text-muted-foreground">Salons de traduction</Label>
+                        <p className="text-sm text-muted-foreground/80">
+                            Salons où la traduction sera active.
+                        </p>
+                    </div>
+                    {config.channels.map((channelId, index) => (
+                         <div key={index} className="flex items-center gap-2">
+                            <Select value={channelId} onValueChange={(id) => handleChannelChange(index, id)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Sélectionner un salon..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Salons textuels</SelectLabel>
+                                        {allChannels.map(channel => (
+                                            <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            <Button variant="ghost" size="icon" onClick={() => removeChannel(index)}>
+                                <Trash2 className="w-4 h-4 text-destructive"/>
+                            </Button>
+                        </div>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={addChannel}><PlusCircle className="mr-2 h-4 w-4"/>Ajouter un salon</Button>
+                </div>
+            </CardContent>
+        </Card>
     )
 }
 
 export default function AutoTranslatePage() {
-    const { serverInfo, loading } = useServerInfo();
     const params = useParams();
     const serverId = params.serverId as string;
 
@@ -182,7 +176,7 @@ export default function AutoTranslatePage() {
     <div className="space-y-8 text-white max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            Traduction Automatique <Badge className="bg-yellow-400 text-yellow-900">Premium</Badge>
+            Traduction Automatique
         </h1>
         <p className="text-muted-foreground mt-2">
             Traduisez les messages en temps réel dans plusieurs langues pour unifier votre communauté.
@@ -191,11 +185,7 @@ export default function AutoTranslatePage() {
       
       <Separator />
 
-      {loading ? (
-            <Skeleton className="h-72 w-full" />
-        ) : (
-            <AutoTranslatePageContent isPremium={serverInfo?.isPremium || false} serverId={serverId} />
-        )}
+      <AutoTranslatePageContent serverId={serverId} />
     </div>
   );
 }

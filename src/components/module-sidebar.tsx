@@ -41,8 +41,8 @@ const navCategories = [
         name: 'Général',
         items: [
             { href: 'commandes-generales', label: 'Commandes Générales', icon: Wrench },
-            { href: 'assistant-communautaire', label: 'Assistant Communautaire', icon: MessageSquare },
-            { href: 'traduction-automatique', label: 'Traduction Auto', icon: Languages, isPremium: true },
+            { href: 'assistant-communautaire', label: 'Assistant Communautaire', icon: MessageSquare, isPremium: true },
+            { href: 'traduction-automatique', label: 'Traduction Auto', icon: Languages },
             { href: 'logs', label: 'Logs', icon: FileClock },
         ]
     },

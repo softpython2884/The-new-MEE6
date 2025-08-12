@@ -1,15 +1,14 @@
+
 import { Events, GuildMember, EmbedBuilder, TextChannel } from 'discord.js';
+import { getServerConfig } from '../../../src/lib/db';
 
 export const name = Events.GuildMemberAdd;
 
 export async function execute(member: GuildMember) {
-    // TODO: Fetch configuration from database for this server (member.guild.id)
-    // const config = await db.getLogConfig(member.guild.id);
-    // if (!config || !config.log_members || !config.log_channel_id) return;
-    const mockConfig = { log_members: true, log_channel_id: 'YOUR_LOG_CHANNEL_ID' }; // MOCK
-    if (!mockConfig.log_members || !mockConfig.log_channel_id) return;
+    const config = await getServerConfig(member.guild.id, 'logs');
+    if (!config?.enabled || !config['log-members'] || !config.log_channel_id) return;
 
-    const logChannel = member.guild.channels.cache.get(mockConfig.log_channel_id) as TextChannel;
+    const logChannel = await member.guild.channels.fetch(config.log_channel_id).catch(() => null) as TextChannel;
     if (!logChannel) return;
 
     const embed = new EmbedBuilder()

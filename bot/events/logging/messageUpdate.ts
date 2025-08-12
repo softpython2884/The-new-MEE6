@@ -1,17 +1,16 @@
+
 import { Events, Message, PartialMessage, EmbedBuilder, TextChannel } from 'discord.js';
+import { getServerConfig } from '../../../src/lib/db';
 
 export const name = Events.MessageUpdate;
 
 export async function execute(oldMessage: Message | PartialMessage, newMessage: Message | PartialMessage) {
     if (newMessage.author?.bot || !newMessage.guild || oldMessage.content === newMessage.content) return;
     
-    // TODO: Fetch configuration from database for this server (newMessage.guild.id)
-    // const config = await db.getLogConfig(newMessage.guild.id);
-    // if (!config || !config.log_messages || !config.log_channel_id) return;
-    const mockConfig = { log_messages: true, log_channel_id: 'YOUR_LOG_CHANNEL_ID' }; // MOCK
-    if (!mockConfig.log_messages || !mockConfig.log_channel_id) return;
+    const config = await getServerConfig(newMessage.guild.id, 'logs');
+    if (!config?.enabled || !config['log-messages'] || !config.log_channel_id) return;
 
-    const logChannel = newMessage.guild.channels.cache.get(mockConfig.log_channel_id) as TextChannel;
+    const logChannel = await newMessage.guild.channels.fetch(config.log_channel_id).catch(() => null) as TextChannel;
     if (!logChannel || logChannel.id === newMessage.channel.id) return;
 
     const embed = new EmbedBuilder()

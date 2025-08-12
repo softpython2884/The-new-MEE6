@@ -1,4 +1,5 @@
 
+
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -59,14 +60,13 @@ const defaultConfigs: DefaultConfigs = {
         presets: [], 
         premium: false,
         command_permissions: {
-            ban: '8', // Default to Admin, adjust as needed
-            unban: '8',
-            kick: '8',
-            mute: '8',
+            ban: null,
+            unban: null,
+            kick: null,
+            mute: null,
         }
     },
     'general-commands': {
-        enabled: true,
         command_permissions: {
             invite: null, // null means @everyone
             ping: null,
@@ -152,7 +152,6 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
 
         if (result && result.config) {
             const config = JSON.parse(result.config);
-            config.premium = !!result.premium; // Convert 0/1 to boolean
             
             // Merge with default config to ensure all keys are present
             const defaultConfig = defaultConfigs[module] || {};

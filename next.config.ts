@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_BOT_API_URL: process.env.BOT_API_URL,
-    NEXT_PUBLIC_INTERNAL_API_SECRET: process.env.INTERNAL_API_SECRET
   },
   images: {
     remotePatterns: [

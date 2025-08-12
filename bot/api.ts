@@ -7,21 +7,9 @@ import { verifyAndConsumeAuthToken } from './auth';
 
 const API_PORT = process.env.BOT_API_PORT || 3001;
 
-// Middleware simple pour la vérification du secret partagé
-const verifyInternalSecret = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const secret = req.headers['x-internal-secret'];
-    if (!process.env.INTERNAL_API_SECRET || secret !== process.env.INTERNAL_API_SECRET) {
-        console.warn(`[Bot API] Tentative d'accès non autorisé.`);
-        return res.status(403).json({ error: 'Forbidden' });
-    }
-    next();
-};
-
 export function startApi(client: Client) {
     const app = express();
 
-    // Utilisation de CORS avec la configuration par défaut pour autoriser toutes les origines.
-    // C'est sécuritaire dans ce contexte car l'authentification se fait via d'autres mécanismes (token, secret interne).
     app.use(cors()); 
     app.use(express.json());
 
@@ -32,7 +20,7 @@ export function startApi(client: Client) {
 
     /**
      * Endpoint for the panel to verify a user's auth token.
-     * This is public and does not use the internal secret.
+     * This is public and does not use any internal secret.
      */
     app.post('/api/verify-token', (req, res) => {
         const { token } = req.body;
@@ -52,10 +40,6 @@ export function startApi(client: Client) {
         res.status(200).json({ success: true, guildId: authResult.guildId });
     });
 
-
-    // All routes below this point are protected by the internal secret.
-    app.use(verifyInternalSecret);
-
     /**
      * Endpoint pour mettre à jour la configuration d'un module pour un serveur.
      */
@@ -70,8 +54,6 @@ export function startApi(client: Client) {
         try {
             console.log(`[Bot API] Mise à jour de la config pour le serveur ${guildId}, module ${module}`);
             await updateServerConfig(guildId, module as any, configData);
-            
-            // TODO: Invalider un cache de configuration si on en met un en place.
             
             res.status(200).json({ success: true, message: `Configuration pour le module ${module} mise à jour.` });
         } catch (error) {
@@ -103,13 +85,10 @@ export function startApi(client: Client) {
      app.get('/api/get-server-details/:guildId', async (req, res) => {
         const { guildId } = req.params;
         try {
-            // Note: In a real app, you might want to fetch fresh data from Discord API
-            // instead of relying solely on the DB cache for details.
-            const allServers = getAllBotServers(); // Ceci vient de la DB
+            const allServers = getAllBotServers();
             let serverDetails = allServers.find(s => s.id === guildId);
 
             if (!serverDetails) {
-                 // Try fetching from the client directly if not in DB (e.g., bot was just added)
                 const guild = await client.guilds.fetch(guildId).catch(() => null);
                  if (guild) {
                      return res.json({
@@ -121,7 +100,6 @@ export function startApi(client: Client) {
                 return res.status(404).json({ error: 'Serveur non trouvé.' });
             }
             
-            // If server was found in DB, try to get fresh details from client
             const guild = await client.guilds.fetch(guildId).catch(() => null);
             if (guild) {
                 serverDetails.name = guild.name;

@@ -22,16 +22,16 @@ export const once = false;
 export async function execute(message: Message) {
     if (!message.guild || message.author.bot) return;
 
-    const config = await getServerConfig(message.guild.id, 'auto-moderation');
-    if (!config?.enabled) return;
+    const autoModConfig = await getServerConfig(message.guild.id, 'auto-moderation');
+    if (!autoModConfig?.enabled) return;
     
-    // Check for exempt roles
-    const exemptRoles = (config.exempt_roles as string[]) || [];
+    // Check for exempt roles for Auto-Mod
+    const exemptRoles = (autoModConfig.exempt_roles as string[]) || [];
     if (message.member && message.member.roles.cache.some(role => exemptRoles.includes(role.id))) {
         return;
     }
 
-    const rules = config;
+    const rules = autoModConfig;
 
     // --- Rule: Forbidden Vocabulary ---
     if (rules.forbidden_vocabulary_enabled) {
@@ -49,12 +49,14 @@ export async function execute(message: Message) {
         return; 
     }
 
-    // --- Rule: External Links ---
+    // --- Rule: External Links (from Auto-Mod) ---
     if (rules.external_links_enabled) {
         const allowedDomains = (rules.external_links_allowed_domains as string[]) || [];
         const links = message.content.match(urlRegex);
         if (links) {
             const hasForbiddenLink = links.some(link => {
+                // Ignore discord invites as they are handled by another rule
+                if (discordInviteRegex.test(link)) return false;
                 try {
                     const url = new URL(link);
                     // Check if the link's hostname or its subdomains are NOT included in the allowed domains.
@@ -67,6 +69,20 @@ export async function execute(message: Message) {
             if (hasForbiddenLink) {
                  await handleAction(message, 'external_links', rules.external_links_action as string, `l'envoi de liens externes non autorisés.`);
                  return;
+            }
+        }
+    }
+
+    // --- Rule: Link Scanner (from Anti-Raid) ---
+    const antiRaidConfig = await getServerConfig(message.guild.id, 'adaptive-anti-raid');
+    if (antiRaidConfig?.enabled && antiRaidConfig.link_scanner_enabled && antiRaidConfig.premium) {
+        const links = message.content.match(urlRegex);
+        if (links) {
+            // In a real scenario, this would check against a list of malicious domains.
+            // For now, any link triggers the action if the main 'external_links' rule from automod is disabled.
+            if (!rules.external_links_enabled) {
+                await handleAction(message, 'link_scanner', antiRaidConfig.link_scanner_action, `le lien a été jugé suspect par le scanner automatique.`);
+                return;
             }
         }
     }

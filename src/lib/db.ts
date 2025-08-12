@@ -78,7 +78,7 @@ const defaultConfigs: DefaultConfigs = {
     },
     'community-assistant': {
         enabled: true,
-        premium: false, // Defaulting to false, will be checked
+        premium: true, // Defaulting to false, will be checked
         confidence_threshold: 75,
         knowledge_base: [],
         command_permissions: {
@@ -149,13 +149,14 @@ const defaultConfigs: DefaultConfigs = {
     },
     'captcha': { enabled: true, verification_channel: null, type: 'text', difficulty: 'medium', verified_role_id: null },
     'image-filter': { 
-        enabled: true, 
+        enabled: false, 
         sensitivity: 'medium',
         premium: true
     },
     'moderation-ai': { enabled: true, mode: 'monitor' },
     'adaptive-anti-raid': { 
         enabled: true, 
+        premium: true,
         raid_detection_enabled: true, 
         raid_sensitivity: 'medium', 
         raid_action: 'lockdown',

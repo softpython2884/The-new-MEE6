@@ -8,17 +8,18 @@ import { getServerConfig } from '../../../src/lib/db';
 const guildJoinsCache = new Collection<string, number[]>();
 
 const sensitivityThresholds = {
-    low: [20, 15],
-    medium: [10, 10],
-    high: [5, 5],
+    low: { members: 20, seconds: 15 },
+    medium: { members: 10, seconds: 10 },
+    high: { members: 5, seconds: 5 },
 };
 
 export const name = Events.GuildMemberAdd;
 
 export async function execute(member: GuildMember) {
     const antiRaidConfig = await getServerConfig(member.guild.id, 'adaptive-anti-raid');
+    const isPremium = antiRaidConfig?.premium || false;
 
-    if (!antiRaidConfig?.enabled || !antiRaidConfig.raid_detection_enabled) {
+    if (!antiRaidConfig?.enabled || !antiRaidConfig.raid_detection_enabled || !isPremium) {
         return;
     }
 
@@ -26,7 +27,7 @@ export async function execute(member: GuildMember) {
     const joins = guildJoinsCache.get(member.guild.id) || [];
     
     const sensitivity = antiRaidConfig.raid_sensitivity as 'low' | 'medium' | 'high';
-    const [joinThreshold, timeframeSeconds] = sensitivityThresholds[sensitivity];
+    const { members: joinThreshold, seconds: timeframeSeconds } = sensitivityThresholds[sensitivity];
     const timeframeMs = timeframeSeconds * 1000;
 
     // Filter out old join timestamps

@@ -1,8 +1,4 @@
 
-
-
-
-
 import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits } from 'discord.js';
 import dotenv from 'dotenv';
 import path from 'path';

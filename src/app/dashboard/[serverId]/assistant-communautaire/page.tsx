@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { MessageSquare, Trash2, PlusCircle, Badge } from 'lucide-react';
+import { MessageSquare, Trash2, PlusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,7 @@ import type { KnowledgeBaseItem } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
+import { Badge } from '@/components/ui/badge';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 

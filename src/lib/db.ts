@@ -59,10 +59,10 @@ const defaultConfigs: DefaultConfigs = {
         presets: [], 
         premium: false,
         command_permissions: {
-            ban: 'Admin', // Default role name
-            unban: 'Admin',
-            kick: 'Modérateur',
-            mute: 'Modérateur',
+            ban: null,
+            unban: null,
+            kick: null,
+            mute: null,
         }
     },
     'auto-moderation': { 
@@ -133,6 +133,9 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
             // Merge with default config to ensure all keys are present
             const defaultConfig = defaultConfigs[module] || {};
             const finalConfig = { ...defaultConfig, ...config };
+             if (config.command_permissions) {
+                finalConfig.command_permissions = { ...defaultConfig.command_permissions, ...config.command_permissions };
+            }
             finalConfig.premium = !!result.premium;
             
             return finalConfig;

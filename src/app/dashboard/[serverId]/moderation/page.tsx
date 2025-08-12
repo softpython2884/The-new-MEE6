@@ -44,25 +44,21 @@ const moderationCommands = [
         name: '/ban',
         key: 'ban',
         description: 'Bannit un utilisateur du serveur.',
-        defaultRole: 'Admin'
     },
     {
         name: '/unban',
         key: 'unban',
         description: "Révoque le bannissement d'un utilisateur.",
-        defaultRole: 'Admin'
     },
     {
         name: '/kick',
         key: 'kick',
         description: 'Expulse un utilisateur du serveur.',
-        defaultRole: 'Modérateur'
     },
     {
         name: '/mute',
         key: 'mute',
         description: 'Rend un utilisateur muet (timeout).',
-        defaultRole: 'Modérateur'
     },
 ];
 
@@ -88,7 +84,7 @@ export default function ModerationPage() {
         const configData = await configRes.json();
         if (configRes.ok) {
           setConfig(configData);
-        } else {
+        } else if (configRes.status !== 404) { // 404 is a normal case for new configs
           console.error("Failed to fetch module config:", configData.message);
         }
 
@@ -130,15 +126,15 @@ export default function ModerationPage() {
   };
 
   // --- Data Saving ---
-  const handleConfigChange = async (key: keyof ModerationConfig, value: any) => {
+  const handleConfigChange = (key: keyof ModerationConfig, value: any) => {
     if (!config) return;
 
     const newConfig = { ...config, [key]: value };
     setConfig(newConfig);
-    await saveConfig(newConfig);
+    saveConfig(newConfig);
   };
 
-  const handlePermissionChange = async (commandKey: string, roleId: string) => {
+  const handlePermissionChange = (commandKey: string, roleId: string) => {
     if (!config) return;
     
     const newPermissions = {
@@ -147,7 +143,7 @@ export default function ModerationPage() {
     };
     const newConfig = { ...config, command_permissions: newPermissions };
     setConfig(newConfig);
-    await saveConfig(newConfig);
+    saveConfig(newConfig);
   };
   
   const getRoleColor = (color: number) => {
@@ -203,6 +199,7 @@ export default function ModerationPage() {
                     <SelectContent>
                         <SelectGroup>
                             <SelectLabel>Salons textuels</SelectLabel>
+                             <SelectItem value="">Désactivé</SelectItem>
                             {channels.map(channel => (
                                 <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
                             ))}
@@ -241,7 +238,7 @@ export default function ModerationPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {moderationCommands.map(command => {
-                 const selectedRoleId = config.command_permissions?.[command.key];
+                 const selectedRoleId = config.command_permissions?.[command.key] || '';
                  return (
                  <Card key={command.name}>
                     <CardHeader>
@@ -263,6 +260,7 @@ export default function ModerationPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
+                                        <SelectLabel>Rôles</SelectLabel>
                                         {roles.filter(r => r.name !== '@everyone').sort((a,b) => (a.name > b.name) ? 1 : -1).map(role => (
                                             <SelectItem key={role.id} value={role.id}>
                                                 <div className="flex items-center gap-2">

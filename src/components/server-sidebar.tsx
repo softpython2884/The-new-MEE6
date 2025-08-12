@@ -18,7 +18,7 @@ export function ServerSidebar() {
   return (
     <TooltipProvider delayDuration={0}>
       <aside className="flex h-full w-20 flex-col items-center gap-3 bg-[#202225] py-4">
-        <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto">
+        <div className="flex flex-1 flex-col items-center gap-3">
           {servers.map((server) => (
             <Tooltip key={server.id}>
               <TooltipTrigger asChild>

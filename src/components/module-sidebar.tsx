@@ -48,7 +48,7 @@ export function ModuleSidebar() {
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
-            <Link key={item.label} href={item.href} passHref>
+            <Link key={item.label} href={item.href} passHref legacyBehavior>
               <Button
                 variant={isActive ? 'secondary' : 'ghost'}
                 className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}

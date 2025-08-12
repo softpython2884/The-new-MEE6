@@ -1,12 +1,16 @@
+
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Lock } from 'lucide-react';
+import { Lock, ChevronDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
 
 const mockRoles = [
   { id: 'r1', name: '@everyone' },
@@ -14,6 +18,8 @@ const mockRoles = [
   { id: 'r3', name: 'Admin' },
   { id: 'r4', name: 'Membre' },
   { id: 'r5', name: 'VIP' },
+  { id: 'r6', name: 'Partenaire' },
+  { id: 'r7', name: 'Testeur' },
 ];
 
 const lockCommands = [
@@ -30,6 +36,16 @@ const lockCommands = [
 ];
 
 export default function LockPage() {
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(['r5']); // VIP is selected by default
+
+  const handleRoleToggle = (roleId: string) => {
+    setSelectedRoles(prev => 
+      prev.includes(roleId) ? prev.filter(id => id !== roleId) : [...prev, roleId]
+    );
+  };
+
+  const getRoleName = (roleId: string) => mockRoles.find(r => r.id === roleId)?.name || '';
+
   return (
     <div className="space-y-8 text-white max-w-4xl">
       <div>
@@ -51,13 +67,38 @@ export default function LockPage() {
         </CardHeader>
         <CardContent>
             <div className="space-y-2">
-                <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés du verrouillage (IDs)</Label>
+                <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés du verrouillage</Label>
                 <p className="text-sm text-muted-foreground/80">
-                    Les utilisateurs avec ces rôles ne seront pas affectés. Entrez les IDs de rôles, séparés par une virgule.
+                    Les utilisateurs avec ces rôles pourront toujours parler dans les salons verrouillés.
                 </p>
-                <Textarea id="exempt-roles" placeholder="Ex: 86383348842...
-, 92149...
-" />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                           <div className="flex-1 text-left truncate">
+                                {selectedRoles.length > 0 
+                                    ? selectedRoles.map(id => (
+                                        <Badge key={id} variant="secondary" className="mr-1 mb-1">{getRoleName(id)}</Badge>
+                                    ))
+                                    : "Sélectionner des rôles..."}
+                            </div>
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                        <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {mockRoles.map(role => (
+                             <DropdownMenuCheckboxItem
+                                key={role.id}
+                                checked={selectedRoles.includes(role.id)}
+                                onCheckedChange={() => handleRoleToggle(role.id)}
+                                onSelect={(e) => e.preventDefault()} // Prevent closing menu on select
+                             >
+                                {role.name}
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </CardContent>
       </Card>

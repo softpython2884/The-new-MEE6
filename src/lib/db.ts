@@ -16,7 +16,23 @@ const db = new Database(dbPath);
 console.log(`[Database] Connecté à la base de données SQLite sur ${dbPath}`);
 
 
-// --- Structure de la table de configuration ---
+// --- Schéma et Migration de la Base de Données ---
+const upgradeSchema = () => {
+    try {
+        // Check for premium column
+        const columns = db.pragma('table_info(server_configs)');
+        const hasPremiumColumn = columns.some((col: any) => col.name === 'premium');
+
+        if (!hasPremiumColumn) {
+            console.log('[Database] Mise à jour du schéma : Ajout de la colonne "premium".');
+            db.exec('ALTER TABLE server_configs ADD COLUMN premium BOOLEAN DEFAULT FALSE');
+        }
+    } catch (error) {
+        console.error('[Database] Erreur lors de la mise à jour du schéma:', error);
+    }
+};
+
+
 const createConfigTable = () => {
     db.exec(`
         CREATE TABLE IF NOT EXISTS server_configs (
@@ -28,6 +44,8 @@ const createConfigTable = () => {
         );
     `);
     console.log('[Database] La table "server_configs" est prête.');
+    // Run schema upgrades after ensuring the table exists
+    upgradeSchema();
 };
 
 // --- Configurations par défaut pour les nouveaux serveurs ---
@@ -105,6 +123,10 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
             if (defaultConfig) {
                 console.log(`[Database] Aucune config trouvée pour ${guildId} et le module ${module}. Création de la config par défaut.`);
                 updateServerConfig(guildId, module, defaultConfig);
+                // Return the default config with the current premium status of the server
+                const premiumStatusStmt = db.prepare('SELECT premium FROM server_configs WHERE guild_id = ? LIMIT 1');
+                const premiumResult = premiumStatusStmt.get(guildId) as { premium: number } | undefined;
+                defaultConfig.premium = premiumResult ? !!premiumResult.premium : false;
                 return defaultConfig;
             }
             return null;
@@ -123,14 +145,19 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
  */
 export function updateServerConfig(guildId: string, module: Module, configData: ModuleConfig) {
     try {
+        // Le statut premium est géré globalement par setPremiumStatus, mais on s'assure qu'il est bien dans l'objet
+        const currentConfig = getServerConfig(guildId, module);
+        const isPremium = currentConfig?.premium || configData.premium || false;
+        
         const { premium, ...restConfig } = configData;
         const configString = JSON.stringify(restConfig);
+        
         const stmt = db.prepare(`
             INSERT INTO server_configs (guild_id, module, config, premium)
             VALUES (?, ?, ?, ?)
-            ON CONFLICT(guild_id, module) DO UPDATE SET config = excluded.config, premium = excluded.premium;
+            ON CONFLICT(guild_id, module) DO UPDATE SET config = excluded.config;
         `);
-        stmt.run(guildId, module, configString, premium ? 1 : 0);
+        stmt.run(guildId, module, configString, isPremium ? 1 : 0);
         // console.log(`[Database] Configuration mise à jour pour le serveur ${guildId}, module ${module}.`);
     } catch (error) {
         console.error(`[Database] Erreur lors de la mise à jour de la config pour ${guildId} (module: ${module}):`, error);
@@ -178,21 +205,14 @@ export function getAllBotServers(): { id: string; name: string; icon: string | n
 }
 
 /**
- * Met à jour le statut premium d'un serveur.
+ * Met à jour le statut premium d'un serveur pour tous ses modules.
  * @param guildId L'ID du serveur.
  * @param isPremium Le nouveau statut premium.
  */
 export function setPremiumStatus(guildId: string, isPremium: boolean) {
     try {
-        // We need to update all module entries for that guild
-        const modules = Object.keys(defaultConfigs) as Module[];
-        const stmt = db.prepare(`UPDATE server_configs SET premium = ? WHERE guild_id = ? AND module = ?`);
-        const transaction = db.transaction((modulesToUpdate) => {
-            for (const moduleName of modulesToUpdate) {
-                stmt.run(isPremium ? 1 : 0, guildId, moduleName);
-            }
-        });
-        transaction(modules);
+        const stmt = db.prepare(`UPDATE server_configs SET premium = ? WHERE guild_id = ?`);
+        stmt.run(isPremium ? 1 : 0, guildId);
         console.log(`[Database] Statut premium mis à jour à '${isPremium}' pour le serveur ${guildId}.`);
     } catch (error) {
         console.error(`[Database] Erreur lors de la mise à jour du statut premium pour ${guildId}:`, error);

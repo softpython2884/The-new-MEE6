@@ -169,18 +169,16 @@ export function ModuleSidebar({ serverId: serverIdProp }: { serverId: string }) 
                       const fullPath = serverId ? `/dashboard/${serverId}/${item.href}` : '#';
                       const isActive = pathname === fullPath;
                       return (
-                        <Link key={item.label} href={fullPath} legacyBehavior>
-                           <a className={!serverId ? 'pointer-events-none' : ''}>
-                              <Button
-                                variant={isActive ? 'secondary' : 'ghost'}
-                                className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}
-                                disabled={!serverId}
-                              >
-                                  <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
-                                  <span>{item.label}</span>
-                                  {item.isPremium && <Sparkles className="h-4 w-4 ml-auto text-yellow-400" />}
-                              </Button>
-                           </a>
+                        <Link key={item.label} href={fullPath} className={!serverId ? 'pointer-events-none' : ''}>
+                           <Button
+                             variant={isActive ? 'secondary' : 'ghost'}
+                             className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}
+                             disabled={!serverId}
+                           >
+                               <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
+                               <span>{item.label}</span>
+                               {item.isPremium && <Sparkles className="h-4 w-4 ml-auto text-yellow-400" />}
+                           </Button>
                         </Link>
                       );
                     })}

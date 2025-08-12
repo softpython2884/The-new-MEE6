@@ -21,6 +21,9 @@ interface ModerationConfig {
   log_channel_id: string | null;
   dm_user_on_action: boolean;
   premium: boolean;
+  command_permissions: {
+      [command: string]: string; // command_name: role_id
+  }
 }
 
 interface DiscordChannel {
@@ -39,21 +42,25 @@ interface DiscordRole {
 const moderationCommands = [
     {
         name: '/ban',
+        key: 'ban',
         description: 'Bannit un utilisateur du serveur.',
         defaultRole: 'Admin'
     },
     {
         name: '/unban',
+        key: 'unban',
         description: "Révoque le bannissement d'un utilisateur.",
         defaultRole: 'Admin'
     },
     {
         name: '/kick',
+        key: 'kick',
         description: 'Expulse un utilisateur du serveur.',
         defaultRole: 'Modérateur'
     },
     {
         name: '/mute',
+        key: 'mute',
         description: 'Rend un utilisateur muet (timeout).',
         defaultRole: 'Modérateur'
     },
@@ -106,26 +113,41 @@ export default function ModerationPage() {
     fetchData();
   }, [serverId]);
 
+  const saveConfig = async (newConfig: ModerationConfig) => {
+    try {
+      await fetch(`${API_URL}/update-config/${serverId}/moderation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newConfig),
+      });
+      // TODO: show toast success
+    } catch (error) {
+      console.error('Failed to update config', error);
+      // TODO: show toast error and revert state
+    }
+  };
+
   // --- Data Saving ---
   const handleConfigChange = async (key: keyof ModerationConfig, value: any) => {
     if (!config) return;
 
     const newConfig = { ...config, [key]: value };
     setConfig(newConfig);
+    await saveConfig(newConfig);
+  };
 
-    try {
-      await fetch(`${API_URL}/update-config/${serverId}/moderation`, {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newConfig),
-      });
-      // TODO: show toast success
-    } catch (error) {
-      console.error("Failed to update config", error);
-      // TODO: show toast error and revert state
-    }
+  const handlePermissionChange = async (commandKey: string, roleId: string) => {
+    if (!config) return;
+    
+    const newPermissions = {
+      ...config.command_permissions,
+      [commandKey]: roleId,
+    };
+    const newConfig = { ...config, command_permissions: newPermissions };
+    setConfig(newConfig);
+    await saveConfig(newConfig);
   };
   
   const getRoleColor = (color: number) => {
@@ -218,7 +240,9 @@ export default function ModerationPage() {
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {moderationCommands.map(command => (
+            {moderationCommands.map(command => {
+                 const selectedRoleId = config.command_permissions?.[command.key];
+                 return (
                  <Card key={command.name}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -230,7 +254,10 @@ export default function ModerationPage() {
                     <CardContent>
                         <div className="space-y-2">
                              <Label htmlFor={`role-select-${command.name}`} className="text-sm font-medium">Rôle minimum requis</Label>
-                            <Select>
+                            <Select
+                                value={selectedRoleId}
+                                onValueChange={(value) => handlePermissionChange(command.key, value)}
+                            >
                                 <SelectTrigger id={`role-select-${command.name}`} className="w-full">
                                     <SelectValue placeholder="Sélectionner un rôle" />
                                 </SelectTrigger>
@@ -250,7 +277,7 @@ export default function ModerationPage() {
                         </div>
                     </CardContent>
                 </Card>
-            ))}
+            )})}
         </div>
       </div>
 

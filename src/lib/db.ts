@@ -19,6 +19,7 @@ console.log(`[Database] Connecté à la base de données SQLite sur ${dbPath}`);
 // --- Schéma et Migration de la Base de Données ---
 const upgradeSchema = () => {
     try {
+        db.pragma('journal_mode = WAL');
         // Check for premium column
         const columns = db.pragma('table_info(server_configs)');
         const hasPremiumColumn = columns.some((col: any) => col.name === 'premium');
@@ -51,7 +52,19 @@ const createConfigTable = () => {
 // --- Configurations par défaut pour les nouveaux serveurs ---
 // Basé sur la documentation fournie
 const defaultConfigs: DefaultConfigs = {
-    'moderation': { enabled: true, log_channel_id: null, dm_user_on_action: true, presets: [], premium: false },
+    'moderation': { 
+        enabled: true, 
+        log_channel_id: null, 
+        dm_user_on_action: true, 
+        presets: [], 
+        premium: false,
+        command_permissions: {
+            ban: 'Admin', // Default role name
+            unban: 'Admin',
+            kick: 'Modérateur',
+            mute: 'Modérateur',
+        }
+    },
     'auto-moderation': { 
         enabled: true,
         'forbidden-vocabulary': { enabled: false },
@@ -116,7 +129,13 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
         if (result && result.config) {
             const config = JSON.parse(result.config);
             config.premium = !!result.premium; // Convert 0/1 to boolean
-            return config;
+            
+            // Merge with default config to ensure all keys are present
+            const defaultConfig = defaultConfigs[module] || {};
+            const finalConfig = { ...defaultConfig, ...config };
+            finalConfig.premium = !!result.premium;
+            
+            return finalConfig;
         } else {
             // Si aucune config n'est trouvée, on insère la config par défaut et on la retourne
             const defaultConfig = defaultConfigs[module];

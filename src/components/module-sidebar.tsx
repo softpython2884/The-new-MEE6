@@ -20,11 +20,11 @@ import {
   ToyBrick,
   GraduationCap,
   Wrench,
-  HelpCircle,
+  Users,
   Palette,
-  Terminal,
   MessageSquare,
-  SlidersHorizontal,
+  Voicemail,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -69,8 +69,8 @@ const navCategories = [
     {
         name: 'Vocaux',
         items: [
-             { href: 'vocaux-ia', label: 'IA Vocaux', icon: Mic, isPremium: true },
-             { href: 'commandes-vocales', label: 'Commandes vocales', icon: Terminal },
+            { href: 'vocaux-ia', label: 'IA Vocaux', icon: Mic, isPremium: true },
+            { href: 'commandes-vocales', label: 'Contrôle manuel', icon: Voicemail },
         ]
     },
      {
@@ -99,7 +99,7 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
           <Badge className="mt-1 border-0 bg-orange-600/80 text-white">Premium</Badge>
         </div>
       </div>
-      <nav className="flex-1 space-y-2">
+      <nav className="flex-1 space-y-2 overflow-y-auto pr-2">
         {navCategories.map((category) => (
             <div key={category.name}>
                 <h3 className="px-3 py-2 text-xs font-bold uppercase text-muted-foreground">{category.name}</h3>

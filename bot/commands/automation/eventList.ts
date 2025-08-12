@@ -1,6 +1,6 @@
 
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags, GuildScheduledEventStatus } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -22,20 +22,37 @@ const EventListCommand: Command = {
             await interaction.reply({ content: "Le module d'événements intelligents est désactivé sur ce serveur.", flags: MessageFlags.Ephemeral });
             return;
         }
+
+        await interaction.deferReply({ ephemeral: true });
         
-        // TODO: Check command permissions
+        try {
+            const events = await interaction.guild.scheduledEvents.fetch();
+            const upcomingEvents = events.filter(event => event.status === GuildScheduledEventStatus.Scheduled);
 
-        // TODO: In a real implementation, you would:
-        // 1. Fetch upcoming GuildScheduledEvents from the Discord API.
-        // 2. Format them nicely into an embed or multiple pages.
+            if (upcomingEvents.size === 0) {
+                await interaction.editReply({ content: 'Aucun événement n\'est programmé pour le moment.' });
+                return;
+            }
 
-        const embed = new EmbedBuilder()
-            .setColor(0x00BFFF)
-            .setTitle("Événements à Venir (Simulation)")
-            .setDescription("- Événement 1 : Ce soir à 21h\n- Événement 2 : Demain à 18h")
-            .setFooter({ text: 'Implémentation réelle à venir.' });
-            
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            const embed = new EmbedBuilder()
+                .setColor(0x00BFFF)
+                .setTitle(`Événements à Venir sur ${interaction.guild.name}`)
+                .setDescription('Voici la liste des prochains événements programmés.');
+
+            for (const event of upcomingEvents.values()) {
+                embed.addFields({
+                    name: `🗓️ ${event.name}`,
+                    value: `> **Quand ?** <t:${Math.floor(event.scheduledStartTimestamp! / 1000)}:R>\n> **Où ?** ${event.entityMetadata?.location || 'Non spécifié'}\n> [Voir l'événement](${event.url})`,
+                    inline: false,
+                });
+            }
+                
+            await interaction.editReply({ embeds: [embed] });
+
+        } catch (error) {
+            console.error('[EventList] Error fetching events:', error);
+            await interaction.editReply({ content: 'Une erreur est survenue lors de la récupération des événements.' });
+        }
     },
 };
 

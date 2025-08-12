@@ -9,7 +9,7 @@ import { initializeDatabase, syncGuilds } from '../src/lib/db';
 import { startApi } from './api';
 import { initializeBotAuth } from './auth';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env.local') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 
 // --- Initialize Database First ---

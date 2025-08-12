@@ -109,6 +109,34 @@ export function startApi(client: Client) {
         }
     });
 
+    /**
+     * Endpoint to get details for multiple servers from a list of IDs.
+     */
+    app.post('/api/get-servers-details', async (req, res) => {
+        const { guildIds } = req.body;
+        if (!Array.isArray(guildIds)) {
+            return res.status(400).json({ error: 'guildIds must be an array.' });
+        }
+
+        try {
+            const promises = guildIds.map(id => client.guilds.fetch(id).catch(() => null));
+            const guilds = await Promise.all(promises);
+
+            const serversDetails = guilds
+                .filter(g => g !== null)
+                .map(guild => ({
+                    id: guild!.id,
+                    name: guild!.name,
+                    iconURL: guild!.iconURL(),
+                }));
+            
+            res.json(serversDetails);
+        } catch (error) {
+            console.error(`[Bot API] Error fetching details for multiple servers:`, error);
+            res.status(500).json({ error: 'Erreur interne du serveur.' });
+        }
+    });
+
 
     app.listen(API_PORT, () => {
         console.log(`[Bot API] Le serveur API interne écoute sur le port ${API_PORT}`);

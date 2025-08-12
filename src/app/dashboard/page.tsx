@@ -1,16 +1,29 @@
+
+'use client';
+
+import { useEffect, useState } from 'react';
 import { redirect } from 'next/navigation';
-import { servers } from '@/components/server-sidebar';
 
 export default function DashboardRootPage() {
-    // Redirect to the first server's moderation page by default
-    if (servers.length > 0) {
-        redirect(`/dashboard/${servers[0].id}/moderation`);
+    const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const storedGuildIds = JSON.parse(localStorage.getItem('authed_guilds') || '[]');
+        if (storedGuildIds.length > 0) {
+            setRedirectUrl(`/dashboard/${storedGuildIds[0]}/moderation`);
+        } else {
+            // If no servers, you could redirect to a "please connect a server" page
+            // For now, we just show a message.
+        }
+    }, []);
+
+    if (redirectUrl) {
+        redirect(redirectUrl);
     }
-    // A fallback if there are no servers, though this case should be handled
-    // by an authentication flow in a real app.
+
     return (
         <div className="flex h-full items-center justify-center">
-            <p>Veuillez sélectionner un serveur pour commencer.</p>
+            <p>Veuillez utiliser la commande /login sur un serveur Discord pour commencer.</p>
         </div>
     );
 }

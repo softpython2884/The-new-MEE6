@@ -41,10 +41,14 @@ export default function DiscordAuthPage() {
 
                 const { guildId } = await response.json();
 
-                // Here, you would typically set up a user session (e.g., via a cookie or session storage)
-                // For this example, we'll just redirect.
-                // A more robust solution might store a list of authed guilds in localStorage.
-                localStorage.setItem('authed_guild', guildId);
+                // Get existing authed guilds from localStorage, or initialize a new array
+                const authedGuilds = JSON.parse(localStorage.getItem('authed_guilds') || '[]');
+
+                // Add the new guildId if it's not already in the list
+                if (!authedGuilds.includes(guildId)) {
+                    authedGuilds.push(guildId);
+                    localStorage.setItem('authed_guilds', JSON.stringify(authedGuilds));
+                }
 
                 setMessage('Authentification réussie ! Redirection en cours...');
                 router.push(`/dashboard/${guildId}/moderation`);

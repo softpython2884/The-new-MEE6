@@ -1,7 +1,7 @@
 
 
 import { Events, Message, Collection } from 'discord.js';
-import { getServerConfig } from '@/lib/db';
+import { getServerConfig } from '../../../src/lib/db';
 
 // --- Anti-Spam Cache ---
 // Maps a user ID to a collection of message timestamps

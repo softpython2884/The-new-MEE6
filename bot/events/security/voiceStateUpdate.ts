@@ -1,7 +1,7 @@
 
 
 import { Events, VoiceState } from 'discord.js';
-import { getServerConfig } from '@/lib/db';
+import { getServerConfig } from '../../../src/lib/db';
 
 
 export const name = Events.VoiceStateUpdate;

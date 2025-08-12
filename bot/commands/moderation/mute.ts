@@ -1,9 +1,9 @@
 
 
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, TextChannel, GuildMember } from 'discord.js';
-import type { Command } from '@/types';
+import type { Command } from '../../../src/types';
 import ms from 'ms';
-import { getServerConfig } from '@/lib/db';
+import { getServerConfig } from '../../../src/lib/db';
 
 const MuteCommand: Command = {
     data: new SlashCommandBuilder()

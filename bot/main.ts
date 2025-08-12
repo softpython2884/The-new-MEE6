@@ -4,8 +4,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { loadCommands } from './handlers/commandHandler';
-import type { Command } from '@/types';
-import { initializeDatabase, syncGuilds } from '@/lib/db';
+import type { Command } from '../src/types';
+import { initializeDatabase, syncGuilds } from '../src/lib/db';
 import { startApi } from './api';
 import { initializeBotAuth } from './auth';
 

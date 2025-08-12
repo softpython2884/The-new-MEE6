@@ -1,7 +1,7 @@
 
 
 import { Events, GuildMember, EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle, AuditLogEvent } from 'discord.js';
-import { getServerConfig } from '@/lib/db';
+import { getServerConfig } from '../../../src/lib/db';
 
 
 export const name = Events.GuildMemberAdd;

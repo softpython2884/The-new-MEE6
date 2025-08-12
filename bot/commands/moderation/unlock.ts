@@ -1,6 +1,6 @@
 
 import { SlashCommandBuilder, CommandInteraction, PermissionFlagsBits, ChannelType, TextChannel, ChatInputCommandInteraction } from 'discord.js';
-import type { Command } from '@/types';
+import type { Command } from '../../../src/types';
 
 const UnlockCommand: Command = {
     data: new SlashCommandBuilder()

@@ -1,9 +1,9 @@
 
 
 import { Events, VoiceState, ActivityType, Collection } from 'discord.js';
-import { smartVoiceFlow } from '@/ai/flows/smart-voice-flow';
-import { getServerConfig } from '@/lib/db';
-import type { InteractiveChannel } from '@/types';
+import { smartVoiceFlow } from '../../../src/ai/flows/smart-voice-flow';
+import { getServerConfig } from '../../../src/lib/db';
+import type { InteractiveChannel } from '../../../src/types';
 
 
 // Simple cache to prevent spamming the API for the same channel within a short time

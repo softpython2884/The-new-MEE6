@@ -1,5 +1,4 @@
 
-
 {
   "compilerOptions": {
     "target": "es2020",
@@ -10,9 +9,9 @@
     "skipLibCheck": true,
     "outDir": "../dist/bot",
     "rootDir": ".",
-    "baseUrl": "..",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["../src/*"]
     }
   },
   "include": ["**/*.ts"],

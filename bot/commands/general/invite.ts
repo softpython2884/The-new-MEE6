@@ -1,6 +1,6 @@
 
 import { SlashCommandBuilder, CommandInteraction, ButtonBuilder, ButtonStyle, ActionRowBuilder, ChatInputCommandInteraction } from 'discord.js';
-import type { Command } from '@/types';
+import type { Command } from '../../../src/types';
 
 const InviteCommand: Command = {
     data: new SlashCommandBuilder()

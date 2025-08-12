@@ -1,8 +1,8 @@
 
 
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, TextChannel, AutocompleteInteraction, ApplicationCommandOptionChoiceData } from 'discord.js';
-import type { Command } from '@/types';
-import { getServerConfig } from '@/lib/db';
+import type { Command } from '../../../src/types';
+import { getServerConfig } from '../../../src/lib/db';
 
 const UnbanCommand: Command = {
     data: new SlashCommandBuilder()

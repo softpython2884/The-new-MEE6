@@ -4,7 +4,7 @@ import { Routes } from 'discord-api-types/v10';
 import { Client } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
-import type { Command } from '@/types';
+import type { Command } from '../../src/types';
 
 export const loadCommands = async (client: Client) => {
     const commands: any[] = [];

@@ -1,7 +1,7 @@
 
 
 import { Events, GuildMember, Collection, EmbedBuilder, TextChannel } from 'discord.js';
-import { getServerConfig } from '@/lib/db';
+import { getServerConfig } from '../../../src/lib/db';
 
 // --- Anti-Raid Cache ---
 // Maps a guild ID to a collection of member join timestamps

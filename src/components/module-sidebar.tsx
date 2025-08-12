@@ -3,16 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Bot,
-  Hammer,
   ShieldCheck,
-  Users,
-  MessageSquare,
-  Sparkles,
+  Hammer,
+  Bot,
   Palette,
   Layout,
   Mic,
-  FileClock
+  FileClock,
+  Sparkles,
+  Users,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -47,23 +47,23 @@ export function ModuleSidebar({ serverId }: { serverId: string }) {
           <Badge className="mt-1 border-0 bg-orange-600/80 text-white">Premium</Badge>
         </div>
       </div>
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-1 overflow-y-auto">
         {navItems.map((item) => {
           const fullPath = `/dashboard/${serverId}/${item.href}`;
           const isActive = pathname === fullPath;
           return (
-            <Link key={item.label} href={fullPath}>
+            <Link key={item.label} href={fullPath} legacyBehavior={false}>
               <Button
                 variant={isActive ? 'secondary' : 'ghost'}
                 className={cn('w-full justify-start gap-3', { 'bg-secondary text-white': isActive, 'text-muted-foreground hover:text-white': !isActive})}
               >
-                <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
-                <span>{item.label}</span>
-                {item.isNew && (
-                  <Badge variant="default" className="ml-auto h-5">
-                    NEW
-                  </Badge>
-                )}
+                  <item.icon className={cn('h-5 w-5', { 'text-primary': isActive })} />
+                  <span>{item.label}</span>
+                  {item.isNew && (
+                    <Badge variant="default" className="ml-auto h-5">
+                      NEW
+                    </Badge>
+                  )}
               </Button>
             </Link>
           );

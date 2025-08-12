@@ -10,7 +10,7 @@ export default function DashboardLayout({
   params: { serverId: string };
 }) {
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <ServerSidebar serverId={params.serverId} />
       <ModuleSidebar serverId={params.serverId} />
       <main className="flex-1 overflow-y-auto">

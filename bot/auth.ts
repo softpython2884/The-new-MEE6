@@ -1,5 +1,8 @@
 
 import fetch from 'node-fetch';
+import { randomBytes } from 'crypto';
+
+// --- Bot Authentication with Discord API ---
 
 let botAccessToken: string | null = null;
 let tokenExpiry: number | null = null;
@@ -53,3 +56,65 @@ export async function getBotAccessToken(): Promise<string> {
     }
     return botAccessToken!;
 }
+
+
+// --- Panel User Authentication ---
+
+interface AuthToken {
+    userId: string;
+    guildId: string;
+    expires: number;
+}
+
+// Store tokens in memory. For a multi-process setup, a shared store like Redis would be needed.
+const activeTokens = new Map<string, AuthToken>();
+const TOKEN_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Generates a single-use authentication token for a user and guild.
+ */
+export function generateAuthToken(userId: string, guildId: string): string {
+    const token = randomBytes(32).toString('hex');
+    activeTokens.set(token, {
+        userId,
+        guildId,
+        expires: Date.now() + TOKEN_EXPIRATION_MS,
+    });
+    console.log(`[Auth] Generated token for user ${userId} on guild ${guildId}`);
+    return token;
+}
+
+/**
+ * Verifies a token and returns the associated guild and user IDs.
+ * The token is invalidated after successful verification.
+ */
+export function verifyAndConsumeAuthToken(token: string): { guildId: string; userId: string } | null {
+    const tokenData = activeTokens.get(token);
+
+    if (!tokenData) {
+        console.warn(`[Auth] Verification failed: Token not found.`);
+        return null;
+    }
+
+    // Token has been used, so invalidate it immediately
+    activeTokens.delete(token);
+
+    if (Date.now() > tokenData.expires) {
+        console.warn(`[Auth] Verification failed: Token expired for user ${tokenData.userId}.`);
+        return null;
+    }
+    
+    console.log(`[Auth] Successfully verified token for user ${tokenData.userId} on guild ${tokenData.guildId}.`);
+    return { guildId: tokenData.guildId, userId: tokenData.userId };
+}
+
+// Periodically clean up expired tokens to prevent memory leaks
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, tokenData] of activeTokens.entries()) {
+        if (now > tokenData.expires) {
+            activeTokens.delete(token);
+            console.log(`[Auth] Cleaned up expired token for user ${tokenData.userId}.`);
+        }
+    }
+}, 60 * 1000); // Run every minute

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -22,6 +23,8 @@ import {
   HelpCircle,
   Palette,
   Terminal,
+  MessageSquare,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -32,8 +35,8 @@ const navCategories = [
     {
         name: 'Général',
         items: [
-            { href: 'commandes-generales', label: 'Commandes', icon: Wrench },
-            { href: 'assistant-communautaire', label: 'Assistant Communautaire', icon: HelpCircle },
+            { href: 'commandes-generales', label: 'Commandes Générales', icon: Wrench },
+            { href: 'assistant-communautaire', label: 'Assistant Communautaire', icon: MessageSquare },
             { href: 'traduction-automatique', label: 'Traduction Auto', icon: Languages, isPremium: true },
             { href: 'logs', label: 'Logs', icon: FileClock },
         ]
@@ -66,8 +69,8 @@ const navCategories = [
     {
         name: 'Vocaux',
         items: [
-            { href: 'vocaux-ia', label: 'IA Vocaux', icon: Mic, isPremium: true },
-            { href: 'commandes-vocales', label: 'Commandes vocales', icon: Terminal },
+             { href: 'vocaux-ia', label: 'IA Vocaux', icon: Mic, isPremium: true },
+             { href: 'commandes-vocales', label: 'Commandes vocales', icon: Terminal },
         ]
     },
      {

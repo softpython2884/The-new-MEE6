@@ -33,7 +33,7 @@ export async function execute(oldMember: GuildMember, newMember: GuildMember) {
         revokeTesterStatus(newMember.id, newMember.guild.id);
         
          try {
-            await newMember.send('Vous avez arrêté de booster le serveur. Votre statut de **Testeur** et l'accès aux fonctionnalités exclusives ont été retirés. Merci pour votre soutien passé !');
+            await newMember.send('Vous avez arrêté de booster le serveur. Votre statut de **Testeur** et l\'accès aux fonctionnalités exclusives ont été retirés. Merci pour votre soutien passé !');
         } catch (error) {
             console.warn(`[Tester] Impossible d'envoyer un DM de notification à ${newMember.user.tag}.`);
         }

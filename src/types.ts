@@ -36,7 +36,8 @@ export type Module =
     | 'lock'
     | 'backup'
     | 'webcam'
-    | 'mod-training';
+    | 'mod-training'
+    | 'tester';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

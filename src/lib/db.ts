@@ -21,14 +21,25 @@ console.log(`[Database] Connecté à la base de données SQLite sur ${dbPath}`);
 const upgradeSchema = () => {
     try {
         db.pragma('journal_mode = WAL');
+        
         // Check for premium column
-        const columns: any[] = db.pragma('table_info(server_configs)');
-        const hasPremiumColumn = columns.some((col: any) => col.name === 'premium');
-
-        if (!hasPremiumColumn) {
-            console.log('[Database] Mise à jour du schéma : Ajout de la colonne "premium".');
+        const configColumns: any[] = db.pragma('table_info(server_configs)');
+        if (!configColumns.some(col => col.name === 'premium')) {
+            console.log('[Database] Mise à jour du schéma : Ajout de la colonne "premium" à server_configs.');
             db.exec('ALTER TABLE server_configs ADD COLUMN premium BOOLEAN DEFAULT FALSE');
         }
+        
+        // Create testers table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS testers (
+                user_id TEXT NOT NULL,
+                guild_id TEXT NOT NULL,
+                expires_at DATETIME,
+                PRIMARY KEY (user_id, guild_id)
+            );
+        `);
+         console.log('[Database] La table "testers" est prête.');
+
     } catch (error) {
         console.error('[Database] Erreur lors de la mise à jour du schéma:', error);
     }
@@ -228,6 +239,12 @@ const defaultConfigs: DefaultConfigs = {
         mentor_messages: 'Bienvenue sur le serveur, {user} ! Voici quelques règles à connaître...',
         auto_role_assignment: false,
     },
+    'tester': {
+        enabled: true,
+        command_permissions: {
+            tester: null,
+        },
+    }
     // D'autres modules peuvent être ajoutés ici
 };
 
@@ -366,5 +383,74 @@ export function setPremiumStatus(guildId: string, isPremium: boolean) {
         console.log(`[Database] Statut premium mis à jour à '${isPremium}' pour le serveur ${guildId}.`);
     } catch (error) {
         console.error(`[Database] Erreur lors de la mise à jour du statut premium pour ${guildId}:`, error);
+    }
+}
+
+
+// --- Fonctions de gestion des Testeurs ---
+
+/**
+ * Accorde le statut de testeur à un utilisateur.
+ * @param userId L'ID de l'utilisateur.
+ * @param guildId L'ID du serveur.
+ * @param expiresAt La date d'expiration du statut. Si null, le statut n'expirera pas (cas du boost).
+ */
+export function giveTesterStatus(userId: string, guildId: string, expiresAt: Date | null) {
+    try {
+        const stmt = db.prepare(`
+            INSERT INTO testers (user_id, guild_id, expires_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id, guild_id) DO UPDATE SET expires_at = excluded.expires_at;
+        `);
+        stmt.run(userId, guildId, expiresAt ? expiresAt.toISOString() : null);
+    } catch (error) {
+        console.error(`[Database] Erreur lors de l'attribution du statut de testeur à ${userId}:`, error);
+    }
+}
+
+/**
+ * Révoque le statut de testeur d'un utilisateur.
+ * @param userId L'ID de l'utilisateur.
+ * @param guildId L'ID du serveur.
+ */
+export function revokeTesterStatus(userId: string, guildId: string) {
+    try {
+        const stmt = db.prepare('DELETE FROM testers WHERE user_id = ? AND guild_id = ?');
+        stmt.run(userId, guildId);
+    } catch (error) {
+        console.error(`[Database] Erreur lors de la révocation du statut de testeur pour ${userId}:`, error);
+    }
+}
+
+/**
+ * Vérifie si un utilisateur a le statut de testeur actif.
+ * @param userId L'ID de l'utilisateur.
+ * @param guildId L'ID du serveur.
+ * @returns Un objet avec le statut et la date d'expiration, ou null si non testeur.
+ */
+export function checkTesterStatus(userId: string, guildId: string): { isTester: boolean; expires_at: Date | null } {
+    try {
+        const stmt = db.prepare('SELECT expires_at FROM testers WHERE user_id = ? AND guild_id = ?');
+        const row = stmt.get(userId, guildId) as { expires_at: string | null } | undefined;
+
+        if (!row) {
+            return { isTester: false, expires_at: null };
+        }
+
+        if (row.expires_at === null) { // Never expires (booster)
+            return { isTester: true, expires_at: null };
+        }
+
+        const expiresAt = new Date(row.expires_at);
+        if (expiresAt > new Date()) { // Not expired yet
+            return { isTester: true, expires_at: expiresAt };
+        } else {
+            // Status a expiré, on le supprime de la base de données
+            revokeTesterStatus(userId, guildId);
+            return { isTester: false, expires_at: null };
+        }
+    } catch (error) {
+        console.error(`[Database] Erreur lors de la vérification du statut de testeur pour ${userId}:`, error);
+        return { isTester: false, expires_at: null };
     }
 }

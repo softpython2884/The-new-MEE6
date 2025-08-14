@@ -244,6 +244,15 @@ const defaultConfigs: DefaultConfigs = {
         command_permissions: {
             tester: null,
         },
+    },
+    'conversational-agent': {
+        enabled: false,
+        premium: true,
+        agent_name: 'Marcus',
+        agent_role: 'un assistant IA utile',
+        agent_personality: 'serviable, direct et concis',
+        custom_prompt: '',
+        knowledge_base: [],
     }
     // D'autres modules peuvent être ajoutés ici
 };

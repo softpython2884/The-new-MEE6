@@ -1,23 +1,60 @@
 
-import { Events, Guild } from 'discord.js';
-import { setupDefaultConfigs } from '../../../src/lib/db';
+import { Events, Guild, TextChannel, EmbedBuilder, ChannelType } from 'discord.js';
+import { setupDefaultConfigs } from '@/lib/db';
 
 /**
  * This event handler is triggered whenever the bot joins a new guild.
  * It ensures that the new guild is immediately set up with all the
- * default configurations for every module, making it ready to use
- * without requiring a bot restart.
+ * default configurations for every module, and sends a welcome message.
  */
 export const name = Events.GuildCreate;
 
 export async function execute(guild: Guild) {
     console.log(`[+] Joined a new guild: ${guild.name} (${guild.id}).`);
-    console.log(`[Database] Setting up default configurations for ${guild.name}...`);
     
+    // --- 1. Setup Database ---
+    console.log(`[Database] Setting up default configurations for ${guild.name}...`);
     try {
         await setupDefaultConfigs(guild.id);
         console.log(`[Database] Successfully set up default configurations for ${guild.name}.`);
     } catch (error) {
         console.error(`[Database] Failed to set up default configurations for guild ${guild.id}:`, error);
+        // We don't return here, we still want to try and send the message.
+    }
+
+    // --- 2. Send Welcome Message ---
+    let welcomeChannel: TextChannel | undefined;
+
+    // Find the first available text channel where we can send messages
+    try {
+        welcomeChannel = guild.channels.cache.find(channel => 
+            channel.type === ChannelType.GuildText && 
+            guild.members.me?.permissionsIn(channel).has('SendMessages')
+        ) as TextChannel;
+
+        if (welcomeChannel) {
+            const welcomeEmbed = new EmbedBuilder()
+                .setColor(0x00BFFF)
+                .setTitle(`👋 Merci de m'avoir ajouté sur ${guild.name} !`)
+                .setDescription(`Bonjour ! Je suis **Marcus**, votre nouvel assistant pour gérer et animer votre serveur.`)
+                .addFields(
+                    { 
+                        name: '🚀 Pour commencer', 
+                        value: 'Pour accéder au panel de configuration web, un administrateur doit simplement taper la commande suivante dans n\'importe quel salon :\n\n`/login`\n\nCela générera un lien de connexion unique et sécurisé pour configurer tous mes modules.',
+                    },
+                    {
+                        name: '✨ Ce que je peux faire',
+                        value: '- Modération complète et auto-modération\n- Sécurité avancée (Anti-Raid, Anti-Bot)\n- Fonctionnalités IA exclusives (et bien plus encore !)'
+                    }
+                )
+                .setFooter({ text: 'J\'ai hâte de vous aider !' });
+
+            await welcomeChannel.send({ embeds: [welcomeEmbed] });
+            console.log(`[Welcome] Sent introduction message to #${welcomeChannel.name} in ${guild.name}.`);
+        } else {
+             console.log(`[Welcome] Could not find a suitable channel to send a welcome message in ${guild.name}.`);
+        }
+    } catch (error) {
+        console.error(`[Welcome] Failed to send welcome message to guild ${guild.id}:`, error);
     }
 }

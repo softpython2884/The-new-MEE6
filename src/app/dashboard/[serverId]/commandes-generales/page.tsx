@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -16,6 +17,7 @@ const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/ap
 
 // Types
 interface GeneralCommandsConfig {
+  enabled: boolean;
   command_permissions: { [key: string]: string | null };
   command_enabled: { [key: string]: boolean };
 }
@@ -94,6 +96,11 @@ export default function GeneralCommandsPage() {
         }
     };
 
+    const handleValueChange = (key: string, value: any) => {
+        if (!config) return;
+        saveConfig({ ...config, [key]: value });
+    };
+
     const handlePermissionChange = (commandKey: string, roleId: string) => {
         if (!config) return;
         const newPermissions = { ...config.command_permissions, [commandKey]: roleId === 'none' ? null : roleId };
@@ -125,6 +132,25 @@ export default function GeneralCommandsPage() {
       </div>
       
       <Separator />
+
+       <Card>
+        <CardHeader>
+          <CardTitle>Options Générales</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <div className="flex items-center justify-between">
+                <div>
+                    <Label htmlFor="enable-module" className="font-bold">Activer le module</Label>
+                    <p className="text-sm text-muted-foreground/80">Active ou désactive toutes les commandes de ce module.</p>
+                </div>
+                <Switch 
+                    id="enable-module" 
+                    checked={config.enabled} 
+                    onCheckedChange={(val) => handleValueChange('enabled', val)}
+                />
+            </div>
+        </CardContent>
+      </Card>
 
        <div className="space-y-6">
         <div>
@@ -219,3 +245,5 @@ function PageSkeleton() {
         </div>
     );
 }
+
+    

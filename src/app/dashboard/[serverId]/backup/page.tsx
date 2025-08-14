@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -160,7 +161,7 @@ export default function BackupPage() {
                     <div className="space-y-2">
                         <Label htmlFor={`role-select-${backupCommand.key}`} className="text-sm font-medium">Rôle minimum requis pour <code className="bg-muted text-foreground px-1 py-0.5 rounded-md">/backup</code></Label>
                         <Select 
-                            value={config.command_permissions[backupCommand.key] || 'none'}
+                            value={config.command_permissions?.[backupCommand.key] || 'none'}
                             onValueChange={(value) => handlePermissionChange(backupCommand.key, value)}
                         >
                             <SelectTrigger id={`role-select-${backupCommand.key}`} className="w-full">
@@ -182,3 +183,5 @@ export default function BackupPage() {
     );
 }
 
+
+    

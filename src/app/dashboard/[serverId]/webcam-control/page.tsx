@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -25,14 +27,10 @@ function WebcamControlPageSkeleton() {
                 <Skeleton className="h-6 w-32" />
                 <Skeleton className="h-4 w-72 mt-2" />
             </CardHeader>
-            <CardContent>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                     <div className="space-y-2">
-                        <Skeleton className="h-4 w-48" />
-                        <Skeleton className="h-3 w-64" />
-                    </div>
-                    <Skeleton className="h-10 w-full md:w-[280px]" />
-                </div>
+            <CardContent className="space-y-6">
+                <Skeleton className="h-10 w-full" />
+                <Separator />
+                <Skeleton className="h-10 w-full" />
             </CardContent>
         </Card>
     );
@@ -104,7 +102,19 @@ export default function WebcamControlPage() {
             Appliquez une politique globale pour tous les membres dans les salons vocaux.
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="enable-module" className="font-bold">Activer le module</Label>
+                  <p className="text-sm text-muted-foreground/80">Active ou désactive la gestion des webcams.</p>
+                </div>
+                <Switch
+                    id="enable-module"
+                    checked={config.enabled}
+                    onCheckedChange={(val) => handleValueChange('enabled', val)}
+                />
+            </div>
+            <Separator />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
                 <div>
                   <Label htmlFor="webcam-mode" className="font-bold text-sm uppercase text-muted-foreground">Mode de webcam</Label>
@@ -129,3 +139,5 @@ export default function WebcamControlPage() {
     </div>
   );
 }
+
+    

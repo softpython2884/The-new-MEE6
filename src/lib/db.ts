@@ -65,7 +65,7 @@ const createConfigTable = () => {
 // Basé sur la documentation fournie
 const defaultConfigs: DefaultConfigs = {
     'moderation': { 
-        enabled: true, 
+        enabled: false, 
         log_channel_id: null, 
         dm_user_on_action: true, 
         presets: [], 
@@ -78,6 +78,7 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'general-commands': {
+        enabled: false,
         command_permissions: {
             invite: null, // null means @everyone
             ping: null,
@@ -88,7 +89,7 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'community-assistant': {
-        enabled: true,
+        enabled: false,
         premium: true, // Defaulting to false, will be checked
         confidence_threshold: 75,
         knowledge_base: [],
@@ -97,7 +98,7 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'auto-moderation': {
-        enabled: true,
+        enabled: false,
         exempt_roles: [],
         forbidden_vocabulary_enabled: false,
         forbidden_vocabulary_words: [],
@@ -120,7 +121,7 @@ const defaultConfigs: DefaultConfigs = {
         message_spam_action: 'warn',
     },
     'logs': { 
-        enabled: true, 
+        enabled: false, 
         log_channel_id: null,
         'log-messages': true,
         'log-members': true,
@@ -135,7 +136,7 @@ const defaultConfigs: DefaultConfigs = {
         channels: [],
     },
      'lock': {
-        enabled: true,
+        enabled: false,
         exempt_roles: [],
         command_permissions: {
             lock: null,
@@ -143,19 +144,19 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'backup': {
-        enabled: true,
+        enabled: false,
         command_permissions: {
             backup: null
         }
     },
     'anti-bot': { 
-        enabled: true, 
+        enabled: false, 
         mode: 'approval-required', 
         approval_channel_id: null, 
         whitelisted_bots: [] 
     },
     'webcam': {
-        enabled: true,
+        enabled: false,
         mode: 'allowed',
     },
     'captcha': { 
@@ -165,12 +166,12 @@ const defaultConfigs: DefaultConfigs = {
         premium: true
     },
     'image-filter': { 
-        enabled: true, 
+        enabled: false, 
         sensitivity: 'medium',
         premium: true
     },
     'moderation-ai': { 
-        enabled: true,
+        enabled: false,
         mode: 'monitor',
         premium: true
     },
@@ -185,7 +186,7 @@ const defaultConfigs: DefaultConfigs = {
         alert_channel_id: null
     },
     'private-rooms': { 
-        enabled: true, 
+        enabled: false, 
         creation_channel: null, 
         category_id: null, 
         embed_message: 'Cliquez sur le bouton ci-dessous pour créer un salon privé.', 
@@ -196,7 +197,7 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'smart-events': { 
-        enabled: true, 
+        enabled: false, 
         suggest_time: true, 
         templates: 'quiz', 
         rsvp_tracking: true, 
@@ -207,13 +208,13 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'smart-voice': { 
-        enabled: true, 
+        enabled: false, 
         premium: true,
         interactive_channels: [], 
         creation_threshold: 4 
     },
     'content-ai': { 
-        enabled: true, 
+        enabled: false, 
         premium: true,
         default_tone: 'familiar', 
         custom_instructions: '',
@@ -222,7 +223,7 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'server-builder': { 
-        enabled: true, 
+        enabled: false, 
         premium: true,
         command_permissions: {
             iacreateserv: null,
@@ -471,3 +472,5 @@ export function checkTesterStatus(userId: string, guildId: string): { isTester: 
         return { isTester: false, expires_at: null };
     }
 }
+
+    

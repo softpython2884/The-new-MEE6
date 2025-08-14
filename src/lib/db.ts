@@ -23,7 +23,7 @@ const upgradeSchema = () => {
         db.pragma('journal_mode = WAL');
         
         // Check for premium column
-        const configColumns: any[] = db.pragma('table_info(server_configs)');
+        const configColumns = db.pragma('table_info(server_configs)') as any[];
         if (!configColumns.some(col => col.name === 'premium')) {
             console.log('[Database] Mise à jour du schéma : Ajout de la colonne "premium" à server_configs.');
             db.exec('ALTER TABLE server_configs ADD COLUMN premium BOOLEAN DEFAULT FALSE');
@@ -333,6 +333,23 @@ export function updateServerConfig(guildId: string, module: Module, configData: 
 
 
 /**
+ * Sets up the default configurations for all modules for a given guild.
+ * @param guildId The ID of the guild to set up.
+ */
+export function setupDefaultConfigs(guildId: string) {
+    const stmt = db.prepare('SELECT 1 FROM server_configs WHERE guild_id = ? AND module = ?');
+    
+    for (const moduleName of Object.keys(defaultConfigs) as Module[]) {
+        const existing = stmt.get(guildId, moduleName);
+        if (!existing) {
+            console.log(`[Database] Adding default config for module '${moduleName}' for guild ${guildId}`);
+            updateServerConfig(guildId, moduleName, defaultConfigs[moduleName]!);
+        }
+    }
+}
+
+
+/**
  * Synchronise les serveurs du bot avec la base de données.
  * Crée une configuration par défaut pour chaque module pour les nouveaux serveurs.
  * @param client Le client Discord.
@@ -341,17 +358,8 @@ export async function syncGuilds(client: Client) {
     console.log('[Database] Synchronisation des serveurs...');
     const guilds = await client.guilds.fetch();
 
-    const stmt = db.prepare('SELECT 1 FROM server_configs WHERE guild_id = ? AND module = ?');
-
     for (const oauthGuild of guilds.values()) {
-        const guild = await oauthGuild.fetch();
-        for (const moduleName of Object.keys(defaultConfigs) as Module[]) {
-             const existing = stmt.get(guild.id, moduleName);
-             if (!existing) {
-                 console.log(`[Database] Ajout de la configuration par défaut du module '${moduleName}' pour le nouveau serveur ${guild.name} (${guild.id})`);
-                 updateServerConfig(guild.id, moduleName, defaultConfigs[moduleName]!);
-             }
-        }
+        setupDefaultConfigs(oauthGuild.id);
     }
     console.log('[Database] Synchronisation des serveurs terminée.');
 }

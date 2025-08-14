@@ -64,16 +64,29 @@ const loadEvents = (client: Client) => {
             if (stat.isDirectory()) {
                 traverseDirectory(fullPath);
             } else if (file.endsWith('.ts') || file.endsWith('.js')) {
-                const event = require(fullPath);
-                if (event.name && event.execute) {
-                    if (event.once) {
-                        client.once(event.name, (...args) => event.execute(...args));
-                    } else {
-                        client.on(event.name, (...args) => event.execute(...args, client));
-                    }
-                    console.log(`[+] Loaded event: ${event.name} from ${path.relative(eventsPath, fullPath)}`);
+                // Ensure system event handlers are loaded
+                if(fullPath.includes('system') && !fs.existsSync(fullPath.replace('.ts', '.js'))){
+                     try {
+                        const event = require(fullPath);
+                         if (event.name && event.execute) {
+                            client.on(event.name, (...args) => event.execute(...args, client));
+                            console.log(`[+] Loaded event: ${event.name} from ${path.relative(eventsPath, fullPath)}`);
+                         }
+                     } catch(e) {
+                        console.error('Failed to require', fullPath, e);
+                     }
                 } else {
-                    console.log(`[-] Failed to load event at ${fullPath}. Missing "name" or "execute" property.`);
+                    const event = require(fullPath);
+                    if (event.name && event.execute) {
+                        if (event.once) {
+                            client.once(event.name, (...args) => event.execute(...args));
+                        } else {
+                            client.on(event.name, (...args) => event.execute(...args, client));
+                        }
+                        console.log(`[+] Loaded event: ${event.name} from ${path.relative(eventsPath, fullPath)}`);
+                    } else {
+                        console.log(`[-] Failed to load event at ${fullPath}. Missing "name" or "execute" property.`);
+                    }
                 }
             }
         }
@@ -88,8 +101,9 @@ client.once(Events.ClientReady, async (readyClient) => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
     
     // Set the bot's presence
+    const panelUrl = process.env.PANEL_BASE_URL || 'http://localhost:9002';
     readyClient.user.setPresence({
-        activities: [{ name: 'Marcustacée', type: ActivityType.Playing }],
+        activities: [{ name: `Panel: ${panelUrl}`, type: ActivityType.Playing }],
         status: 'online',
     });
     
@@ -143,17 +157,14 @@ client.on(Events.InteractionCreate, async interaction => {
                         {
                             id: interaction.guild.id, // @everyone
                             deny: [PermissionFlagsBits.ViewChannel],
-                            type: OverwriteType.Role
                         },
                         {
                             id: interaction.user.id,
                             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles],
-                            type: OverwriteType.Member
                         },
                          {
                             id: client.user!.id,
                             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels],
-                            type: OverwriteType.Member
                         },
                     ],
                 });

@@ -10,3 +10,6 @@ import '@/ai/flows/faq-flow.ts';
 import '@/ai/flows/auto-translate-flow.ts';
 import '@/ai/flows/moderation-ai-flow.ts';
 import '@/ai/flows/content-creation-flow.ts';
+import '@/ai/flows/server-builder-flow.ts';
+
+import '@/ai/tools/discord-structure-tool.ts';

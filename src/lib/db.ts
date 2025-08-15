@@ -555,3 +555,5 @@ export function deletePersona(id: string): void {
     const stmt = db.prepare('DELETE FROM ai_personas WHERE id = ?');
     stmt.run(id);
 }
+
+    

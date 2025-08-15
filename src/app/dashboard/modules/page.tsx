@@ -8,3 +8,5 @@ export default function ModulesPage() {
     // Redirect to a default page within the server dashboard
     redirect(`/dashboard/${serverId}/moderation`);
 }
+
+    

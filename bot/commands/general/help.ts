@@ -39,14 +39,17 @@ const HelpCommand: Command = {
         for (const command of commands.values()) {
             for(const category of categoryFolders) {
                 const categoryPath = path.join(commandsPath, category);
-                const commandFilePath = path.join(categoryPath, `${command.data.name}.ts`); // Adjust extension if needed
+                const commandFileName = `${command.data.name}.ts`;
+                const commandFilePath = path.join(categoryPath, commandFileName);
+                
+                // Simple check if file exists in the category directory
                  if (fs.existsSync(commandFilePath) || fs.existsSync(commandFilePath.replace('.ts', '.js'))) {
                     commandCategories.get(category)?.push(command);
-                    break; 
+                    break; // Found category, move to next command
                  }
-                 // Handle files with different casing
+                 // Handle files with different casing, just in case
                  const filesInDir = fs.readdirSync(categoryPath);
-                 const foundFile = filesInDir.find(file => file.toLowerCase() === `${command.data.name}.ts`.toLowerCase() || file.toLowerCase() === `${command.data.name}.js`.toLowerCase());
+                 const foundFile = filesInDir.find(file => file.toLowerCase() === commandFileName.toLowerCase() || file.toLowerCase() === commandFileName.replace('.ts', '.js').toLowerCase());
                  if(foundFile) {
                     commandCategories.get(category)?.push(command);
                     break;
@@ -76,5 +79,3 @@ const HelpCommand: Command = {
 };
 
 export default HelpCommand;
-
-    

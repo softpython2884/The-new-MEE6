@@ -55,6 +55,7 @@ const TesterCommand: Command = {
         // Owner-only commands
         if (subcommand === 'give' || subcommand === 'revoke') {
             if (interaction.user.id !== TESTER_OWNER_ID) {
+                // The deferReply was already ephemeral, so we just edit the reply content.
                 await interaction.editReply({ content: 'Cette sous-commande est réservée au propriétaire du bot.' });
                 return;
             }

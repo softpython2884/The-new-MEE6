@@ -43,8 +43,10 @@ export default function PremiumPage() {
                         <Separator className="my-6" />
                         <div className="text-center">
                             <p className="text-muted-foreground mb-4">Prêt à améliorer votre serveur ?</p>
-                            <Button size="lg" className="bg-primary hover:bg-primary/90 w-full md:w-auto">
-                                Rejoindre notre Discord pour acheter
+                            <Button size="lg" className="bg-primary hover:bg-primary/90 w-full md:w-auto" asChild>
+                                <a href="https://discord.gg/votre-serveur" target="_blank" rel="noopener noreferrer">
+                                    Rejoindre notre Discord pour acheter
+                                </a>
                             </Button>
                         </div>
                     </CardContent>

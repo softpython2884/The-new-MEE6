@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Mic, Trash2, PlusCircle, Gamepad2, BrainCircuit, Music } from 'lucide-react';
+import { Mic, Trash2, PlusCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { useServerInfo } from '@/hooks/use-server-info';
@@ -95,7 +95,7 @@ function SmartVoicePageContent({ isPremium }: { isPremium: boolean }) {
 
     const addChannel = () => {
         if (!config) return;
-        const newChannel: InteractiveChannel = { id: '', theme: 'gaming' };
+        const newChannel: InteractiveChannel = { id: '', theme: 'Gaming' };
         handleValueChange('interactive_channels', [...config.interactive_channels, newChannel]);
     };
 
@@ -178,17 +178,12 @@ function SmartVoicePageContent({ isPremium }: { isPremium: boolean }) {
                                     </Select>
                                 </div>
                                 <div className="flex-1 w-full">
-                                    <Label>Thème IA</Label>
-                                    <Select value={channel.theme} onValueChange={(theme: 'gaming' | 'social' | 'music') => handleChannelConfigChange(index, 'theme', theme)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Sélectionner un thème..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="gaming"><Gamepad2 className="mr-2"/> Gaming</SelectItem>
-                                            <SelectItem value="social"><BrainCircuit className="mr-2"/> Social & Discussion</SelectItem>
-                                            <SelectItem value="music"><Music className="mr-2"/> Musique</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Label>Thème Personnalisé</Label>
+                                    <Input 
+                                        placeholder="Ex: Gaming, Soirée Film, QG..." 
+                                        value={channel.theme} 
+                                        onChange={(e) => handleChannelConfigChange(index, 'theme', e.target.value)}
+                                    />
                                 </div>
                                 <Button variant="ghost" size="icon" className="self-end" onClick={() => removeChannel(index)}>
                                     <Trash2 className="w-5 h-5 text-destructive"/>

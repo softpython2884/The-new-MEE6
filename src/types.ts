@@ -1,8 +1,4 @@
 
-
-
-
-
 import type {
   SlashCommandBuilder,
   CommandInteraction,
@@ -63,7 +59,7 @@ export type DefaultConfigs = {
 
 export interface InteractiveChannel {
     id: string;
-    theme: 'gaming' | 'social' | 'music';
+    theme: string;
 }
 
 export interface KnowledgeBaseItem {

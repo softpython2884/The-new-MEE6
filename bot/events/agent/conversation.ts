@@ -2,6 +2,25 @@
 import { Events, Message } from 'discord.js';
 import { getServerConfig } from '../../../src/lib/db';
 import { conversationalAgentFlow } from '../../../src/ai/flows/conversational-agent-flow';
+import fetch from 'node-fetch';
+
+const imageMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+
+// Helper to convert image URL to data URI
+async function imageUrlToDataUri(url: string): Promise<string> {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !imageMimeTypes.includes(contentType)) {
+        throw new Error('Invalid content type for image.');
+    }
+    const buffer = await response.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    return `data:${contentType};base64,${base64}`;
+}
+
 
 export const name = Events.MessageCreate;
 export const once = false;
@@ -23,7 +42,12 @@ export async function execute(message: Message) {
 
     // Remove the bot's mention from the message to get the actual prompt
     const userMessage = message.content.replace(/<@!?\d+>/, '').trim();
-    if (!userMessage) {
+
+    // Check for an image attachment
+    const imageAttachment = message.attachments.find(att => imageMimeTypes.some(mime => att.contentType?.startsWith(mime)));
+    
+    // If there is no text and no image, do nothing
+    if (!userMessage && !imageAttachment) {
         // The user just pinged the bot without a message
         return;
     }
@@ -34,8 +58,15 @@ export async function execute(message: Message) {
         // Start typing indicator
         await message.channel.sendTyping();
 
+        let photoDataUri: string | undefined = undefined;
+        if (imageAttachment) {
+            photoDataUri = await imageUrlToDataUri(imageAttachment.url);
+        }
+
         const result = await conversationalAgentFlow({
             userMessage: userMessage,
+            userName: message.author.username,
+            photoDataUri: photoDataUri,
             agentName: config.agent_name,
             agentRole: config.agent_role,
             agentPersonality: config.agent_personality,

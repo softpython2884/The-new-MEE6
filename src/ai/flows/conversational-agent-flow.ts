@@ -17,11 +17,18 @@ const KnowledgeBaseItemSchema = z.object({
 
 export const ConversationalAgentInputSchema = z.object({
   userMessage: z.string().describe('The message sent by the user to the agent.'),
+  userName: z.string().describe("The user's display name."),
   agentName: z.string().describe("The agent's name."),
   agentRole: z.string().describe("The agent's role or job on the server."),
   agentPersonality: z.string().describe("A description of the agent's personality and tone."),
   customPrompt: z.string().optional().describe("Additional custom instructions for the agent."),
   knowledgeBase: z.array(KnowledgeBaseItemSchema).optional().describe('A list of Q&A pairs to provide context.'),
+  photoDataUri: z
+    .string()
+    .optional()
+    .describe(
+      "An optional photo sent by the user, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+    ),
 });
 
 export const ConversationalAgentOutputSchema = z.object({
@@ -48,6 +55,7 @@ Your Identity:
 - Your personality is: {{{agentPersonality}}}.
 
 Your Instructions:
+- You are speaking to a user named {{{userName}}}. Address them by name when it feels natural.
 - You must adhere to your defined role and personality in your response.
 - Do not break character.
 - Do not mention that you are an AI model.
@@ -66,9 +74,15 @@ You have access to the following information. Use it to answer questions accurat
 - No knowledge base provided.
 {{/if}}
 
-The user has sent the following message to you. Generate an appropriate response now.
+The user has sent the following message to you.
+{{#if photoDataUri}}
+The user has also included an image in their message. Analyze the image as part of the context.
+Image: {{media url=photoDataUri}}
+{{/if}}
 
-User Message: "{{{userMessage}}}"
+Generate an appropriate response now.
+
+User Message from {{{userName}}}: "{{{userMessage}}}"
 `,
 });
 

@@ -1,7 +1,8 @@
 
-import { Events, Message, Collection } from 'discord.js';
+import { Events, Message, Collection, EmbedBuilder } from 'discord.js';
 import { getServerConfig } from '../../../src/lib/db';
 import { conversationalAgentFlow } from '../../../src/ai/flows/conversational-agent-flow';
+import { faqFlow } from '../../../src/ai/flows/faq-flow';
 import fetch from 'node-fetch';
 
 const imageMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
@@ -26,17 +27,51 @@ async function imageUrlToDataUri(url: string): Promise<string> {
 }
 
 
-export const name = Events.MessageCreate;
-export const once = false;
+async function handleFaqTrigger(message: Message) {
+    if (!message.guild || message.author.bot || !message.content) return;
 
-export async function execute(message: Message) {
+    const config = await getServerConfig(message.guild.id, 'community-assistant');
+    if (!config?.enabled || !config.premium) {
+        return;
+    }
+
+    const knowledgeBase = config.knowledge_base || [];
+    if (knowledgeBase.length === 0) return;
+
+    const matchedQuestion = knowledgeBase.find((item: { question: string, answer: string }) => 
+        message.content.toLowerCase().includes(item.question.toLowerCase())
+    );
+
+    if (matchedQuestion) {
+        try {
+             const result = await faqFlow({
+                userQuestion: message.content,
+                knowledgeBase: knowledgeBase,
+                confidenceThreshold: config.confidence_threshold || 75,
+            });
+
+            if (result.isConfident && result.answer) {
+                 const embed = new EmbedBuilder()
+                    .setColor(0x3498DB)
+                    .setTitle(`Réponse à votre question`)
+                    .setDescription(result.answer)
+                    .setFooter({ text: `Basé sur la question : "${result.matchedQuestion}"`});
+                await message.reply({ embeds: [embed] });
+            }
+        } catch (error) {
+            console.error('[FaqTrigger] Error executing faqFlow:', error);
+        }
+    }
+}
+
+
+async function handleConversationalAgent(message: Message) {
     if (message.author.bot || !message.guild) {
         return;
     }
 
     const config = await getServerConfig(message.guild.id, 'conversational-agent');
 
-    // Check if the module is enabled and premium
     if (!config?.enabled || !config.premium) {
         return;
     }
@@ -44,18 +79,13 @@ export async function execute(message: Message) {
     const isMentioned = message.mentions.has(message.client.user.id);
     const isInDedicatedChannel = message.channel.id === config.dedicated_channel_id;
 
-    // The bot should only respond if it's mentioned OR if the message is in the dedicated channel
     if (!isMentioned && !isInDedicatedChannel) {
         return;
     }
 
-    // Remove the bot's mention from the message to get the actual prompt
     const userMessage = message.content.replace(/<@!?\d+>/, '').trim();
-
-    // Check for an image attachment
     const imageAttachment = message.attachments.find(att => imageMimeTypes.some(mime => att.contentType?.startsWith(mime)));
     
-    // If there is no text and no image, do nothing (e.g. user just pinged the bot)
     if (!userMessage && !imageAttachment) {
         return;
     }
@@ -70,20 +100,17 @@ export async function execute(message: Message) {
             photoDataUri = await imageUrlToDataUri(imageAttachment.url);
         }
 
-        // --- Conversation History Handling for Dedicated Channel ---
         let historyForPrompt = [];
         if (isInDedicatedChannel) {
             const currentHistory = conversationHistory.get(message.channel.id) || [];
-            historyForPrompt = [...currentHistory]; // Pass a copy to the flow
+            historyForPrompt = [...currentHistory]; 
 
-            // Add the new message to the history and trim it
             currentHistory.push({ user: message.author.username, content: userMessage });
             if (currentHistory.length > HISTORY_LIMIT) {
                 currentHistory.shift();
             }
             conversationHistory.set(message.channel.id, currentHistory);
         }
-        // --- End of History Handling ---
 
         const result = await conversationalAgentFlow({
             userMessage: userMessage,
@@ -94,12 +121,11 @@ export async function execute(message: Message) {
             agentPersonality: config.agent_personality,
             customPrompt: config.custom_prompt,
             knowledgeBase: config.knowledge_base,
-            conversationHistory: historyForPrompt, // Pass history to the flow
+            conversationHistory: historyForPrompt,
         });
 
         if (result.response) {
             await message.reply(result.response);
-             // If in dedicated channel, add the bot's response to history as well
             if (isInDedicatedChannel) {
                 const currentHistory = conversationHistory.get(message.channel.id) || [];
                 currentHistory.push({ user: config.agent_name, content: result.response });
@@ -113,5 +139,26 @@ export async function execute(message: Message) {
     } catch (error) {
         console.error('[Agent] Error during conversational agent flow:', error);
         await message.reply("Désolé, une erreur est survenue pendant que je réfléchissais. Veuillez réessayer.");
+    }
+}
+
+
+export const name = Events.MessageCreate;
+export const once = false;
+export async function execute(message: Message) {
+    if (message.author.bot) return;
+
+    // To prevent both from firing, we can add a check.
+    // Let's assume the dedicated agent channel should not trigger the FAQ.
+    const agentConfig = await getServerConfig(message.guild!.id, 'conversational-agent');
+    if (message.channel.id === agentConfig?.dedicated_channel_id) {
+        await handleConversationalAgent(message);
+    } else {
+        // Run both handlers. If the user mentions the bot, the conversational agent will take priority.
+        // Otherwise, the FAQ trigger can run.
+        await Promise.all([
+            handleConversationalAgent(message),
+            handleFaqTrigger(message)
+        ]);
     }
 }

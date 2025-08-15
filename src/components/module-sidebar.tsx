@@ -52,7 +52,6 @@ const navCategories = [
             { href: 'assistant-communautaire', label: 'Assistant Communautaire', icon: MessageSquare, isPremium: true },
             { href: 'suggestions', label: 'Suggestions', icon: Lightbulb },
             { href: 'traduction-automatique', label: 'Traduction Auto', icon: Languages },
-            { href: 'logs', label: 'Logs', icon: FileClock },
         ]
     },
     {
@@ -61,6 +60,7 @@ const navCategories = [
             { href: 'moderation', label: 'Bans & Kicks', icon: Hammer },
             { href: 'auto-moderation', label: 'Auto-Modération', icon: Bot },
             { href: 'lock', label: 'Lock/Unlock', icon: Lock },
+            { href: 'logs', label: 'Logs', icon: FileClock },
         ]
     },
     {

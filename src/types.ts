@@ -2,6 +2,7 @@
 
 
 
+
 import type {
   SlashCommandBuilder,
   CommandInteraction,
@@ -84,4 +85,15 @@ export interface Persona {
 export interface ConversationHistoryItem {
     user: string; // The user's display name
     content: string;
+}
+
+export interface PersonaMemory {
+    id: number;
+    persona_id: string;
+    user_id?: string;
+    memory_type: 'fact' | 'relationship' | 'interaction_summary' | 'preference';
+    content: string;
+    salience_score: number;
+    last_accessed_at: string;
+    created_at: string;
 }

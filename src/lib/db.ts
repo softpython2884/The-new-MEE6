@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { Client } from 'discord.js';
-import type { Module, ModuleConfig, DefaultConfigs, Persona } from '../types';
+import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory } from '../types';
 
 // Assurez-vous que le répertoire de la base de données existe
 const dbDir = path.resolve(process.cwd(), 'database');
@@ -53,6 +53,22 @@ const upgradeSchema = () => {
             );
         `);
         console.log('[Database] La table "ai_personas" est prête.');
+
+        // Create persona_memories table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS persona_memories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                persona_id TEXT NOT NULL,
+                user_id TEXT,
+                memory_type TEXT NOT NULL,
+                content TEXT NOT NULL,
+                salience_score INTEGER NOT NULL DEFAULT 5,
+                last_accessed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (persona_id) REFERENCES ai_personas (id) ON DELETE CASCADE
+            );
+        `);
+         console.log('[Database] La table "persona_memories" est prête.');
 
 
     } catch (error) {
@@ -554,6 +570,58 @@ export function updatePersona(id: string, updates: Partial<Omit<Persona, 'id' | 
 export function deletePersona(id: string): void {
     const stmt = db.prepare('DELETE FROM ai_personas WHERE id = ?');
     stmt.run(id);
+}
+
+// --- Fonctions de gestion de la Mémoire des Personnages IA ---
+
+export function getMemoriesForPersona(personaId: string, userIds?: string[]): PersonaMemory[] {
+    let query = `
+        SELECT * FROM persona_memories 
+        WHERE persona_id = ? 
+    `;
+    const params: (string | number)[] = [personaId];
+
+    if (userIds && userIds.length > 0) {
+        query += ` AND user_id IN (${userIds.map(() => '?').join(',')})`;
+        params.push(...userIds);
+    }
+    
+    query += `
+        ORDER BY salience_score DESC, last_accessed_at DESC 
+        LIMIT 20
+    `;
+    
+    const stmt = db.prepare(query);
+    const memories = stmt.all(...params) as PersonaMemory[];
+    
+    // Touch (update last_accessed_at) for retrieved memories
+    const touchStmt = db.prepare(`UPDATE persona_memories SET last_accessed_at = CURRENT_TIMESTAMP WHERE id = ?`);
+    const touchTransaction = db.transaction((mems) => {
+        for (const mem of mems) touchStmt.run(mem.id);
+    });
+    touchTransaction(memories);
+
+    return memories;
+}
+
+
+export function createMemory(memory: Omit<PersonaMemory, 'id' | 'created_at' | 'last_accessed_at'>): void {
+    const stmt = db.prepare(`
+        INSERT INTO persona_memories (persona_id, user_id, memory_type, content, salience_score)
+        VALUES (?, ?, ?, ?, ?)
+    `);
+    stmt.run(memory.persona_id, memory.user_id, memory.memory_type, memory.content, memory.salience_score);
+}
+
+export function createMultipleMemories(memories: Omit<PersonaMemory, 'id' | 'created_at' | 'last_accessed_at'>[]): void {
+    const insert = db.prepare(`
+        INSERT INTO persona_memories (persona_id, user_id, memory_type, content, salience_score)
+        VALUES (@persona_id, @user_id, @memory_type, @content, @salience_score)
+    `);
+    const insertMany = db.transaction((mems) => {
+        for (const mem of mems) insert.run(mem);
+    });
+    insertMany(memories);
 }
 
     

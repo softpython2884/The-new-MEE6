@@ -1,8 +1,9 @@
 
 
 import { Events, Message, Collection } from 'discord.js';
-import { getServerConfig, getPersonasForGuild } from '../../../src/lib/db';
+import { getServerConfig, getPersonasForGuild, getMemoriesForPersona, createMultipleMemories } from '../../../src/lib/db';
 import { personaInteractionFlow } from '../../../src/ai/flows/persona-flow';
+import { memoryFlow } from '../../../src/ai/flows/memory-flow';
 import type { Persona, ConversationHistoryItem } from '@/types';
 
 // Cache conversation histories
@@ -44,7 +45,6 @@ export async function execute(message: Message) {
         const historyKey = message.channel.id;
         const currentHistory = conversationHistory.get(historyKey) || [];
         
-        // Add the new message to the history and trim it
         currentHistory.push({ user: message.member.displayName, content: message.content });
         if (currentHistory.length > HISTORY_LIMIT) {
             currentHistory.shift();
@@ -52,22 +52,40 @@ export async function execute(message: Message) {
         conversationHistory.set(historyKey, currentHistory);
         // --- End of History Handling ---
 
+        // --- Memory Retrieval ---
+        const uniqueUserIdsInHistory = [...new Set(currentHistory.map(h => message.guild?.members.cache.find(m => m.displayName === h.user)?.id).filter(Boolean) as string[])];
+        const relevantMemories = getMemoriesForPersona(activePersona.id, uniqueUserIdsInHistory);
+        // --- End of Memory Retrieval ---
 
         const result = await personaInteractionFlow({
             personaPrompt: activePersona.persona_prompt,
-            conversationHistory: currentHistory, // Send the full, updated history
+            conversationHistory: currentHistory, 
+            memories: relevantMemories.map(m => ({ content: m.content, salience_score: m.salience_score })),
         });
 
+        // --- Handle Response and Memory Creation ---
         if (result.response) {
             const responseMessage = await message.reply(result.response);
             
-            // Add the persona's response to the history
             const updatedHistory = conversationHistory.get(historyKey) || [];
             updatedHistory.push({ user: activePersona.name, content: responseMessage.content });
             if (updatedHistory.length > HISTORY_LIMIT) {
                 updatedHistory.shift();
             }
             conversationHistory.set(historyKey, updatedHistory);
+
+            // After responding, trigger the memory creation flow asynchronously
+            // We don't need to wait for this to finish.
+            memoryFlow({
+                persona_id: activePersona.id,
+                conversationTranscript: updatedHistory.map(h => `${h.user}: ${h.content}`).join('\n')
+            }).then(newMemories => {
+                if (newMemories && newMemories.length > 0) {
+                     console.log(`[Persona Memory] Creating ${newMemories.length} new memories for ${activePersona.name}.`);
+                     createMultipleMemories(newMemories);
+                }
+            }).catch(err => console.error(`[Persona Memory] Error creating memories:`, err));
+
         }
 
     } catch (error) {

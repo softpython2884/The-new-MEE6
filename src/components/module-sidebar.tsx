@@ -171,6 +171,11 @@ export function ModuleSidebar({ serverId: serverIdProp }: { serverId: string }) 
             </div>
         ))}
       </nav>
+      <div className="mt-auto pt-4 text-center">
+          <a href="https://forgenet.fr" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-white transition-colors">
+              Développé par NightForge
+          </a>
+      </div>
     </aside>
   );
 }

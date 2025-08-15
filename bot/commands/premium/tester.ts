@@ -55,7 +55,7 @@ const TesterCommand: Command = {
         // Owner-only commands
         if (subcommand === 'give' || subcommand === 'revoke') {
             if (interaction.user.id !== TESTER_OWNER_ID) {
-                await interaction.editReply({ content: 'Cette sous-commande est réservée au propriétaire du bot.', flags: MessageFlags.Ephemeral });
+                await interaction.editReply({ content: 'Cette sous-commande est réservée au propriétaire du bot.' });
                 return;
             }
 

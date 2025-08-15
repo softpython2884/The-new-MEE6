@@ -39,11 +39,14 @@ const HelpCommand: Command = {
 
         // Group commands by category
         for (const command of commands.values()) {
-            const commandPath = require.resolve(`../${command.data.name.split(' ')[0]}`)
-            .replace(/\\/g, '/'); 
+            // Find the file path of the command to determine its category
+            const commandFileName = `${command.data.name.split(' ')[0]}.ts`;
+            let foundPath: string | null = null;
             
-             for (const category of commandCategories.keys()) {
-                if (commandPath.includes(`/${category}/`)) {
+            for (const category of commandCategories.keys()) {
+                const potentialPath = path.join(commandsPath, category, commandFileName);
+                if (fs.existsSync(potentialPath)) {
+                    foundPath = potentialPath;
                     commandCategories.get(category)?.push(command);
                     break;
                 }

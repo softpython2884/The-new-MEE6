@@ -72,7 +72,9 @@ export function startApi(client: Client) {
                 const guild = await client.guilds.fetch(guildId);
                 if (guild.members.me) {
                     await guild.members.me.setNickname(configData.nickname || null);
-                    await client.user?.setAvatar(configData.avatar_url || null);
+                    // The bot's avatar is global and cannot be changed on a per-server basis.
+                    // The following line is commented out to prevent global changes.
+                    // await client.user?.setAvatar(configData.avatar_url || null);
                 }
             }
             

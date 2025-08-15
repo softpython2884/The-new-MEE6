@@ -146,11 +146,11 @@ async function handleConversationalAgent(message: Message) {
 export const name = Events.MessageCreate;
 export const once = false;
 export async function execute(message: Message) {
-    if (message.author.bot) return;
+    if (message.author.bot || !message.guild) return; // Important: Check for guild right away
 
     // To prevent both from firing, we can add a check.
     // Let's assume the dedicated agent channel should not trigger the FAQ.
-    const agentConfig = await getServerConfig(message.guild!.id, 'conversational-agent');
+    const agentConfig = await getServerConfig(message.guild.id, 'conversational-agent');
     if (message.channel.id === agentConfig?.dedicated_channel_id) {
         await handleConversationalAgent(message);
     } else {

@@ -33,6 +33,7 @@ interface ServerData {
 const generalCommands = [
     { name: '/invite', key: 'invite', description: 'Génère un lien d\'invitation pour le bot.' },
     { name: '/ping', key: 'ping', description: 'Vérifie la latence du bot.' },
+    { name: '/traduire', key: 'traduire', description: 'Traduit un texte dans une langue spécifique.' },
 ];
 
 export default function GeneralCommandsPage() {

@@ -99,12 +99,14 @@ const defaultConfigs: DefaultConfigs = {
             ping: null,
             help: null,
             marcus: null,
+            traduire: null,
         },
         command_enabled: {
             invite: true,
             ping: true,
             help: true,
             marcus: true,
+            traduire: true,
         }
     },
     'community-assistant': {

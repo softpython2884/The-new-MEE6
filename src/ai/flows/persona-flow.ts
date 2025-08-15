@@ -68,7 +68,13 @@ const PersonaMemorySchema = z.object({
 const PersonaInteractionInputSchema = z.object({
     personaPrompt: z.string().describe("The full personality prompt of the character who is speaking."),
     conversationHistory: z.array(ConversationHistoryItemSchema).describe("The recent conversation history in the channel. The last message is the one to respond to."),
-    memories: z.array(PersonaMemorySchema).optional().describe("A list of relevant long-term memories about the users or topic at hand.")
+    memories: z.array(PersonaMemorySchema).optional().describe("A list of relevant long-term memories about the users or topic at hand."),
+    photoDataUri: z
+        .string()
+        .optional()
+        .describe(
+        "An optional photo sent by the user, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'. You should analyze it as part of the user's message."
+        ),
 });
 
 const PersonaInteractionOutputSchema = z.object({
@@ -115,6 +121,10 @@ You don't have any specific long-term memories relevant to this particular conve
 
 --- RECENT CONVERSATION HISTORY ---
 Here is the recent conversation history in this channel. The user's name is their server nickname.
+{{#if photoDataUri}}
+The user has also sent an image. Analyze it as part of the context when formulating your response.
+Image: {{media url=photoDataUri}}
+{{/if}}
 {{#if conversationHistory}}
 {{#each conversationHistory}}
 - {{{this.user}}}: {{{this.content}}}

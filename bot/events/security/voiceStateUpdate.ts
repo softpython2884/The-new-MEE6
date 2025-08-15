@@ -27,6 +27,16 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
     if (!webcamConfig?.enabled) {
         return;
     }
+
+    // Check if the member has an exempt role
+    const exemptRoles = webcamConfig.exempt_roles || [];
+    const memberRoles = newState.member.roles.cache.map(role => role.id);
+    const isExempt = memberRoles.some(roleId => exemptRoles.includes(roleId));
+
+    if (isExempt) {
+        console.log(`[Webcam Control] User ${newState.member.user.tag} is exempt. No action taken.`);
+        return;
+    }
     
     // The 'allowed' mode means we don't interfere with Discord's default permissions.
     if (webcamConfig.mode === 'allowed') {

@@ -143,6 +143,7 @@ const defaultConfigs: DefaultConfigs = {
     'webcam': {
         enabled: true,
         mode: 'allowed',
+        exempt_roles: [],
     },
     'captcha': { 
         enabled: false, 

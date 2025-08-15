@@ -9,13 +9,15 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const SmartVoiceInputSchema = z.object({
+  currentName: z.string().describe('The current name of the voice channel.'),
   theme: z.enum(['gaming', 'social', 'music']).describe('The general theme of the channel.'),
+  memberCount: z.number().describe('The number of members currently in the channel.'),
   activities: z.array(z.string()).describe('A list of activities (e.g., game names) users are currently engaged in.'),
 });
 
 const SmartVoiceOutputSchema = z.object({
-  channelName: z.string().describe("A short, creative, and engaging channel name (max 100 chars, ideally less than 25). Should be in French."),
-  channelTopic: z.string().describe("A slightly longer, descriptive, and fun topic for the channel, related to the activities (max 1024 chars). Should be in French."),
+  channelName: z.string().describe("A short, creative, and engaging channel name (max 100 chars, ideally less than 30). Should be in French."),
+  channelBio: z.string().describe("A very short, descriptive, and fun bio for the channel, related to the activities (max 100 chars). Should be in French. This will be used for logging purposes."),
 });
 
 export type SmartVoiceInput = z.infer<typeof SmartVoiceInputSchema>;
@@ -30,12 +32,13 @@ const prompt = ai.definePrompt({
   input: { schema: SmartVoiceInputSchema },
   output: { schema: SmartVoiceOutputSchema },
   prompt: `You are a fun and creative community manager for a Discord server.
-Your task is to generate a new, engaging name and topic for a voice channel based on a theme and the games/activities of the people in it.
+Your task is to generate a new, engaging name and a short bio for a voice channel based on its theme and the members inside.
 
-The tone should be in French.
+The response must be in French. The channel name should be short, catchy, and include a relevant emoji.
 
+Current Channel Name: "{{currentName}}"
 Theme: {{{theme}}}
-
+Number of members: {{{memberCount}}}
 Current activities in the channel:
 {{#if activities.length}}
   {{#each activities}}
@@ -45,12 +48,20 @@ Current activities in the channel:
 - Just chatting
 {{/if}}
 
-Based on this information, generate a new channel name and topic.
-- The channel name should be short, catchy, and relevant. Avoid generic names.
-- The channel topic can be a bit more descriptive, maybe a fun question or a witty comment related to the activities.
-- If the theme is 'gaming' and there are games, focus on them.
-- If the theme is 'social' or if there are no specific activities, create a name and topic for general conversation.
-- If there are multiple different games, try to find a common theme or just pick the most popular one.
+Please generate a new channel name and a short bio based on one of the two scenarios:
+
+Scenario 1: The channel is empty (memberCount is 0).
+- Generate a default, welcoming name that encourages people to join, based on the channel's theme.
+- Examples for 'gaming': "🎤 • En attente de joueurs", "🎮 • Choisissez un jeu".
+- Examples for 'social': "☕ • Salon de discussion", "👋 • Envie de papoter ?".
+
+Scenario 2: There are members in the channel (memberCount > 0).
+- Generate a dynamic name based on the most popular activity. If activities are varied, find a common theme or be creative.
+- If there are no specific activities, generate a name for general conversation.
+- The name should feel alive and reflect what's happening RIGHT NOW.
+- The bio should be a fun, short sentence related to the name.
+
+IMPORTANT: Do not just return the current name. Always generate a new, relevant name based on the situation.
 `,
 });
 

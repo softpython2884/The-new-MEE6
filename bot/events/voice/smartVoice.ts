@@ -1,6 +1,5 @@
 
-
-import { Events, VoiceState, ActivityType, Collection, ChannelType } from 'discord.js';
+import { Events, VoiceState, ActivityType, Collection, ChannelType, GuildChannel } from 'discord.js';
 import { smartVoiceFlow } from '../../../src/ai/flows/smart-voice-flow';
 import { getServerConfig } from '../../../src/lib/db';
 import type { InteractiveChannel } from '../../../src/types';
@@ -8,64 +7,65 @@ import type { InteractiveChannel } from '../../../src/types';
 
 // Simple cache to prevent spamming the API for the same channel within a short time
 const channelUpdateCache = new Collection<string, number>();
-const UPDATE_COOLDOWN = 60000; // 1 minute
+const UPDATE_COOLDOWN = 60000; // 1 minute (60,000 ms)
 
 export const name = Events.VoiceStateUpdate;
 
 export async function execute(oldState: VoiceState, newState: VoiceState) {
-    // Determine the relevant channel and if it's a join/leave event
     const channel = newState.channel || oldState.channel;
-    if (!channel || !newState.guild || channel.type !== ChannelType.GuildVoice) return;
 
+    // We only care about voice channels and actual users.
+    if (!channel || !newState.guild || channel.type !== ChannelType.GuildVoice || newState.member?.user.bot) {
+        return;
+    }
+    
+    // --- Check if the channel is an interactive channel ---
     const smartVoiceConfig = await getServerConfig(newState.guild.id, 'smart-voice');
-
-    // Check if the module is enabled and if the affected channel is one of our "smart" channels
+    const isPremium = smartVoiceConfig?.premium || false;
     const interactiveChannels = (smartVoiceConfig?.interactive_channels as InteractiveChannel[]) || [];
     const interactiveChannelInfo = interactiveChannels.find(c => c.id === channel.id);
     
-    // Also check if the module is premium, as it is a premium feature
-    if (!smartVoiceConfig?.enabled || !smartVoiceConfig?.premium || !interactiveChannelInfo) {
+    // If the module is disabled, not premium, or the channel is not interactive, do nothing.
+    if (!smartVoiceConfig?.enabled || !isPremium || !interactiveChannelInfo) {
         return;
     }
 
-    // Check if the channel is on cooldown
+    // --- Cooldown check to prevent API spam ---
+    const now = Date.now();
     const lastUpdate = channelUpdateCache.get(channel.id);
-    if (lastUpdate && Date.now() - lastUpdate < UPDATE_COOLDOWN) {
+    if (lastUpdate && now - lastUpdate < UPDATE_COOLDOWN) {
         return;
     }
-
-    // Get current members and their activities in the channel
-    const members = channel.members;
-    if (members.size === 0) {
-        // TODO: Reset channel name and topic to default if empty
-        return;
-    }
-
-    const activities = members
-        .map(member => member.presence?.activities.find(activity => activity.type === ActivityType.Playing)?.name)
-        .filter((game): game is string => !!game);
     
-    console.log(`[Smart-Voice] Updating channel ${channel.name}. Theme: ${interactiveChannelInfo.theme}, Activities: ${activities.join(', ')}`);
-
     try {
+        const members = channel.members.filter(m => !m.user.bot);
+        const memberCount = members.size;
+        
+        const activities = members
+            .map(member => member.presence?.activities.find(activity => activity.type === ActivityType.Playing)?.name)
+            .filter((game): game is string => !!game);
+
+        console.log(`[Smart-Voice] Updating channel "${channel.name}" (${channel.id}). Members: ${memberCount}, Theme: ${interactiveChannelInfo.theme}, Activities: ${activities.join(', ') || 'N/A'}`);
+
         const result = await smartVoiceFlow({
+            currentName: channel.name,
             theme: interactiveChannelInfo.theme,
+            memberCount: memberCount,
             activities: activities,
         });
 
-        if (result.channelName && result.channelTopic) {
-            await channel.setName(result.channelName);
-            // Voice channels don't have topics, but we can log it or use it elsewhere. For now, we just log.
-            // await channel.setTopic(result.channelTopic); 
+        // Only rename if the new name is different and not empty
+        if (result.channelName && result.channelName !== channel.name) {
+            await (channel as GuildChannel).setName(result.channelName);
+            console.log(`[Smart-Voice] Renamed channel ${channel.id} to "${result.channelName}". Bio: "${result.channelBio}"`);
             
-            console.log(`[Smart-Voice] Renamed channel ${channel.id} to "${result.channelName}". Topic suggestion: "${result.channelTopic}"`);
-            
-            // Update cache to prevent spam
-            channelUpdateCache.set(channel.id, Date.now());
+            // Update cache timestamp after a successful rename
+            channelUpdateCache.set(channel.id, now);
+        } else {
+            console.log(`[Smart-Voice] AI proposed the same name or an empty name. No change made for channel ${channel.id}.`);
         }
 
-
     } catch (error) {
-        console.error('[Smart-Voice] Error during smart voice flow:', error);
+        console.error(`[Smart-Voice] Error during smart voice flow for channel ${channel.id}:`, error);
     }
 }

@@ -100,6 +100,7 @@ const defaultConfigs: DefaultConfigs = {
     'auto-moderation': {
         enabled: false,
         exempt_roles: [],
+        scanned_channels: [],
         forbidden_vocabulary_enabled: false,
         forbidden_vocabulary_words: [],
         forbidden_vocabulary_action: 'delete',

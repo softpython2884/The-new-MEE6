@@ -21,12 +21,19 @@ const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/ap
 interface AutoModConfig {
   enabled: boolean;
   exempt_roles: string[];
+  scanned_channels: string[];
   [key: string]: any; // for dynamic rules
 }
 
 interface DiscordRole {
   id: string;
   name: string;
+}
+
+interface DiscordChannel {
+    id: string;
+    name: string;
+    type: number;
 }
 
 const ruleDefinitions = {
@@ -55,6 +62,7 @@ export default function AutoModerationPage() {
 
     const [config, setConfig] = useState<AutoModConfig | null>(null);
     const [roles, setRoles] = useState<DiscordRole[]>([]);
+    const [channels, setChannels] = useState<DiscordChannel[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -71,6 +79,7 @@ export default function AutoModerationPage() {
                 const serverDetailsData = await serverDetailsRes.json();
                 setConfig(configData);
                 setRoles(serverDetailsData.roles);
+                setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0));
             } catch (error) {
                 toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
             } finally {
@@ -115,6 +124,23 @@ export default function AutoModerationPage() {
         handleValueChange('exempt_roles', config.exempt_roles.filter((_, i) => i !== index));
     };
 
+     const handleChannelChange = (index: number, channelId: string) => {
+        if (!config) return;
+        const newChannels = [...config.scanned_channels];
+        newChannels[index] = channelId;
+        handleValueChange('scanned_channels', newChannels);
+    };
+
+    const addChannel = () => {
+        if (!config) return;
+        handleValueChange('scanned_channels', [...config.scanned_channels, '']);
+    };
+
+    const removeChannel = (index: number) => {
+        if (!config) return;
+        handleValueChange('scanned_channels', config.scanned_channels.filter((_, i) => i !== index));
+    };
+
     if (loading || !config) {
         return <AutoModerationPageSkeleton />;
     }
@@ -141,6 +167,27 @@ export default function AutoModerationPage() {
                     <p className="text-sm text-muted-foreground/80">Active ou désactive toutes les règles ci-dessous.</p>
                 </div>
                 <Switch id="enable-automod" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+            </div>
+            <Separator />
+            <div className="space-y-4">
+                <Label className="font-bold">Salons à surveiller</Label>
+                <p className="text-sm text-muted-foreground/80">L'auto-modération ne sera active que dans les salons sélectionnés. Si la liste est vide, aucun salon ne sera surveillé.</p>
+                {config.scanned_channels?.map((channelId, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                        <Select value={channelId} onValueChange={(id) => handleChannelChange(index, id)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sélectionner un salon..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {channels.map(channel => (
+                                    <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="icon" onClick={() => removeChannel(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
+                    </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addChannel}><PlusCircle className="mr-2 h-4 w-4"/>Ajouter un salon</Button>
             </div>
             <Separator />
             <div className="space-y-4">

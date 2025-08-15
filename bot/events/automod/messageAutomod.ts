@@ -25,6 +25,12 @@ export async function execute(message: Message) {
     const autoModConfig = await getServerConfig(message.guild.id, 'auto-moderation');
     if (!autoModConfig?.enabled) return;
     
+    // Check if channel is in the scanned list. If list is empty, don't scan anything.
+    const scannedChannels = (autoModConfig.scanned_channels as string[]) || [];
+    if (scannedChannels.length === 0 || !scannedChannels.includes(message.channel.id)) {
+        return;
+    }
+
     // Check for exempt roles for Auto-Mod
     const exemptRoles = (autoModConfig.exempt_roles as string[]) || [];
     if (message.member && message.member.roles.cache.some(role => exemptRoles.includes(role.id))) {

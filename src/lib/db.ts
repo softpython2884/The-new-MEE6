@@ -199,6 +199,7 @@ const defaultConfigs: DefaultConfigs = {
         premium: true,
         alert_channel_id: null,
         alert_role_id: null,
+        sensitivity: 'medium',
         actions: {
             low: 'warn',
             medium: 'mute_5m',

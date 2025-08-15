@@ -30,6 +30,7 @@ interface ModAssistantConfig {
     enabled: boolean;
     alert_channel_id: string | null;
     alert_role_id: string | null;
+    sensitivity: 'low' | 'medium' | 'high';
     actions: {
         low: string;
         medium: string;
@@ -144,6 +145,25 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
                              <p className="text-sm text-muted-foreground/80">Active ou désactive l'analyse des messages par l'IA.</p>
                         </div>
                         <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                    </div>
+                    <Separator/>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+                         <div>
+                            <Label htmlFor="sensitivity" className="font-bold text-sm uppercase text-muted-foreground">Sensibilité de Détection</Label>
+                            <p className="text-sm text-muted-foreground/80">
+                                Un niveau élevé peut entraîner plus de faux positifs.
+                            </p>
+                        </div>
+                        <Select value={config.sensitivity || 'medium'} onValueChange={(val: 'low' | 'medium' | 'high') => handleValueChange('sensitivity', val)}>
+                            <SelectTrigger id="sensitivity" className="w-full md:w-[280px]">
+                                <SelectValue placeholder="Sélectionner un niveau" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="low">Basse (Moins de détections)</SelectItem>
+                                <SelectItem value="medium">Moyenne (Recommandé)</SelectItem>
+                                <SelectItem value="high">Haute (Plus de détections)</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <Separator/>
                     <div className="space-y-4">

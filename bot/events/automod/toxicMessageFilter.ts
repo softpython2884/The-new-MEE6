@@ -20,6 +20,7 @@ export async function execute(message: Message) {
     try {
         const result = await moderationAiFlow({
             messageContent: message.content,
+            sensitivity: modAiConfig.sensitivity || 'medium',
         });
 
         if (result.isToxic) {

@@ -10,6 +10,7 @@ import { z } from 'genkit';
 
 const ModerationAiInputSchema = z.object({
   messageContent: z.string().describe('The message content to analyze.'),
+  sensitivity: z.enum(['low', 'medium', 'high']).describe('The sensitivity level for detection.'),
 });
 
 const ModerationAiOutputSchema = z.object({
@@ -40,8 +41,13 @@ You must consider the following categories for toxic content:
 - Spam or advertising
 - Threats of violence or self-harm
 
+The user has set a sensitivity level for the moderation: {{{sensitivity}}}.
+- 'low': Be more lenient. Only flag clear and unambiguous cases of toxicity. Ignore borderline cases.
+- 'medium': A balanced approach. Flag clear insults, hate speech, and significant profanity.
+- 'high': Be very strict. Flag anything that could be perceived as toxic, including mild insults, sarcasm, and borderline content.
+
 Analyze the following message.
-- If the message is toxic, set 'isToxic' to true, provide a concise reason, and determine a severity level ('low', 'medium', 'high', 'critical').
+- If the message is toxic based on the current sensitivity level, set 'isToxic' to true, provide a concise reason, and determine a severity level ('low', 'medium', 'high', 'critical').
 - Based on the severity, suggest a proportionate action ('warn', 'delete', 'mute', 'kick', 'ban').
 - If the action is 'mute', suggest a reasonable duration (e.g., '5m', '1h', '24h').
 - If the message is clean, set 'isToxic' to false and the action to 'none'.

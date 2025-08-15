@@ -27,7 +27,9 @@ import {
   DatabaseBackup,
   MessageCircleQuestion,
   Lightbulb,
-  Users
+  Users,
+  UserSquare,
+  BadgePlus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -45,6 +47,7 @@ const navCategories = [
         name: 'Général',
         items: [
             { href: 'commandes-generales', label: 'Commandes Générales', icon: Wrench },
+            { href: 'identite', label: 'Identité du Bot', icon: UserSquare },
             { href: 'assistant-communautaire', label: 'Assistant Communautaire', icon: MessageSquare, isPremium: true },
             { href: 'suggestions', label: 'Suggestions', icon: Lightbulb },
             { href: 'traduction-automatique', label: 'Traduction Auto', icon: Languages },
@@ -63,7 +66,6 @@ const navCategories = [
         name: 'Sécurité',
         items: [
             { href: 'anti-bot', label: 'Anti-Bot', icon: ShieldCheck },
-            { href: 'webcam-control', label: 'Contrôle Webcam', icon: Camera },
             { href: 'filtre-image-ia', label: 'Filtre d\'Image IA', icon: ScanSearch, isPremium: true },
             { href: 'anti-raid', label: 'Anti-Raid & Liens', icon: Fingerprint, isPremium: true },
             { href: 'captcha', label: 'Captcha', icon: Fingerprint, isPremium: true },
@@ -75,6 +77,7 @@ const navCategories = [
         items: [
             { href: 'salons-prives', label: 'Salons Privés', icon: Ticket },
             { href: 'evenements', label: 'Événements & Calendrier', icon: Calendar, isPremium: true },
+            { href: 'autoroles', label: 'Autoroles', icon: BadgePlus },
         ]
     },
     {
@@ -82,6 +85,7 @@ const navCategories = [
         items: [
              { href: 'controle-manuel', label: 'Contrôle manuel', icon: Voicemail },
              { href: 'vocaux-ia', label: 'IA Vocaux', icon: Mic, isPremium: true },
+             { href: 'webcam-control', label: 'Contrôle Webcam', icon: Camera },
         ]
     },
      {

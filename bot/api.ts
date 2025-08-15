@@ -66,6 +66,15 @@ export function startApi(client: Client) {
         try {
             console.log(`[Bot API] Mise à jour de la config pour le serveur ${guildId}, module ${module}`);
             await updateServerConfig(guildId, module as any, configData);
+
+            // Handle specific side-effects for modules
+            if (module === 'server-identity') {
+                const guild = await client.guilds.fetch(guildId);
+                if (guild.members.me) {
+                    await guild.members.me.setNickname(configData.nickname || null);
+                    await client.user?.setAvatar(configData.avatar_url || null);
+                }
+            }
             
             res.status(200).json({ success: true, message: `Configuration pour le module ${module} mise à jour.` });
         } catch (error) {

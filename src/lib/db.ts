@@ -281,6 +281,15 @@ const defaultConfigs: DefaultConfigs = {
         command_permissions: {
             personnage: null,
         },
+    },
+    'server-identity': {
+        enabled: true,
+        nickname: null,
+        avatar_url: null,
+    },
+    'autoroles': {
+        enabled: false,
+        on_join_roles: [],
     }
     // D'autres modules peuvent être ajoutés ici
 };

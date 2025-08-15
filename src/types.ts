@@ -41,7 +41,9 @@ export type Module =
     | 'tester'
     | 'conversational-agent'
     | 'suggestions'
-    | 'ai-personas';
+    | 'ai-personas'
+    | 'autoroles'
+    | 'server-identity';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

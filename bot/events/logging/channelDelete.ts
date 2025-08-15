@@ -9,6 +9,10 @@ export async function execute(channel: GuildChannel) {
 
     const config = await getServerConfig(channel.guild.id, 'logs');
     if (!config?.enabled || !config['log-channels'] || !config.log_channel_id) return;
+    
+    // Check for exemptions
+    if (config.exempt_channels.includes(channel.id)) return;
+     if (channel.parentId && config.exempt_channels.includes(channel.parentId)) return;
 
     const logChannel = await channel.guild.channels.fetch(config.log_channel_id).catch(() => null) as TextChannel;
     if (!logChannel) return;

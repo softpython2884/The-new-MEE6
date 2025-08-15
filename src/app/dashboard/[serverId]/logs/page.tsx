@@ -10,6 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -17,6 +22,8 @@ const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/ap
 interface LogsConfig {
   enabled: boolean;
   log_channel_id: string | null;
+  exempt_roles: string[];
+  exempt_channels: string[];
   [key: string]: any; // for dynamic log options
 }
 
@@ -24,6 +31,10 @@ interface DiscordChannel {
   id: string;
   name: string;
   type: number;
+}
+interface DiscordRole {
+    id: string;
+    name: string;
 }
 
 const logOptions = [
@@ -42,6 +53,7 @@ export default function LogsPage() {
 
     const [config, setConfig] = useState<LogsConfig | null>(null);
     const [channels, setChannels] = useState<DiscordChannel[]>([]);
+    const [roles, setRoles] = useState<DiscordRole[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -61,7 +73,8 @@ export default function LogsPage() {
                 const serverDetailsData = await serverDetailsRes.json();
 
                 setConfig(configData);
-                setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0));
+                setChannels(serverDetailsData.channels);
+                setRoles(serverDetailsData.roles);
             } catch (error) {
                 console.error("Failed to fetch data", error);
                 toast({
@@ -100,6 +113,15 @@ export default function LogsPage() {
         saveConfig({ ...config, [key]: value });
     };
 
+    const handleMultiSelectToggle = (key: 'exempt_roles' | 'exempt_channels', id: string) => {
+        if (!config) return;
+        const currentList = config[key] || [];
+        const newList = currentList.includes(id)
+            ? currentList.filter((itemId: string) => itemId !== id)
+            : [...currentList, id];
+        saveConfig({ ...config, [key]: newList });
+    };
+
     if (loading || !config) {
         return <PageSkeleton />;
     }
@@ -119,7 +141,7 @@ export default function LogsPage() {
           <CardHeader>
               <CardTitle>Configuration des Logs</CardTitle>
               <CardDescription>
-                  Personnalisez les événements à journaliser et leur destination.
+                  Personnalisez les événements à journaliser, leur destination et les exceptions.
               </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -141,7 +163,7 @@ export default function LogsPage() {
                         <SelectGroup>
                             <SelectLabel>Salons textuels</SelectLabel>
                             <SelectItem value="none">Désactivé</SelectItem>
-                            {channels.map(channel => (
+                            {channels.filter(c => c.type === 0).map(channel => (
                                 <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
                             ))}
                         </SelectGroup>
@@ -149,7 +171,78 @@ export default function LogsPage() {
                 </Select>
               </div>
               <Separator />
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Exceptions</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label>Salons à ignorer</Label>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between">
+                                    <div className="flex-1 text-left truncate">
+                                        {config.exempt_channels?.length > 0
+                                            ? config.exempt_channels.map((id: string) => (
+                                                <Badge key={id} variant="secondary" className="mr-1 mb-1">{channels.find(c => c.id === id)?.name || id}</Badge>
+                                            ))
+                                            : "Sélectionner des salons..."}
+                                    </div>
+                                    <ChevronDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                <DropdownMenuLabel>Choisir les salons</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {channels.map(channel => (
+                                    <DropdownMenuCheckboxItem
+                                        key={channel.id}
+                                        checked={config.exempt_channels?.includes(channel.id)}
+                                        onCheckedChange={() => handleMultiSelectToggle('exempt_channels', channel.id)}
+                                        onSelect={(e) => e.preventDefault()}
+                                    >
+                                        # {channel.name}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Rôles à ignorer</Label>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between">
+                                    <div className="flex-1 text-left truncate">
+                                        {config.exempt_roles?.length > 0
+                                            ? config.exempt_roles.map((id: string) => (
+                                                <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
+                                            ))
+                                            : "Sélectionner des rôles..."}
+                                    </div>
+                                    <ChevronDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {roles.filter(r => r.name !== '@everyone').map(role => (
+                                    <DropdownMenuCheckboxItem
+                                        key={role.id}
+                                        checked={config.exempt_roles?.includes(role.id)}
+                                        onCheckedChange={() => handleMultiSelectToggle('exempt_roles', role.id)}
+                                        onSelect={(e) => e.preventDefault()}
+                                    >
+                                        {role.name}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
+              </div>
+
+              <Separator />
               <div className="space-y-6">
+                <h3 className="text-lg font-semibold">Événements à Journaliser</h3>
                 {logOptions.map((option, index) => (
                     <React.Fragment key={option.id}>
                         <div className="flex items-center justify-between">

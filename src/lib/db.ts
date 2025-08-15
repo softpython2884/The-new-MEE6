@@ -124,6 +124,8 @@ const defaultConfigs: DefaultConfigs = {
     'logs': { 
         enabled: false, 
         log_channel_id: null,
+        exempt_roles: [],
+        exempt_channels: [],
         'log-messages': true,
         'log-members': true,
         'log-channels': false,

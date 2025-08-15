@@ -10,6 +10,10 @@ export async function execute(oldMessage: Message | PartialMessage, newMessage: 
     const config = await getServerConfig(newMessage.guild.id, 'logs');
     if (!config?.enabled || !config['log-messages'] || !config.log_channel_id) return;
 
+    // Check for exemptions
+    if (newMessage.member?.roles.cache.some(r => config.exempt_roles.includes(r.id))) return;
+    if (config.exempt_channels.includes(newMessage.channel.id)) return;
+
     const logChannel = await newMessage.guild.channels.fetch(config.log_channel_id).catch(() => null) as TextChannel;
     if (!logChannel || logChannel.id === newMessage.channel.id) return;
 

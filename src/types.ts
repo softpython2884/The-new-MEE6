@@ -1,6 +1,7 @@
 
 
 
+
 import type {
   SlashCommandBuilder,
   CommandInteraction,
@@ -81,6 +82,6 @@ export interface Persona {
 }
 
 export interface ConversationHistoryItem {
-    user: string;
+    user: string; // The user's display name
     content: string;
 }

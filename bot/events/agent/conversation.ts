@@ -1,4 +1,5 @@
 
+
 import { Events, Message, Collection, EmbedBuilder } from 'discord.js';
 import { getServerConfig } from '../../../src/lib/db';
 import { conversationalAgentFlow } from '../../../src/ai/flows/conversational-agent-flow';
@@ -66,7 +67,7 @@ async function handleFaqTrigger(message: Message) {
 
 
 async function handleConversationalAgent(message: Message) {
-    if (message.author.bot || !message.guild) {
+    if (message.author.bot || !message.guild || !message.member) {
         return;
     }
 
@@ -105,7 +106,7 @@ async function handleConversationalAgent(message: Message) {
             const currentHistory = conversationHistory.get(message.channel.id) || [];
             historyForPrompt = [...currentHistory]; 
 
-            currentHistory.push({ user: message.author.username, content: userMessage });
+            currentHistory.push({ user: message.member.displayName, content: userMessage });
             if (currentHistory.length > HISTORY_LIMIT) {
                 currentHistory.shift();
             }
@@ -114,7 +115,7 @@ async function handleConversationalAgent(message: Message) {
 
         const result = await conversationalAgentFlow({
             userMessage: userMessage,
-            userName: message.author.username,
+            userName: message.member.displayName,
             photoDataUri: photoDataUri,
             agentName: config.agent_name,
             agentRole: config.agent_role,
@@ -151,7 +152,9 @@ export async function execute(message: Message) {
     // To prevent both from firing, we can add a check.
     // Let's assume the dedicated agent channel should not trigger the FAQ.
     const agentConfig = await getServerConfig(message.guild.id, 'conversational-agent');
-    if (message.channel.id === agentConfig?.dedicated_channel_id) {
+    if (!agentConfig) return;
+
+    if (message.channel.id === agentConfig.dedicated_channel_id) {
         await handleConversationalAgent(message);
     } else {
         // Run both handlers. If the user mentions the bot, the conversational agent will take priority.

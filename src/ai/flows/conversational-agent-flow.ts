@@ -16,13 +16,13 @@ const KnowledgeBaseItemSchema = z.object({
 });
 
 const ConversationHistoryItemSchema = z.object({
-    user: z.string().describe("The name of the user who sent the message."),
+    user: z.string().describe("The display name (nickname) of the user who sent the message."),
     content: z.string().describe("The content of the message.")
 });
 
 export const ConversationalAgentInputSchema = z.object({
   userMessage: z.string().describe('The message sent by the user to the agent.'),
-  userName: z.string().describe("The user's display name."),
+  userName: z.string().describe("The user's display name (nickname)."),
   agentName: z.string().describe("The agent's name."),
   agentRole: z.string().describe("The agent's role or job on the server."),
   agentPersonality: z.string().describe("A description of the agent's personality and tone."),
@@ -61,7 +61,7 @@ Your Identity:
 - Your personality is: {{{agentPersonality}}}.
 
 Your Instructions:
-- You are speaking to a user named {{{userName}}}. Address them by name when it feels natural.
+- You are speaking to a user named {{{userName}}}. Address them by their nickname when it feels natural.
 - You must adhere to your defined role and personality in your response.
 - Do not break character.
 - Do not mention that you are an AI model.

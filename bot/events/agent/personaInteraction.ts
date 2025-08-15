@@ -13,7 +13,7 @@ export const name = Events.MessageCreate;
 export const once = false;
 
 export async function execute(message: Message) {
-    if (message.author.bot || !message.guild) {
+    if (message.author.bot || !message.guild || !message.member) {
         return;
     }
 
@@ -45,7 +45,7 @@ export async function execute(message: Message) {
         const currentHistory = conversationHistory.get(historyKey) || [];
         
         // Add the new message to the history and trim it
-        currentHistory.push({ user: message.author.username, content: message.content });
+        currentHistory.push({ user: message.member.displayName, content: message.content });
         if (currentHistory.length > HISTORY_LIMIT) {
             currentHistory.shift();
         }

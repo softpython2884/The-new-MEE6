@@ -82,10 +82,14 @@ const defaultConfigs: DefaultConfigs = {
         command_permissions: {
             invite: null, // null means @everyone
             ping: null,
+            help: null,
+            marcus: null,
         },
         command_enabled: {
             invite: true,
             ping: true,
+            help: true,
+            marcus: true,
         }
     },
     'community-assistant': {
@@ -99,27 +103,7 @@ const defaultConfigs: DefaultConfigs = {
     },
     'auto-moderation': {
         enabled: false,
-        exempt_roles: [],
-        scanned_channels: [],
-        forbidden_vocabulary_enabled: false,
-        forbidden_vocabulary_words: [],
-        forbidden_vocabulary_action: 'delete',
-        discord_invites_enabled: true,
-        discord_invites_action: 'delete',
-        external_links_enabled: false,
-        external_links_allowed_domains: [],
-        external_links_action: 'delete',
-        excessive_caps_enabled: true,
-        excessive_caps_threshold_percentage: 70,
-        excessive_caps_action: 'warn',
-        excessive_emojis_enabled: false,
-        excessive_emojis_max_emojis: 10,
-        excessive_emojis_action: 'delete',
-        excessive_mentions_enabled: true,
-        excessive_mentions_max_mentions: 5,
-        excessive_mentions_action: 'warn',
-        message_spam_enabled: true,
-        message_spam_action: 'warn',
+        rules: [], // This will now store native discord auto-mod rules
     },
     'logs': { 
         enabled: false, 

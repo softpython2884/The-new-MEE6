@@ -100,6 +100,7 @@ const defaultConfigs: DefaultConfigs = {
             help: null,
             marcus: null,
             traduire: null,
+            say: null,
         },
         command_enabled: {
             invite: true,
@@ -107,6 +108,7 @@ const defaultConfigs: DefaultConfigs = {
             help: true,
             marcus: true,
             traduire: true,
+            say: true,
         }
     },
     'community-assistant': {
@@ -254,10 +256,10 @@ const defaultConfigs: DefaultConfigs = {
         mentor_messages: 'Bienvenue sur le serveur, {user} ! Voici quelques règles à connaître...',
         auto_role_assignment: false,
     },
-    'tester': {
+    'tester-commands': {
         enabled: true,
         command_permissions: {
-            tester: null,
+            mp: null, // null means only testers
         },
     },
     'conversational-agent': {

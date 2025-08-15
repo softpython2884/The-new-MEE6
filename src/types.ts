@@ -44,7 +44,8 @@ export type Module =
     | 'ai-personas'
     | 'autoroles'
     | 'server-identity'
-    | 'security-alerts';
+    | 'security-alerts'
+    | 'tester-commands';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

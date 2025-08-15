@@ -13,45 +13,179 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Trash2, PlusCircle } from 'lucide-react';
+import { Trash2, PlusCircle, ShieldAlert } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
+
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
-// Types
-interface AutoModConfig {
-  enabled: boolean;
-  exempt_roles: string[];
-  scanned_channels: string[];
-  [key: string]: any; // for dynamic rules
+// Types matching Discord's API structure for Auto-Mod
+interface AutoModAction {
+    type: number;
+    metadata?: {
+        channel_id?: string;
+        duration_seconds?: number;
+        custom_message?: string;
+    };
 }
-
+interface AutoModTriggerMetadata {
+    keyword_filter?: string[];
+    regex_patterns?: string[];
+    presets?: number[];
+    allow_list?: string[];
+    mention_total_limit?: number;
+    mention_raid_protection_enabled?: boolean;
+}
+interface AutoModRule {
+    id?: string;
+    guild_id: string;
+    name: string;
+    event_type: number;
+    trigger_type: number;
+    trigger_metadata: AutoModTriggerMetadata;
+    actions: AutoModAction[];
+    enabled: boolean;
+    exempt_roles: string[];
+    exempt_channels: string[];
+}
 interface DiscordRole {
   id: string;
   name: string;
 }
-
 interface DiscordChannel {
     id: string;
     name: string;
     type: number;
 }
 
-const ruleDefinitions = {
-    forbidden_vocabulary: { label: 'Vocabulaire interdit' },
-    discord_invites: { label: 'Invitations Discord' },
-    external_links: { label: 'Liens externes' },
-    excessive_caps: { label: 'Majuscules excessives' },
-    excessive_emojis: { label: 'Émojis excessifs' },
-    excessive_mentions: { label: 'Mentions excessives' },
-    message_spam: { label: 'Spam de messages' },
-};
 
 function AutoModerationPageSkeleton() {
     return (
         <div className="space-y-8">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-96 w-full" />
+            <div className="flex justify-between items-center">
+                 <Skeleton className="h-8 w-64" />
+                 <Skeleton className="h-10 w-32" />
+            </div>
+            <div className="space-y-4">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+            </div>
         </div>
+    );
+}
+
+function RuleEditor({ rule, onSave, onCancel, roles, channels }: { rule: Partial<AutoModRule>, onSave: (rule: Partial<AutoModRule>) => void, onCancel: () => void, roles: DiscordRole[], channels: DiscordChannel[] }) {
+    const [editedRule, setEditedRule] = useState<Partial<AutoModRule>>(rule);
+    
+    const handleFieldChange = (field: keyof AutoModRule, value: any) => {
+        setEditedRule(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleMetadataChange = (field: keyof AutoModTriggerMetadata, value: any) => {
+        setEditedRule(prev => ({
+            ...prev,
+            trigger_metadata: { ...prev.trigger_metadata, [field]: value }
+        }));
+    };
+
+    const handleActionChange = (index: number, field: keyof AutoModAction['metadata'], value: any) => {
+         setEditedRule(prev => {
+            const newActions = [...(prev.actions || [])];
+            newActions[index] = {
+                ...newActions[index],
+                metadata: {
+                    ...newActions[index].metadata,
+                    [field]: value
+                }
+            };
+            return { ...prev, actions: newActions };
+        });
+    }
+
+    return (
+        <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+                <DialogTitle>{rule.id ? 'Modifier la Règle' : 'Créer une Règle'}</DialogTitle>
+                <DialogDescription>
+                    Configurez les détails de votre règle d'auto-modération.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                {/* Rule Name */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">Nom</Label>
+                    <Input id="name" value={editedRule.name || ''} onChange={e => handleFieldChange('name', e.target.value)} className="col-span-3" />
+                </div>
+
+                {/* Trigger Type */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="trigger_type" className="text-right">Déclencheur</Label>
+                    <Select value={String(editedRule.trigger_type || 1)} onValueChange={val => handleFieldChange('trigger_type', parseInt(val))}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="1">Mots-clés</SelectItem>
+                            <SelectItem value="4">Contenu Nocif (Presets)</SelectItem>
+                            <SelectItem value="5">Spam de mentions</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                
+                 {/* Trigger Metadata */}
+                {editedRule.trigger_type === 1 && ( // Keyword
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="keyword_filter" className="text-right">Mots-clés</Label>
+                        <Textarea id="keyword_filter"
+                            placeholder="mot, phrase*, *fin"
+                            className="col-span-3"
+                            value={(editedRule.trigger_metadata?.keyword_filter || []).join(', ')}
+                            onChange={e => handleMetadataChange('keyword_filter', e.target.value.split(',').map(k => k.trim()))}
+                        />
+                    </div>
+                )}
+                 {editedRule.trigger_type === 4 && ( // Preset
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="presets" className="text-right">Types de contenu</Label>
+                        <Select value={String(editedRule.trigger_metadata?.presets?.[0] || 1)} onValueChange={val => handleMetadataChange('presets', [parseInt(val)])}>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="1">Propos grossiers</SelectItem>
+                                <SelectItem value="2">Contenu sexuel</SelectItem>
+                                <SelectItem value="3">Insultes et calomnies</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+                {editedRule.trigger_type === 5 && ( // Mention Spam
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="mention_total_limit" className="text-right">Mentions Max</Label>
+                        <Input id="mention_total_limit" type="number" 
+                            className="col-span-3"
+                            value={editedRule.trigger_metadata?.mention_total_limit || 5}
+                            onChange={e => handleMetadataChange('mention_total_limit', parseInt(e.target.value))}
+                         />
+                    </div>
+                )}
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button type="button" variant="secondary" onClick={onCancel}>Annuler</Button>
+                </DialogClose>
+                <Button type="submit" onClick={() => onSave(editedRule)}>Sauvegarder</Button>
+            </DialogFooter>
+        </DialogContent>
     );
 }
 
@@ -60,26 +194,48 @@ export default function AutoModerationPage() {
     const serverId = params.serverId as string;
     const { toast } = useToast();
 
-    const [config, setConfig] = useState<AutoModConfig | null>(null);
+    const [rules, setRules] = useState<AutoModRule[]>([]);
     const [roles, setRoles] = useState<DiscordRole[]>([]);
     const [channels, setChannels] = useState<DiscordChannel[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isEditorOpen, setEditorOpen] = useState(false);
+    const [currentRule, setCurrentRule] = useState<Partial<AutoModRule> | null>(null);
 
+    // --- API Calls ---
+    const fetchRules = async () => {
+        // TODO: Implement API endpoint in bot/api.ts
+        // For now, using mock data.
+        setRules([]); 
+    };
+
+    const saveRule = async (rule: Partial<AutoModRule>) => {
+         // TODO: Implement API endpoint in bot/api.ts
+        toast({ title: rule.id ? "Règle mise à jour" : "Règle créée", description: `La règle "${rule.name}" a été sauvegardée.` });
+        await fetchRules();
+        setEditorOpen(false);
+    };
+
+    const deleteRule = async (ruleId: string) => {
+        // TODO: Implement API endpoint in bot/api.ts
+        toast({ title: "Règle supprimée", variant: 'destructive'});
+        await fetchRules();
+    }
+
+    // --- Data Fetching ---
     useEffect(() => {
         if (!serverId) return;
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [configRes, serverDetailsRes] = await Promise.all([
-                    fetch(`${API_URL}/get-config/${serverId}/auto-moderation`),
-                    fetch(`${API_URL}/get-server-details/${serverId}`)
-                ]);
-                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
-                const configData = await configRes.json();
+                // TODO: Replace with fetchRules() when API is ready
+                await fetchRules();
+
+                const serverDetailsRes = await fetch(`${API_URL}/get-server-details/${serverId}`);
+                if (!serverDetailsRes.ok) throw new Error('Failed to fetch server details');
                 const serverDetailsData = await serverDetailsRes.json();
-                setConfig(configData);
+                
                 setRoles(serverDetailsData.roles);
-                setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0));
+                setChannels(serverDetailsData.channels);
             } catch (error) {
                 toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
             } finally {
@@ -89,219 +245,94 @@ export default function AutoModerationPage() {
         fetchData();
     }, [serverId, toast]);
 
-    const saveConfig = async (newConfig: AutoModConfig) => {
-        setConfig(newConfig); // Optimistic update
-        try {
-            await fetch(`${API_URL}/update-config/${serverId}/auto-moderation`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newConfig),
-            });
-        } catch (error) {
-            toast({ title: "Erreur de sauvegarde", variant: "destructive" });
-        }
+    const handleCreateClick = () => {
+        setCurrentRule({
+            guild_id: serverId,
+            name: '',
+            event_type: 1, // MESSAGE_SEND
+            trigger_type: 1, // KEYWORD
+            trigger_metadata: { keyword_filter: [] },
+            actions: [{ type: 1 }], // BLOCK_MESSAGE
+            enabled: true,
+            exempt_roles: [],
+            exempt_channels: [],
+        });
+        setEditorOpen(true);
     };
 
-    const handleValueChange = (key: string, value: any) => {
-        if (!config) return;
-        saveConfig({ ...config, [key]: value });
+    const handleEditClick = (rule: AutoModRule) => {
+        setCurrentRule(rule);
+        setEditorOpen(true);
     };
 
-    const handleRoleChange = (index: number, roleId: string) => {
-        if (!config) return;
-        const newRoles = [...config.exempt_roles];
-        newRoles[index] = roleId;
-        handleValueChange('exempt_roles', newRoles);
-    };
-
-    const addRole = () => {
-        if (!config) return;
-        handleValueChange('exempt_roles', [...config.exempt_roles, '']);
-    };
-
-    const removeRole = (index: number) => {
-        if (!config) return;
-        handleValueChange('exempt_roles', config.exempt_roles.filter((_, i) => i !== index));
-    };
-
-     const handleChannelChange = (index: number, channelId: string) => {
-        if (!config) return;
-        const newChannels = [...config.scanned_channels];
-        newChannels[index] = channelId;
-        handleValueChange('scanned_channels', newChannels);
-    };
-
-    const addChannel = () => {
-        if (!config) return;
-        handleValueChange('scanned_channels', [...config.scanned_channels, '']);
-    };
-
-    const removeChannel = (index: number) => {
-        if (!config) return;
-        handleValueChange('scanned_channels', config.scanned_channels.filter((_, i) => i !== index));
-    };
-
-    if (loading || !config) {
+    if (loading) {
         return <AutoModerationPageSkeleton />;
     }
 
   return (
-    <div className="space-y-8 text-white max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Auto-Modération</h1>
-        <p className="text-muted-foreground mt-2">
-            Définir des règles pour détecter et sanctionner automatiquement les comportements indésirables.
-        </p>
-      </div>
-      
-      <Separator />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Options Générales</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+    <Dialog open={isEditorOpen} onOpenChange={setEditorOpen}>
+        <div className="space-y-8 text-white max-w-4xl">
             <div className="flex items-center justify-between">
                 <div>
-                    <Label htmlFor="enable-automod" className="font-bold">Activer l'Auto-Modération</Label>
-                    <p className="text-sm text-muted-foreground/80">Active ou désactive toutes les règles ci-dessous.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Auto-Modération (Discord)</h1>
+                    <p className="text-muted-foreground mt-2">
+                        Gérez les règles d'auto-modération natives de Discord.
+                    </p>
                 </div>
-                <Switch id="enable-automod" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                 <DialogTrigger asChild>
+                    <Button onClick={handleCreateClick}>
+                        <PlusCircle className="mr-2"/>
+                        Créer une règle
+                    </Button>
+                </DialogTrigger>
             </div>
+            
             <Separator />
-            <div className="space-y-4">
-                <Label className="font-bold">Salons à surveiller</Label>
-                <p className="text-sm text-muted-foreground/80">L'auto-modération ne sera active que dans les salons sélectionnés. Si la liste est vide, aucun salon ne sera surveillé.</p>
-                {config.scanned_channels?.map((channelId, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                        <Select value={channelId} onValueChange={(id) => handleChannelChange(index, id)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner un salon..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {channels.map(channel => (
-                                    <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button variant="ghost" size="icon" onClick={() => removeChannel(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
-                    </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={addChannel}><PlusCircle className="mr-2 h-4 w-4"/>Ajouter un salon</Button>
-            </div>
-            <Separator />
-            <div className="space-y-4">
-                <Label className="font-bold">Rôles exemptés</Label>
-                <p className="text-sm text-muted-foreground/80">Les membres avec ces rôles ne seront pas affectés par l'auto-modération.</p>
-                {config.exempt_roles.map((roleId, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                        <Select value={roleId} onValueChange={(id) => handleRoleChange(index, id)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner un rôle..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {roles.filter(r => r.name !== '@everyone').map(role => (
-                                    <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button variant="ghost" size="icon" onClick={() => removeRole(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
-                    </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={addRole}><PlusCircle className="mr-2 h-4 w-4"/>Ajouter un rôle</Button>
-            </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-          <CardHeader>
-              <h2 className="text-xl font-bold">Règles d'Auto-Modération</h2>
-              <p className="text-muted-foreground">
-                  Activez et configurez les règles de modération pour le serveur.
-              </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {Object.entries(ruleDefinitions).map(([key, { label }]) => (
-                <React.Fragment key={key}>
-                <Separator />
-                <div className="space-y-4 pt-4">
-                    <div className="flex items-center justify-between">
-                        <Label htmlFor={`${key}_enabled`} className="text-lg font-semibold">{label}</Label>
-                        <Switch id={`${key}_enabled`} checked={config[`${key}_enabled`] ?? false} onCheckedChange={(val) => handleValueChange(`${key}_enabled`, val)} />
-                    </div>
-                    
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <Label>Action</Label>
-                        <Select value={config[`${key}_action`] || 'delete'} onValueChange={(val) => handleValueChange(`${key}_action`, val)}>
-                            <SelectTrigger className="w-full md:w-1/2">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="warn">Avertir l'utilisateur</SelectItem>
-                                <SelectItem value="delete">Supprimer le message</SelectItem>
-                                <SelectItem value="mute">Rendre muet</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {key === 'forbidden_vocabulary' && (
-                        <div>
-                            <Label>Mots/phrases interdits (séparés par une virgule)</Label>
-                            <Textarea 
-                                placeholder="mot1,expression 2,mot3" 
-                                defaultValue={(config.forbidden_vocabulary_words || []).join(',')}
-                                onBlur={(e) => handleValueChange('forbidden_vocabulary_words', e.target.value.split(',').map(w => w.trim()).filter(Boolean))}
-                            />
-                        </div>
-                    )}
-                    {key === 'external_links' && (
-                        <div>
-                            <Label>Domaines autorisés (séparés par une virgule)</Label>
-                            <Textarea 
-                                placeholder="youtube.com,twitter.com"
-                                defaultValue={(config.external_links_allowed_domains || []).join(',')}
-                                onBlur={(e) => handleValueChange('external_links_allowed_domains', e.target.value.split(',').map(d => d.trim()).filter(Boolean))}
-                             />
-                        </div>
-                    )}
-                    {key === 'excessive_caps' && (
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <Label>Pourcentage maximum de majuscules</Label>
-                            <Input 
-                                type="number" 
-                                className="w-full md:w-1/2"
-                                defaultValue={config.excessive_caps_threshold_percentage || 70}
-                                onBlur={(e) => handleValueChange('excessive_caps_threshold_percentage', parseInt(e.target.value, 10))}
-                            />
-                        </div>
-                    )}
-                    {key === 'excessive_emojis' && (
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <Label>Nombre maximum d'émojis</Label>
-                            <Input 
-                                type="number" 
-                                className="w-full md:w-1/2" 
-                                defaultValue={config.excessive_emojis_max_emojis || 10}
-                                onBlur={(e) => handleValueChange('excessive_emojis_max_emojis', parseInt(e.target.value, 10))}
-                            />
-                        </div>
-                    )}
-                     {key === 'excessive_mentions' && (
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <Label>Nombre maximum de mentions</Label>
-                            <Input 
-                                type="number" 
-                                className="w-full md:w-1/2" 
-                                defaultValue={config.excessive_mentions_max_mentions || 5}
-                                onBlur={(e) => handleValueChange('excessive_mentions_max_mentions', parseInt(e.target.value, 10))}
-                            />
-                        </div>
-                    )}
+            
+            {rules.length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                    <ShieldAlert className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-semibold">Aucune règle définie</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Cliquez sur "Créer une règle" pour commencer.
+                    </p>
                 </div>
-                </React.Fragment>
-            ))}
-          </CardContent>
-      </Card>
-    </div>
+            ) : (
+                <div className="space-y-4">
+                    {rules.map(rule => (
+                        <Card key={rule.id}>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                 <div>
+                                    <CardTitle>{rule.name}</CardTitle>
+                                    <CardDescription>
+                                        {/* You can add more details here based on rule type */}
+                                        Déclencheur : Mot-clé
+                                    </CardDescription>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                    <Switch checked={rule.enabled} onCheckedChange={(val) => saveRule({...rule, enabled: val})} />
+                                    <Button variant="ghost" onClick={() => handleEditClick(rule)}>Modifier</Button>
+                                    <Button variant="ghost" size="icon" onClick={() => deleteRule(rule.id!)}>
+                                        <Trash2 className="w-4 h-4 text-destructive"/>
+                                    </Button>
+                                 </div>
+                            </CardHeader>
+                        </Card>
+                    ))}
+                </div>
+            )}
+        </div>
+
+        {/* The Dialog Content for editing/creating */}
+        {currentRule && (
+            <RuleEditor 
+                rule={currentRule}
+                onSave={saveRule}
+                onCancel={() => setEditorOpen(false)}
+                roles={roles}
+                channels={channels}
+            />
+        )}
+    </Dialog>
   );
 }

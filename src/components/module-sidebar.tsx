@@ -171,13 +171,6 @@ export function ModuleSidebar({ serverId: serverIdProp }: { serverId: string }) 
             </div>
         ))}
       </nav>
-      <div className="mt-auto pt-4 border-t border-border">
-          <h3 className="px-3 py-2 text-xs font-bold uppercase text-muted-foreground">Crédits</h3>
-          <div className="px-3 text-sm text-muted-foreground">
-              <p>Développé par <a href="https://forgenet.fr" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">NightForge</a>.</p>
-              <a href="https://discord.gg/MU39eUDe" target="_blank" rel="noopener noreferrer" className="text-white hover:underline">Serveur de support</a>
-          </div>
-      </div>
     </aside>
   );
 }

@@ -211,7 +211,8 @@ const defaultConfigs: DefaultConfigs = {
         enabled: false, 
         premium: true,
         interactive_channels: [], 
-        creation_threshold: 4 
+        creation_threshold: 4,
+        custom_instructions: ''
     },
     'content-ai': { 
         enabled: false, 

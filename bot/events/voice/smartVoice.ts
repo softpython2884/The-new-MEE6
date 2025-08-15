@@ -52,6 +52,7 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
             theme: interactiveChannelInfo.theme,
             memberCount: memberCount,
             activities: activities,
+            customInstructions: smartVoiceConfig.custom_instructions
         });
 
         // Only rename if the new name is different and not empty

@@ -13,6 +13,7 @@ const SmartVoiceInputSchema = z.object({
   theme: z.enum(['gaming', 'social', 'music']).describe('The general theme of the channel.'),
   memberCount: z.number().describe('The number of members currently in the channel.'),
   activities: z.array(z.string()).describe('A list of activities (e.g., game names) users are currently engaged in.'),
+  customInstructions: z.string().optional().describe('Optional custom instructions from the server admin to guide the naming.'),
 });
 
 const SmartVoiceOutputSchema = z.object({
@@ -47,6 +48,11 @@ Current activities in the channel:
 {{else}}
 - Just chatting
 {{/if}}
+
+{{#if customInstructions}}
+Special Instructions from the Admin: You must follow these guidelines: "{{{customInstructions}}}"
+{{/if}}
+
 
 Please generate a new channel name and a short bio based on one of the two scenarios:
 

@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { InteractiveChannel } from '@/types';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -25,6 +26,7 @@ interface SmartVoiceConfig {
     enabled: boolean;
     interactive_channels: InteractiveChannel[];
     creation_threshold: number;
+    custom_instructions: string;
 }
 interface DiscordChannel {
     id: string;
@@ -128,6 +130,20 @@ function SmartVoicePageContent({ isPremium }: { isPremium: boolean }) {
                             Nombre d'utilisateurs dans un salon pour créer automatiquement un nouveau salon vocal thématique.
                         </p>
                         <Input id="creation-threshold" type="number" defaultValue={config.creation_threshold} onBlur={(e) => handleValueChange('creation_threshold', parseInt(e.target.value, 10))} className="w-full md:w-[120px]" disabled />
+                    </div>
+                    <Separator />
+                    <div className="space-y-2">
+                        <Label htmlFor="custom-instructions" className="font-bold text-sm uppercase text-muted-foreground">Instructions Personnalisées</Label>
+                        <p className="text-sm text-muted-foreground/80">
+                           Donnez des instructions spécifiques à l'IA pour la génération des noms (ex: "Utilise un ton humoristique", "Fais des références à la pop culture").
+                        </p>
+                        <Textarea 
+                            id="custom-instructions"
+                            placeholder="Ex: Toujours inclure un emoji lié au jeu. Garder les noms courts et percutants."
+                            defaultValue={config.custom_instructions}
+                            onBlur={(e) => handleValueChange('custom_instructions', e.target.value)}
+                            rows={3}
+                        />
                     </div>
                 </CardContent>
             </Card>

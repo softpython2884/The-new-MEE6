@@ -23,14 +23,18 @@ export default function DashboardLayout({
         <main className="flex-1 overflow-y-auto bg-transparent relative">
            <div className="absolute inset-0 z-0">
              <RippleGrid
+                enableRainbow={true}
                 gridColor="#2c3e50"
-                rippleIntensity={0.03}
-                gridSize={15}
-                gridThickness={10}
-                fadeDistance={2.0}
-                vignetteStrength={1.5}
-                glowIntensity={0.05}
-                opacity={0.6}
+                rippleIntensity={0.05}
+                gridSize={10}
+                gridThickness={15}
+                fadeDistance={1.5}
+                vignetteStrength={2}
+                glowIntensity={0.1}
+                opacity={1}
+                gridRotation={0}
+                mouseInteraction={true}
+                mouseInteractionRadius={0.8}
             />
            </div>
           <div className="container mx-auto p-6 lg:p-8 relative z-10">{children}</div>

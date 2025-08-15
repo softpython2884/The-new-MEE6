@@ -38,7 +38,8 @@ export type Module =
     | 'webcam'
     | 'mod-training'
     | 'tester'
-    | 'conversational-agent';
+    | 'conversational-agent'
+    | 'suggestions';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

@@ -249,6 +249,16 @@ const defaultConfigs: DefaultConfigs = {
         custom_prompt: '',
         knowledge_base: [],
         dedicated_channel_id: null,
+    },
+    'suggestions': {
+        enabled: true,
+        suggestion_channel_id: null,
+        upvote_emoji: '👍',
+        downvote_emoji: '👎',
+        command_permissions: {
+            suggest: null,
+            setsuggest: null,
+        }
     }
     // D'autres modules peuvent être ajoutés ici
 };

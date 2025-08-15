@@ -1,6 +1,6 @@
 
 
-import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags, ChannelType, OverwriteType, EmbedBuilder, TextChannel } from 'discord.js';
+import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags, ChannelType, OverwriteType, EmbedBuilder, TextChannel, ModalSubmitInteraction, Interaction } from 'discord.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -117,7 +117,48 @@ client.once(Events.ClientReady, async (readyClient) => {
     startApi(client);
 });
 
-client.on(Events.InteractionCreate, async interaction => {
+async function handleSuggestionModal(interaction: ModalSubmitInteraction) {
+    if (!interaction.guild) return;
+
+    await interaction.deferReply({ ephemeral: true });
+    
+    const config = await getServerConfig(interaction.guild.id, 'suggestions');
+    if (!config?.enabled || !config.suggestion_channel_id) {
+        await interaction.editReply({ content: "Le système de suggestions est désactivé ou non configuré." });
+        return;
+    }
+
+    const suggestionChannel = await interaction.guild.channels.fetch(config.suggestion_channel_id).catch(() => null) as TextChannel;
+    if (!suggestionChannel) {
+        await interaction.editReply({ content: "Le salon de suggestions configuré n'a pas été trouvé." });
+        return;
+    }
+
+    const title = interaction.fields.getTextInputValue('suggestion_title');
+    const description = interaction.fields.getTextInputValue('suggestion_description');
+
+    const embed = new EmbedBuilder()
+        .setAuthor({ name: `Suggestion de ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .setTitle(title)
+        .setDescription(description)
+        .setColor(0x5865F2)
+        .setTimestamp()
+        .setFooter({ text: `ID Utilisateur: ${interaction.user.id}` });
+        
+    try {
+        const message = await suggestionChannel.send({ embeds: [embed] });
+        if (config.upvote_emoji) await message.react(config.upvote_emoji);
+        if (config.downvote_emoji) await message.react(config.downvote_emoji);
+        
+        await interaction.editReply({ content: '✅ Votre suggestion a été envoyée avec succès !' });
+    } catch (e) {
+        console.error("Failed to send suggestion", e);
+        await interaction.editReply({ content: '❌ Une erreur est survenue lors de l\'envoi de votre suggestion.' });
+    }
+}
+
+
+client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     if (interaction.isAutocomplete()) {
         const command = client.commands.get(interaction.commandName);
         if (!command || !command.autocomplete) return;
@@ -129,9 +170,26 @@ client.on(Events.InteractionCreate, async interaction => {
         return;
     }
     
+    // Handle Modals
+    if (interaction.isModalSubmit()) {
+        if (interaction.customId === 'suggestion_modal') {
+            await handleSuggestionModal(interaction);
+        }
+        return;
+    }
+
     if (interaction.isButton()) {
         console.log(`[Interaction] Button clicked: ${interaction.customId}`);
         const { customId } = interaction;
+
+        // --- Handler for Suggestion Button ---
+        if (customId === 'create_suggestion') {
+             const command = client.commands.get('suggest');
+             if (command) {
+                 await command.execute(interaction as any);
+             }
+             return;
+        }
 
         // --- Handler for Content Creator Buttons ---
         if (customId === 'publish_content' || customId === 'cancel_content') {

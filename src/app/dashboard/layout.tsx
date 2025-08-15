@@ -5,7 +5,7 @@ import { ModuleSidebar } from '@/components/module-sidebar';
 import { ServerSidebar } from '@/components/server-sidebar';
 import RippleGrid from '@/components/ripple-grid';
 import { useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -26,7 +26,7 @@ export default function DashboardLayout({
       if (authedGuilds.includes(params.serverId)) {
         setIsAuthorized(true);
       } else {
-        // If not authorized, redirect to the selector page
+        // If not authorized, redirect to the selector page, which will handle auth
         router.push('/dashboard');
       }
       // Authorization check is complete
@@ -34,6 +34,7 @@ export default function DashboardLayout({
     }
   }, [params.serverId, router]);
 
+  // While checking authorization, show a full-screen loader
   if (loading) {
     return (
        <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -42,42 +43,40 @@ export default function DashboardLayout({
     );
   }
 
-  if (!isAuthorized) {
-    // You can return a loading state or null while redirecting
-     return (
-       <div className="flex h-screen w-full items-center justify-center bg-background">
-          <p>Redirection...</p>
-          <Loader2 className="h-16 w-16 animate-spin text-primary" />
-       </div>
+  // If authorized, show the dashboard layout
+  if (isAuthorized) {
+    return (
+        <div className="relative flex h-screen bg-background text-foreground overflow-hidden">
+            <ServerSidebar serverId={params.serverId} />
+            <ModuleSidebar serverId={params.serverId} />
+            <main className="flex-1 overflow-y-auto bg-transparent relative">
+            <div className="absolute inset-0 z-0">
+                <RippleGrid
+                    enableRainbow={true}
+                    gridColor="#8239ff"
+                    rippleIntensity={0.05}
+                    gridSize={10}
+                    gridThickness={15}
+                    fadeDistance={1.5}
+                    vignetteStrength={2}
+                    glowIntensity={0.1}
+                    opacity={1}
+                    gridRotation={0}
+                    mouseInteraction={true}
+                    mouseInteractionRadius={0.8}
+                />
+            </div>
+            <div className="container mx-auto p-6 lg:p-8 relative z-10">{children}</div>
+            </main>
+        </div>
     );
   }
-
-
+  
+  // If not authorized (and not loading), show a loader while redirecting
   return (
-    <div className="relative flex h-screen bg-background text-foreground overflow-hidden">
-        <ServerSidebar serverId={params.serverId} />
-        <ModuleSidebar serverId={params.serverId} />
-        <main className="flex-1 overflow-y-auto bg-transparent relative">
-           <div className="absolute inset-0 z-0">
-             <RippleGrid
-                enableRainbow={true}
-                gridColor="#2c3e50"
-                rippleIntensity={0.05}
-                gridSize={10}
-                gridThickness={15}
-                fadeDistance={1.5}
-                vignetteStrength={2}
-                glowIntensity={0.1}
-                opacity={1}
-                gridRotation={0}
-                mouseInteraction={true}
-                mouseInteractionRadius={0.8}
-            />
-           </div>
-          <div className="container mx-auto p-6 lg:p-8 relative z-10">{children}</div>
-        </main>
-    </div>
-  );
+       <div className="flex h-screen w-full items-center justify-center bg-background">
+          <p className="mr-4">Redirection...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+       </div>
+    );
 }
-
-    

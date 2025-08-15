@@ -1,6 +1,6 @@
 
 
-import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags, ChannelType, OverwriteType } from 'discord.js';
+import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags, ChannelType, OverwriteType, EmbedBuilder, TextChannel } from 'discord.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -131,7 +131,22 @@ client.on(Events.InteractionCreate, async interaction => {
     
     if (interaction.isButton()) {
         console.log(`[Interaction] Button clicked: ${interaction.customId}`);
-        if (interaction.customId === 'create_private_room') {
+        const { customId } = interaction;
+
+        // --- Handler for Content Creator Buttons ---
+        if (customId === 'publish_content' || customId === 'cancel_content') {
+             if (!interaction.channel || !interaction.message.embeds[0]) return;
+             
+             if (customId === 'publish_content') {
+                 await (interaction.channel as TextChannel).send({ embeds: [interaction.message.embeds[0]] });
+                 await interaction.update({ content: '✅ Contenu publié avec succès !', components: [] });
+             } else {
+                 await interaction.message.delete();
+             }
+        }
+        
+        // --- Handler for Private Room Button ---
+        if (customId === 'create_private_room') {
             if (!interaction.guild || !interaction.member) return;
             const config = await getServerConfig(interaction.guild.id, 'private-rooms');
             if (!config || !config.enabled || !config.category_id) {

@@ -1,5 +1,5 @@
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 import { generateTextContent, generateImage } from '../../../src/ai/flows/content-creation-flow';
@@ -65,9 +65,23 @@ const IAContentCommand: Command = {
 
                     const embed = new EmbedBuilder()
                         .setColor(subcommand === 'rule' ? 0x00BFFF : 0x9932CC)
-                        .setTitle(`${subcommand === 'rule' ? '📝' : '📢'} Contenu généré pour : ${topic}`)
+                        .setTitle(result.title)
                         .setDescription(result.generatedText);
-                    await interaction.editReply({ embeds: [embed] });
+
+                    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('publish_content')
+                            .setLabel('Publier')
+                            .setStyle(ButtonStyle.Success)
+                            .setEmoji('✅'),
+                        new ButtonBuilder()
+                            .setCustomId('cancel_content')
+                            .setLabel('Annuler')
+                            .setStyle(ButtonStyle.Danger)
+                            .setEmoji('🗑️')
+                    );
+                    
+                    await interaction.editReply({ embeds: [embed], components: [row] });
                     break;
                 }
                 case 'image': {

@@ -18,7 +18,8 @@ const TextContentInputSchema = z.object({
 });
 
 const TextContentOutputSchema = z.object({
-  generatedText: z.string().describe('The generated text content.'),
+  title: z.string().describe('A short, descriptive title for the content (e.g., "Nouvelle Règle : Respect").'),
+  generatedText: z.string().describe('The generated text content, formatted with Discord markdown.'),
 });
 
 export type TextContentInput = z.infer<typeof TextContentInputSchema>;
@@ -38,7 +39,10 @@ Tone: {{{tone}}}
 Custom Instructions: {{{customInstructions}}}
 {{/if}}
 
-Please generate the content now. Ensure it is well-written, engaging, and perfectly suited for a Discord community. Format it appropriately using Discord markdown (like **bold** or *italics*) where necessary.
+Please generate a short, descriptive title for the content, and the content itself.
+Ensure the content is well-written, engaging, and perfectly suited for a Discord community. Format it appropriately using Discord markdown (like **bold** or *italics*) where necessary.
+For a rule, the title should be like "📝 Règle : [Sujet]".
+For an announcement, the title should be like "📢 Annonce : [Sujet]".
 `,
 });
 

@@ -119,6 +119,7 @@ const defaultConfigs: DefaultConfigs = {
     'auto-moderation': {
         enabled: false,
         rules: [], // This will now store native discord auto-mod rules
+        scanned_channels: [],
     },
     'logs': { 
         enabled: false, 
@@ -290,8 +291,15 @@ const defaultConfigs: DefaultConfigs = {
     'autoroles': {
         enabled: false,
         on_join_roles: [],
+    },
+    'security-alerts': {
+        enabled: true,
+        alert_channel_id: null,
+        account_age_check_enabled: true,
+        account_age_threshold_days: 7,
+        similar_username_check_enabled: true,
+        similar_username_sensitivity: 80,
     }
-    // D'autres modules peuvent être ajoutés ici
 };
 
 /**

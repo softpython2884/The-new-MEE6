@@ -29,7 +29,8 @@ import {
   Lightbulb,
   Users,
   UserSquare,
-  BadgePlus
+  BadgePlus,
+  ShieldAlert,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,7 @@ const navCategories = [
             { href: 'anti-raid', label: 'Anti-Raid & Liens', icon: Fingerprint, isPremium: true },
             { href: 'captcha', label: 'Captcha', icon: Fingerprint, isPremium: true },
             { href: 'backup', label: 'Backup', icon: DatabaseBackup },
+            { href: 'securite-avancee', label: 'Sécurité Avancée', icon: ShieldAlert },
         ]
     },
     {

@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { Client } from 'discord.js';
-import type { Module, ModuleConfig, DefaultConfigs } from '../types';
+import type { Module, ModuleConfig, DefaultConfigs, Persona } from '../types';
 
 // Assurez-vous que le répertoire de la base de données existe
 const dbDir = path.resolve(process.cwd(), 'database');
@@ -505,14 +505,9 @@ export function checkTesterStatus(userId: string, guildId: string): { isTester: 
 
 // --- Fonctions de gestion des Personnages IA ---
 
-interface Persona {
-    id: string;
-    guild_id: string;
-    name: string;
-    persona_prompt: string;
-    creator_id: string;
-    created_at: string;
-    active_channel_id: string | null;
+export function getPersonasForGuild(guildId: string): Persona[] {
+    const stmt = db.prepare('SELECT * FROM ai_personas WHERE guild_id = ?');
+    return stmt.all(guildId) as Persona[];
 }
 
 export function createPersona(persona: Omit<Persona, 'created_at'>): void {
@@ -522,5 +517,18 @@ export function createPersona(persona: Omit<Persona, 'created_at'>): void {
     `);
     stmt.run(persona.id, persona.guild_id, persona.name, persona.persona_prompt, persona.creator_id, persona.active_channel_id);
 }
-    
 
+export function updatePersona(id: string, updates: Partial<Omit<Persona, 'id' | 'guild_id' | 'creator_id'>>): void {
+    const fields = Object.keys(updates);
+    const values = Object.values(updates);
+    if (fields.length === 0) return;
+
+    const setClause = fields.map(field => `${field} = ?`).join(', ');
+    const stmt = db.prepare(`UPDATE ai_personas SET ${setClause} WHERE id = ?`);
+    stmt.run(...values, id);
+}
+
+export function deletePersona(id: string): void {
+    const stmt = db.prepare('DELETE FROM ai_personas WHERE id = ?');
+    stmt.run(id);
+}

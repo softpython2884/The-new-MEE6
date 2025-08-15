@@ -1,28 +1,13 @@
 
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { Command } from '@/types';
-import { getServerConfig, createPersona } from '@/lib/db';
-import { generatePersonaPrompt } from '@/ai/flows/persona-flow';
-import { v4 as uuidv4 } from 'uuid';
-
+import { getServerConfig, getPersonasForGuild, updatePersona } from '@/lib/db';
 
 const PersonnageCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('personnage')
         .setDescription('Gère les personnages IA sur le serveur.')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('creer')
-                .setDescription("Crée un nouveau personnage IA.")
-                .addStringOption(option => 
-                    option.setName('nom')
-                        .setDescription('Le nom du personnage.')
-                        .setRequired(true))
-                .addStringOption(option => 
-                    option.setName('instructions')
-                        .setDescription('Instructions de base pour la personnalité (ex: "Une fille de 19 ans un peu timide").')
-                        .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('activer')
@@ -42,6 +27,17 @@ const PersonnageCommand: Command = {
                 .setName('liste')
                 .setDescription("Affiche la liste de tous les personnages créés.")
         ),
+    
+    async autocomplete(interaction) {
+        if (!interaction.guildId) return;
+        const focusedValue = interaction.options.getFocused();
+        const personas = getPersonasForGuild(interaction.guildId);
+        const choices = personas
+            .filter(p => p.name.toLowerCase().startsWith(focusedValue.toLowerCase()))
+            .map(p => ({ name: p.name, value: p.id }));
+        
+        await interaction.respond(choices.slice(0, 25));
+    },
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
@@ -56,54 +52,52 @@ const PersonnageCommand: Command = {
         }
 
         const subcommand = interaction.options.getSubcommand();
+        const personas = getPersonasForGuild(interaction.guild.id);
         
         switch (subcommand) {
-            case 'creer':
-                await handleCreate(interaction);
+            case 'activer': {
+                await interaction.deferReply({ ephemeral: true });
+                const personaId = interaction.options.getString('nom', true);
+                const persona = personas.find(p => p.id === personaId);
+
+                if (!persona) {
+                    await interaction.editReply({ content: `Personnage non trouvé. Veuillez utiliser l'auto-complétion.` });
+                    return;
+                }
+                
+                updatePersona(persona.id, { active_channel_id: interaction.channelId });
+                await interaction.editReply({ content: `✅ **${persona.name}** est maintenant actif dans ce salon.` });
                 break;
-            // Autres cas à implémenter
-            default:
-                await interaction.reply({ content: `La sous-commande \`${subcommand}\` n'est pas encore implémentée.`, flags: MessageFlags.Ephemeral });
+            }
+            case 'desactiver': {
+                 await interaction.deferReply({ ephemeral: true });
+                 const activePersonaInChannel = personas.find(p => p.active_channel_id === interaction.channelId);
+                 if (!activePersonaInChannel) {
+                     await interaction.editReply({ content: "Aucun personnage n'est actif dans ce salon." });
+                     return;
+                 }
+                 updatePersona(activePersonaInChannel.id, { active_channel_id: null });
+                 await interaction.editReply({ content: `✅ **${activePersonaInChannel.name}** a été désactivé de ce salon.` });
+                break;
+            }
+            case 'liste': {
+                await interaction.deferReply({ ephemeral: true });
+                 if (personas.length === 0) {
+                    await interaction.editReply({ content: "Aucun personnage n'a été créé pour ce serveur. Rendez-vous sur le panel pour en créer !" });
+                    return;
+                }
+
+                const embed = new EmbedBuilder()
+                    .setColor(0x8e44ad)
+                    .setTitle(`🎭 Personnages IA de ${interaction.guild.name}`)
+                    .setDescription(personas.map(p => `**- ${p.name}** (ID: \`${p.id}\`)${p.active_channel_id ? ` - Actif dans <#${p.active_channel_id}>` : ''}`).join('\n'))
+                    .setFooter({text: "Gérez vos personnages depuis le panel."});
+
+                await interaction.editReply({ embeds: [embed] });
+                break;
+            }
         }
     },
 };
-
-async function handleCreate(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({ ephemeral: true });
-
-    const name = interaction.options.getString('nom', true);
-    const instructions = interaction.options.getString('instructions') || 'Une personnalité IA standard.';
-
-    try {
-        await interaction.editReply({ content: `🧠 L'IA imagine la personnalité de **${name}**... Un instant.` });
-
-        const personaPrompt = await generatePersonaPrompt({ name, instructions });
-
-        const newPersona = {
-            id: uuidv4(),
-            guild_id: interaction.guild!.id,
-            name: name,
-            persona_prompt: personaPrompt,
-            creator_id: interaction.user.id,
-            active_channel_id: null,
-        };
-
-        createPersona(newPersona);
-
-        const embed = new EmbedBuilder()
-            .setColor(0x00FF00)
-            .setTitle(`✅ Personnage Créé : ${name}`)
-            .setDescription("Voici la fiche de personnage générée par l'IA. Vous pouvez maintenant l'activer dans un salon avec la commande `/personnage activer`.")
-            .addFields({ name: 'Personnalité', value: personaPrompt.substring(0, 1024) })
-            .setFooter({ text: `ID: ${newPersona.id}` });
-        
-        await interaction.editReply({ content: '', embeds: [embed] });
-
-    } catch (error) {
-        console.error('[PersonnageCreate] Error:', error);
-        await interaction.editReply({ content: 'Une erreur est survenue lors de la création du personnage.' });
-    }
-}
-
 
 export default PersonnageCommand;

@@ -64,3 +64,13 @@ export interface KnowledgeBaseItem {
     question: string;
     answer: string;
 }
+
+export interface Persona {
+    id: string;
+    guild_id: string;
+    name: string;
+    persona_prompt: string;
+    creator_id: string;
+    created_at: string;
+    active_channel_id: string | null;
+}

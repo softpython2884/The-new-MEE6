@@ -26,7 +26,8 @@ import {
   Palette,
   DatabaseBackup,
   MessageCircleQuestion,
-  Lightbulb
+  Lightbulb,
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -91,6 +92,7 @@ const navCategories = [
             { href: 'formation-moderateur-ia', label: 'Formation Modérateur IA', icon: GraduationCap, isPremium: true },
             { href: 'createur-contenu-ia', label: 'Créateur de Contenu IA', icon: Palette, isPremium: true },
             { href: 'agent-conversationnel', label: 'Agent Conversationnel', icon: MessageCircleQuestion, isPremium: true },
+            { href: 'personnages-ia', label: 'Personnages IA', icon: Users, isPremium: true },
         ]
     }
 ];

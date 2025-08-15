@@ -2,8 +2,10 @@
 import express from 'express';
 import cors from 'cors';
 import { Client, CategoryChannel, ChannelType } from 'discord.js';
-import { updateServerConfig, getServerConfig, getAllBotServers } from '@/lib/db';
+import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGuild, updatePersona, deletePersona, createPersona } from '@/lib/db';
 import { verifyAndConsumeAuthToken } from './auth';
+import { generatePersonaPrompt } from '@/ai/flows/persona-flow';
+import { v4 as uuidv4 } from 'uuid';
 
 const API_PORT = process.env.BOT_API_PORT || 3001;
 
@@ -217,6 +219,73 @@ export function startApi(client: Client) {
         } catch (error) {
             console.error(`[Backup API] Erreur lors de l'exportation pour ${guildId}:`, error);
             res.status(500).json({ error: 'Erreur interne du serveur lors de l\'exportation.' });
+        }
+    });
+
+    // --- AI Personas API ---
+
+    app.get('/api/personas/:guildId', (req, res) => {
+        const { guildId } = req.params;
+        try {
+            const personas = getPersonasForGuild(guildId);
+            res.json(personas);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to fetch personas.' });
+        }
+    });
+
+    app.post('/api/personas/generate-prompt', async (req, res) => {
+        const { name, instructions } = req.body;
+        if (!name || !instructions) {
+            return res.status(400).json({ error: 'Name and instructions are required.' });
+        }
+        try {
+            const personaPrompt = await generatePersonaPrompt({ name, instructions });
+            res.json({ personaPrompt });
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to generate persona prompt.' });
+        }
+    });
+
+    app.post('/api/personas/create', (req, res) => {
+        const { guild_id, name, persona_prompt, creator_id } = req.body;
+         if (!guild_id || !name || !persona_prompt || !creator_id) {
+            return res.status(400).json({ error: 'Missing required fields for persona creation.' });
+        }
+        try {
+            const newPersona = {
+                id: uuidv4(),
+                guild_id,
+                name,
+                persona_prompt,
+                creator_id,
+                active_channel_id: null
+            };
+            createPersona(newPersona);
+            res.status(201).json(newPersona);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to create persona.' });
+        }
+    });
+
+    app.patch('/api/personas/:personaId', (req, res) => {
+        const { personaId } = req.params;
+        const updates = req.body;
+        try {
+            updatePersona(personaId, updates);
+            res.json({ success: true });
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to update persona.' });
+        }
+    });
+
+    app.delete('/api/personas/:personaId', (req, res) => {
+        const { personaId } = req.params;
+        try {
+            deletePersona(personaId);
+            res.status(204).send();
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to delete persona.' });
         }
     });
 

@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Voicemail } from 'lucide-react';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -21,6 +21,7 @@ const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/ap
 interface AutorolesConfig {
     enabled: boolean;
     on_join_roles: string[];
+    on_voice_join_roles: string[];
 }
 
 interface DiscordRole {
@@ -30,21 +31,36 @@ interface DiscordRole {
 
 function AutorolesPageSkeleton() {
     return (
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-72 mt-2" />
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <Skeleton className="h-10 w-full" />
-                <Separator />
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3 w-64" />
+        <div className="space-y-4">
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-72 mt-2" />
+                </CardHeader>
+                <CardContent className="space-y-6">
                     <Skeleton className="h-10 w-full" />
-                </div>
-            </CardContent>
-        </Card>
+                    <Separator />
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-64" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-72 mt-2" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-64" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
 
@@ -101,12 +117,13 @@ export default function AutorolesPage() {
         saveConfig({ ...config, [key]: value });
     };
 
-    const handleRoleToggle = (roleId: string) => {
+    const handleRoleToggle = (list: 'on_join_roles' | 'on_voice_join_roles', roleId: string) => {
         if (!config) return;
-        const newRoles = config.on_join_roles.includes(roleId)
-            ? config.on_join_roles.filter(id => id !== roleId)
-            : [...config.on_join_roles, roleId];
-        handleValueChange('on_join_roles', newRoles);
+        const currentRoles = config[list] || [];
+        const newRoles = currentRoles.includes(roleId)
+            ? currentRoles.filter(id => id !== roleId)
+            : [...currentRoles, roleId];
+        handleValueChange(list, newRoles);
     };
 
     if (loading || !config) {
@@ -123,26 +140,25 @@ export default function AutorolesPage() {
             </div>
             <Separator />
             <Card>
+                 <CardHeader>
+                    <div className="flex items-center justify-between">
+                         <CardTitle>Configuration Générale</CardTitle>
+                        <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                    </div>
+                     <CardDescription>Activez ou désactivez toutes les attributions de rôle de ce module.</CardDescription>
+                </CardHeader>
+            </Card>
+
+            <Card>
                 <CardHeader>
-                    <CardTitle>Rôles à l'arrivée</CardTitle>
+                    <CardTitle>Rôles à l'arrivée d'un membre</CardTitle>
                     <CardDescription>
                         Attribuez automatiquement des rôles aux nouveaux membres qui rejoignent le serveur.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <Label htmlFor="enable-module" className="font-bold">Activer le module Autoroles</Label>
-                            <p className="text-sm text-muted-foreground/80">Active ou désactive toutes les attributions de rôle.</p>
-                        </div>
-                        <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
-                    </div>
-                    <Separator />
                     <div className="space-y-2">
-                        <Label htmlFor="join-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles à attribuer à l'arrivée</Label>
-                        <p className="text-sm text-muted-foreground/80">
-                            Sélectionnez les rôles à donner aux nouveaux membres.
-                        </p>
+                        <Label htmlFor="join-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles à attribuer</Label>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="w-full justify-between">
@@ -163,7 +179,52 @@ export default function AutorolesPage() {
                                     <DropdownMenuCheckboxItem
                                         key={role.id}
                                         checked={config.on_join_roles.includes(role.id)}
-                                        onCheckedChange={() => handleRoleToggle(role.id)}
+                                        onCheckedChange={() => handleRoleToggle('on_join_roles', role.id)}
+                                        onSelect={(e) => e.preventDefault()}
+                                    >
+                                        {role.name}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Voicemail className="w-5 h-5 text-primary"/>
+                        Rôles à la connexion en vocal
+                    </CardTitle>
+                    <CardDescription>
+                        Attribuez automatiquement un ou plusieurs rôles lorsqu'un membre rejoint un salon vocal.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="voice-join-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles à attribuer</Label>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between">
+                                    <div className="flex-1 text-left truncate">
+                                        {config.on_voice_join_roles.length > 0
+                                            ? config.on_voice_join_roles.map(id => (
+                                                <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
+                                            ))
+                                            : "Sélectionner des rôles..."}
+                                    </div>
+                                    <ChevronDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {roles.map(role => (
+                                    <DropdownMenuCheckboxItem
+                                        key={role.id}
+                                        checked={config.on_voice_join_roles.includes(role.id)}
+                                        onCheckedChange={() => handleRoleToggle('on_voice_join_roles', role.id)}
                                         onSelect={(e) => e.preventDefault()}
                                     >
                                         {role.name}

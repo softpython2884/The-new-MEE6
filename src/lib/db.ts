@@ -314,6 +314,7 @@ const defaultConfigs: DefaultConfigs = {
     'autoroles': {
         enabled: false,
         on_join_roles: [],
+        on_voice_join_roles: [],
     },
     'security-alerts': {
         enabled: true,

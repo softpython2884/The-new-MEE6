@@ -13,6 +13,8 @@ import { useServerInfo } from '@/hooks/use-server-info';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
+import { Badge } from '@/components/ui/badge';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -47,7 +49,7 @@ function IdentityPageSkeleton() {
     );
 }
 
-export default function IdentityPage() {
+function IdentityPageContent({ isPremium }: { isPremium: boolean }) {
     const params = useParams();
     const serverId = params.serverId as string;
     const { toast } = useToast();
@@ -82,7 +84,7 @@ export default function IdentityPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config),
             });
-            toast({ title: "Succès", description: "Identité mise à jour. Le changement peut prendre un instant." });
+            toast({ title: "Succès", description: "Identité mise à jour. Le changement du surnom peut prendre un instant." });
         } catch (error) {
             toast({ title: "Erreur de sauvegarde", variant: "destructive" });
         }
@@ -91,23 +93,18 @@ export default function IdentityPage() {
     const handleValueChange = (key: keyof IdentityConfig, value: any) => {
         setConfig(prev => prev ? { ...prev, [key]: value } : null);
     };
-
-    if (loading || serverLoading || !config) {
+     if (loading || serverLoading || !config) {
         return <IdentityPageSkeleton />;
     }
 
     return (
-        <div className="space-y-8 text-white max-w-4xl">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Identité du Bot</h1>
-                <p className="text-muted-foreground mt-2">
-                    Personnalisez le nom et l'avatar du bot spécifiquement pour ce serveur.
-                </p>
-            </div>
-            <Separator />
+         <PremiumFeatureWrapper isPremium={isPremium}>
             <Card>
                 <CardHeader>
                     <CardTitle>Configuration de l'Identité</CardTitle>
+                     <CardDescription>
+                        Personnalisez le surnom du bot pour ce serveur. Le changement d'avatar est une fonctionnalité globale et non spécifique au serveur.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="flex items-center justify-between">
@@ -131,21 +128,6 @@ export default function IdentityPage() {
                             onChange={(e) => handleValueChange('nickname', e.target.value)}
                         />
                     </div>
-                    <Separator />
-                     <div className="space-y-2">
-                        <Label htmlFor="avatar_url" className="font-bold text-sm uppercase text-muted-foreground">
-                            URL de l'avatar
-                        </Label>
-                         <p className="text-sm text-muted-foreground/80">
-                            Fournissez un lien direct vers une image (PNG, JPG, GIF). Pour réinitialiser, laissez vide.
-                        </p>
-                        <Input
-                            id="avatar_url"
-                            placeholder="https://example.com/mon-super-avatar.png"
-                            value={config.avatar_url || ''}
-                            onChange={(e) => handleValueChange('avatar_url', e.target.value)}
-                        />
-                    </div>
                     <div className="flex justify-end">
                         <Button onClick={handleSave}>
                             <Save className="mr-2"/>
@@ -154,6 +136,28 @@ export default function IdentityPage() {
                     </div>
                 </CardContent>
             </Card>
+        </PremiumFeatureWrapper>
+    );
+}
+
+export default function IdentityPage() {
+    const { serverInfo, loading } = useServerInfo();
+
+    return (
+        <div className="space-y-8 text-white max-w-4xl">
+            <div>
+                 <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                    Identité du Bot
+                    <Badge className="bg-yellow-400 text-yellow-900">Premium</Badge>
+                </h1>
+                <p className="text-muted-foreground mt-2">
+                    Personnalisez le nom et l'avatar du bot spécifiquement pour ce serveur.
+                </p>
+            </div>
+            <Separator />
+            {loading ? <IdentityPageSkeleton /> : <IdentityPageContent isPremium={serverInfo?.isPremium || false} />}
         </div>
     );
 }
+
+    

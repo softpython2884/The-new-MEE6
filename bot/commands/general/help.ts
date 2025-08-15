@@ -29,26 +29,31 @@ const HelpCommand: Command = {
         const commands = interaction.client.commands;
         const commandCategories = new Collection<string, Command[]>();
         
-        // Dynamically get categories from folder structure
         const commandsPath = path.join(__dirname, '..');
-        fs.readdirSync(commandsPath).forEach(dir => {
-            if (fs.statSync(path.join(commandsPath, dir)).isDirectory()) {
-                commandCategories.set(dir, []);
-            }
-        });
+        const categoryFolders = fs.readdirSync(commandsPath).filter(f => fs.statSync(path.join(commandsPath, f)).isDirectory());
 
-        // Group commands by category
+        for (const folder of categoryFolders) {
+            commandCategories.set(folder, []);
+        }
+
         for (const command of commands.values()) {
-            const commandPath = require.resolve(`../${command.data.name.split(' ')[0]}`)
-            .replace(/\\/g, '/'); 
-            
-             for (const category of commandCategories.keys()) {
-                if (commandPath.includes(`/${category}/`)) {
+            for(const category of categoryFolders) {
+                const categoryPath = path.join(commandsPath, category);
+                const commandFilePath = path.join(categoryPath, `${command.data.name}.ts`); // Adjust extension if needed
+                 if (fs.existsSync(commandFilePath) || fs.existsSync(commandFilePath.replace('.ts', '.js'))) {
+                    commandCategories.get(category)?.push(command);
+                    break; 
+                 }
+                 // Handle files with different casing
+                 const filesInDir = fs.readdirSync(categoryPath);
+                 const foundFile = filesInDir.find(file => file.toLowerCase() === `${command.data.name}.ts`.toLowerCase() || file.toLowerCase() === `${command.data.name}.js`.toLowerCase());
+                 if(foundFile) {
                     commandCategories.get(category)?.push(command);
                     break;
-                }
+                 }
             }
         }
+
 
         const helpEmbed = new EmbedBuilder()
             .setColor(0x00BFFF)
@@ -71,3 +76,5 @@ const HelpCommand: Command = {
 };
 
 export default HelpCommand;
+
+    

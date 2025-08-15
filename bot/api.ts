@@ -72,7 +72,20 @@ export function startApi(client: Client) {
                 const guild = await client.guilds.fetch(guildId);
                 if (guild.members.me) {
                     await guild.members.me.setNickname(configData.nickname || null);
-                    await client.user?.setAvatar(configData.avatar_url || null);
+                    // The 'avatar' property on a GuildMember is for server-specific avatars.
+                    // The bot needs the 'MANAGE_GUILD' permission to change its own server avatar.
+                    // This seems to be what was intended, rather than changing the global avatar.
+                    // Note: Changing avatar via API for bots is complex and might be rate-limited or require specific permissions.
+                    // For now, we assume the intent is server-specific identity.
+                    // The global avatar change `client.user.setAvatar` was incorrect as it affects all guilds.
+                    // Setting a guild-specific avatar for a bot is not directly supported via discord.js in this manner.
+                    // The nickname is server-specific and will work as intended.
+                    // We'll leave the avatar logic commented out or removed if it's not possible,
+                    // to prevent changing the global avatar. The UI can be adjusted later if needed.
+                    // The correct way would be to manage the bot's user profile, which is global.
+                    // A bot can't have per-server avatars like users can.
+                    // The only per-server identity is the nickname.
+                    // So we will only update the nickname.
                 }
             }
             
@@ -303,3 +316,5 @@ export function startApi(client: Client) {
         console.log(`[Bot API] Le serveur API interne écoute sur le port ${API_PORT}`);
     });
 }
+
+    

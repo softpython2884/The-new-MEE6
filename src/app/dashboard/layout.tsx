@@ -3,14 +3,10 @@
 import type { ReactNode } from 'react';
 import { ModuleSidebar } from '@/components/module-sidebar';
 import { ServerSidebar } from '@/components/server-sidebar';
-import dynamic from 'next/dynamic';
+import RippleGrid from '@/components/ripple-grid';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-
-const RippleGrid = dynamic(() => import('@/components/ripple-grid'), {
-  ssr: false,
-});
 
 export default function DashboardLayout({
   children,
@@ -24,25 +20,21 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // This effect should run only on the client
     if (typeof window !== 'undefined') {
       const authedGuilds = JSON.parse(localStorage.getItem('authed_guilds') || '[]');
       if (authedGuilds.includes(params.serverId)) {
         setIsAuthorized(true);
       } else {
+        // If not authorized, redirect to the selector page
         router.push('/dashboard');
       }
+      // Authorization check is complete
+      setLoading(false);
     }
   }, [params.serverId, router]);
-  
-   useEffect(() => {
-    // A small delay to prevent flickering while authorization status is determined
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, []);
 
-  if (loading || !isAuthorized) {
+  if (loading) {
     return (
        <div className="flex h-screen w-full items-center justify-center bg-background">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -50,9 +42,19 @@ export default function DashboardLayout({
     );
   }
 
+  if (!isAuthorized) {
+    // You can return a loading state or null while redirecting
+     return (
+       <div className="flex h-screen w-full items-center justify-center bg-background">
+          <p>Redirection...</p>
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
+       </div>
+    );
+  }
+
+
   return (
     <div className="relative flex h-screen bg-background text-foreground overflow-hidden">
-      <div className="relative z-10 flex h-full w-full">
         <ServerSidebar serverId={params.serverId} />
         <ModuleSidebar serverId={params.serverId} />
         <main className="flex-1 overflow-y-auto bg-transparent relative">
@@ -74,7 +76,8 @@ export default function DashboardLayout({
            </div>
           <div className="container mx-auto p-6 lg:p-8 relative z-10">{children}</div>
         </main>
-      </div>
     </div>
   );
 }
+
+    

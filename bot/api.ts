@@ -68,12 +68,12 @@ export function startApi(client: Client) {
             await updateServerConfig(guildId, module as any, configData);
 
             // Handle specific side-effects for modules
-            if (module === 'server-identity') {
+            if (module === 'server-identity' && configData.enabled) {
                 const guild = await client.guilds.fetch(guildId);
                 if (guild.members.me) {
                     await guild.members.me.setNickname(configData.nickname || null);
                     // The bot's avatar is global and cannot be changed on a per-server basis.
-                    // The following line is commented out to prevent global changes.
+                    // The following line is commented out as it does not work as intended.
                     // await client.user?.setAvatar(configData.avatar_url || null);
                 }
             }

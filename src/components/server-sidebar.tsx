@@ -31,7 +31,10 @@ function ServerSidebarSkeleton() {
 
 export function ServerSidebar({ serverId }: { serverId: string }) {
   const pathname = usePathname();
-  const featurePath = pathname.split('/').pop() || 'moderation';
+  const pathSegments = pathname.split('/');
+  // If the path is just /dashboard/[serverId], default to 'moderation'.
+  // Otherwise, take the last part of the URL.
+  const featurePath = pathSegments.length > 3 && pathSegments[3] ? pathSegments[3] : 'moderation';
   const [servers, setServers] = useState<ServerInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteUrl, setInviteUrl] = useState<string>('#');

@@ -78,7 +78,7 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'general-commands': {
-        enabled: false,
+        enabled: true,
         command_permissions: {
             invite: null, // null means @everyone
             ping: null,
@@ -144,7 +144,7 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'backup': {
-        enabled: false,
+        enabled: true,
         command_permissions: {
             backup: null
         }
@@ -156,7 +156,7 @@ const defaultConfigs: DefaultConfigs = {
         whitelisted_bots: [] 
     },
     'webcam': {
-        enabled: false,
+        enabled: true,
         mode: 'allowed',
     },
     'captcha': { 
@@ -172,8 +172,15 @@ const defaultConfigs: DefaultConfigs = {
     },
     'moderation-ai': { 
         enabled: false,
-        mode: 'monitor',
-        premium: true
+        premium: true,
+        alert_channel_id: null,
+        alert_role_id: null,
+        actions: {
+            low: 'warn',
+            medium: 'mute_5m',
+            high: 'mute_1h',
+            critical: 'ban'
+        }
     },
     'adaptive-anti-raid': { 
         enabled: false, 
@@ -291,6 +298,9 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
             }
              if (defaultConfig.command_enabled && config.command_enabled) {
                 finalConfig.command_enabled = { ...defaultConfig.command_enabled, ...config.command_enabled };
+            }
+            if (defaultConfig.actions && config.actions) {
+                finalConfig.actions = { ...defaultConfig.actions, ...config.actions };
             }
 
 

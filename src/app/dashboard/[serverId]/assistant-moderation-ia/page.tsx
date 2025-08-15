@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import {
@@ -12,6 +12,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel
 } from '@/components/ui/select';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { useServerInfo } from '@/hooks/use-server-info';
@@ -26,8 +28,42 @@ const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/ap
 // Types
 interface ModAssistantConfig {
     enabled: boolean;
-    mode: 'monitor' | 'recommend' | 'auto-act';
+    alert_channel_id: string | null;
+    alert_role_id: string | null;
+    actions: {
+        low: string;
+        medium: string;
+        high: string;
+        critical: string;
+    }
 }
+interface DiscordChannel {
+    id: string;
+    name: string;
+    type: number;
+}
+interface DiscordRole {
+    id: string;
+    name: string;
+}
+
+const severityLevels = [
+    { key: 'low', label: 'Basse' },
+    { key: 'medium', label: 'Moyenne' },
+    { key: 'high', label: 'Haute' },
+    { key: 'critical', label: 'Critique' },
+];
+
+const actionOptions = [
+    { value: 'none', label: 'Ne rien faire' },
+    { value: 'warn', label: 'Avertir' },
+    { value: 'delete', label: 'Supprimer le message' },
+    { value: 'mute_5m', label: 'Rendre muet 5 minutes' },
+    { value: 'mute_10m', label: 'Rendre muet 10 minutes' },
+    { value: 'mute_1h', label: 'Rendre muet 1 heure' },
+    { value: 'mute_24h', label: 'Rendre muet 24 heures' },
+    { value: 'ban', label: 'Bannir' },
+]
 
 function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
     const params = useParams();
@@ -35,6 +71,8 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
     const { toast } = useToast();
 
     const [config, setConfig] = useState<ModAssistantConfig | null>(null);
+    const [channels, setChannels] = useState<DiscordChannel[]>([]);
+    const [roles, setRoles] = useState<DiscordRole[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -42,10 +80,17 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const configRes = await fetch(`${API_URL}/get-config/${serverId}/moderation-ai`);
-                if (!configRes.ok) throw new Error('Failed to fetch data');
+                const [configRes, serverDetailsRes] = await Promise.all([
+                    fetch(`${API_URL}/get-config/${serverId}/moderation-ai`),
+                    fetch(`${API_URL}/get-server-details/${serverId}`)
+                ]);
+                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
                 const configData = await configRes.json();
+                const serverDetailsData = await serverDetailsRes.json();
                 setConfig(configData);
+                setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0));
+                setRoles(serverDetailsData.roles.filter((r: DiscordRole) => r.name !== '@everyone'));
+
             } catch (error) {
                 toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
             } finally {
@@ -73,50 +118,95 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
         saveConfig({ ...config, [key]: value });
     };
 
+    const handleActionChange = (severity: 'low' | 'medium' | 'high' | 'critical', action: string) => {
+        if (!config) return;
+        const newActions = { ...config.actions, [severity]: action };
+        handleValueChange('actions', newActions);
+    };
+
     if (loading || !config) {
-        return <Skeleton className="h-48 w-full" />;
+        return <Skeleton className="h-96 w-full" />;
     }
 
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <Card>
                 <CardHeader>
-                <h2 className="text-xl font-bold">Options de l'Assistant Modération</h2>
-                <p className="text-muted-foreground">
-                    Configurez comment l'IA doit intervenir sur les messages des membres.
-                </p>
+                    <CardTitle>Configuration de l'Assistant Modération</CardTitle>
+                    <CardDescription>
+                        Configurez comment l'IA doit intervenir sur les messages des membres.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                 <div className="flex items-center justify-between">
-                    <div>
-                        <Label htmlFor="enable-module" className="font-bold">Activer le module</Label>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <Label htmlFor="enable-module" className="font-bold">Activer le module</Label>
+                             <p className="text-sm text-muted-foreground/80">Active ou désactive l'analyse des messages par l'IA.</p>
+                        </div>
+                        <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
                     </div>
-                    <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
-                </div>
-                <Separator/>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                    <div>
-                    <Label
-                        htmlFor="mode"
-                        className="font-bold text-sm uppercase text-muted-foreground"
-                    >
-                        Mode de fonctionnement
-                    </Label>
-                    <p className="text-sm text-muted-foreground/80">
-                        Choisissez le niveau d'autonomie de l'IA.
-                    </p>
+                    <Separator/>
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-lg">Notifications</h3>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+                             <div>
+                                <Label htmlFor="alert-channel" className="font-bold text-sm uppercase text-muted-foreground">Salon d'alertes</Label>
+                                <p className="text-sm text-muted-foreground/80">
+                                   Le salon où l'IA enverra ses rapports et recommandations.
+                                </p>
+                            </div>
+                            <Select value={config.alert_channel_id || 'none'} onValueChange={(val) => handleValueChange('alert_channel_id', val === 'none' ? null : val)}>
+                                <SelectTrigger id="alert-channel" className="w-full md:w-[280px]">
+                                    <SelectValue placeholder="Sélectionner un salon" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Salons Textuels</SelectLabel>
+                                        <SelectItem value="none">Aucun</SelectItem>
+                                        {channels.map(channel => <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>)}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+                             <div>
+                                <Label htmlFor="alert-role" className="font-bold text-sm uppercase text-muted-foreground">Rôle à mentionner</Label>
+                                <p className="text-sm text-muted-foreground/80">
+                                   Ce rôle sera mentionné dans les alertes.
+                                </p>
+                            </div>
+                            <Select value={config.alert_role_id || 'none'} onValueChange={(val) => handleValueChange('alert_role_id', val === 'none' ? null : val)}>
+                                <SelectTrigger id="alert-role" className="w-full md:w-[280px]">
+                                    <SelectValue placeholder="Sélectionner un rôle" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Rôles</SelectLabel>
+                                        <SelectItem value="none">Aucun</SelectItem>
+                                        {roles.map(role => <SelectItem key={role.id} value={role.id}>@ {role.name}</SelectItem>)}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                    <Select value={config.mode} onValueChange={(value) => handleValueChange('mode', value)}>
-                    <SelectTrigger id="mode" className="w-full md:w-[280px]">
-                        <SelectValue placeholder="Sélectionner un mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="monitor">Surveiller seulement</SelectItem>
-                        <SelectItem value="recommend">Recommander des actions</SelectItem>
-                        <SelectItem value="auto-act">Agir automatiquement</SelectItem>
-                    </SelectContent>
-                    </Select>
-                </div>
+                     <Separator/>
+                     <div className="space-y-4">
+                        <h3 className="font-semibold text-lg">Sanctions Automatiques</h3>
+                        <p className="text-sm text-muted-foreground">Définissez l'action à entreprendre pour chaque niveau de sévérité. Le message problématique est toujours supprimé.</p>
+                        {severityLevels.map(({ key, label }) => (
+                            <div key={key} className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+                                <Label className="font-medium">{label}</Label>
+                                 <Select value={config.actions[key as keyof typeof config.actions]} onValueChange={(val) => handleActionChange(key as any, val)}>
+                                    <SelectTrigger className="w-full md:w-[280px]">
+                                        <SelectValue placeholder="Choisir une action" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {actionOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ))}
+                    </div>
                 </CardContent>
             </Card>
         </PremiumFeatureWrapper>
@@ -133,18 +223,17 @@ export default function ModAssistantPage() {
             <Badge className="bg-yellow-400 text-yellow-900">Premium</Badge>
         </h1>
         <p className="text-muted-foreground mt-2">
-          Modération assistée par IA pour détecter les comportements toxiques. Ce module n'a pas de commandes directes.
+          Modération assistée par IA pour détecter et sanctionner les comportements toxiques.
         </p>
       </div>
 
       <Separator />
 
       {loading ? (
-        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-96 w-full" />
       ) : (
         <ModAssistantPageContent isPremium={serverInfo?.isPremium || false} />
       )}
     </div>
   );
 }
-

@@ -40,6 +40,21 @@ const upgradeSchema = () => {
         `);
          console.log('[Database] La table "testers" est prête.');
 
+         // Create ai_personas table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS ai_personas (
+                id TEXT PRIMARY KEY,
+                guild_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                persona_prompt TEXT NOT NULL,
+                creator_id TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                active_channel_id TEXT
+            );
+        `);
+        console.log('[Database] La table "ai_personas" est prête.');
+
+
     } catch (error) {
         console.error('[Database] Erreur lors de la mise à jour du schéma:', error);
     }
@@ -259,6 +274,13 @@ const defaultConfigs: DefaultConfigs = {
             suggest: null,
             setsuggest: null,
         }
+    },
+    'ai-personas': {
+        enabled: false,
+        premium: true,
+        command_permissions: {
+            personnage: null,
+        },
     }
     // D'autres modules peuvent être ajoutés ici
 };
@@ -481,4 +503,24 @@ export function checkTesterStatus(userId: string, guildId: string): { isTester: 
     }
 }
 
+// --- Fonctions de gestion des Personnages IA ---
+
+interface Persona {
+    id: string;
+    guild_id: string;
+    name: string;
+    persona_prompt: string;
+    creator_id: string;
+    created_at: string;
+    active_channel_id: string | null;
+}
+
+export function createPersona(persona: Omit<Persona, 'created_at'>): void {
+    const stmt = db.prepare(`
+        INSERT INTO ai_personas (id, guild_id, name, persona_prompt, creator_id, active_channel_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(persona.id, persona.guild_id, persona.name, persona.persona_prompt, persona.creator_id, persona.active_channel_id);
+}
     
+

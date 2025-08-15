@@ -1,4 +1,5 @@
 
+
 import type {
   SlashCommandBuilder,
   CommandInteraction,
@@ -39,7 +40,8 @@ export type Module =
     | 'mod-training'
     | 'tester'
     | 'conversational-agent'
-    | 'suggestions';
+    | 'suggestions'
+    | 'ai-personas';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

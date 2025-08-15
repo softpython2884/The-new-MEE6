@@ -12,5 +12,6 @@ import '@/ai/flows/moderation-ai-flow.ts';
 import '@/ai/flows/content-creation-flow.ts';
 import '@/ai/flows/server-builder-flow.ts';
 import '@/ai/flows/conversational-agent-flow.ts';
+import '@/ai/flows/keyword-generation-flow.ts';
 
 import '@/ai/tools/discord-structure-tool.ts';

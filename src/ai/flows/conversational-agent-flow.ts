@@ -15,6 +15,11 @@ const KnowledgeBaseItemSchema = z.object({
   answer: z.string().describe('The answer to the corresponding question.'),
 });
 
+const ConversationHistoryItemSchema = z.object({
+    user: z.string().describe("The name of the user who sent the message."),
+    content: z.string().describe("The content of the message.")
+});
+
 export const ConversationalAgentInputSchema = z.object({
   userMessage: z.string().describe('The message sent by the user to the agent.'),
   userName: z.string().describe("The user's display name."),
@@ -23,6 +28,7 @@ export const ConversationalAgentInputSchema = z.object({
   agentPersonality: z.string().describe("A description of the agent's personality and tone."),
   customPrompt: z.string().optional().describe("Additional custom instructions for the agent."),
   knowledgeBase: z.array(KnowledgeBaseItemSchema).optional().describe('A list of Q&A pairs to provide context.'),
+  conversationHistory: z.array(ConversationHistoryItemSchema).optional().describe('The last few messages in the conversation for context.'),
   photoDataUri: z
     .string()
     .optional()
@@ -73,6 +79,15 @@ You have access to the following information. Use it to answer questions accurat
 {{else}}
 - No knowledge base provided.
 {{/if}}
+
+Conversation History:
+{{#if conversationHistory}}
+Here are the last few messages in this conversation. Use them to understand the context.
+{{#each conversationHistory}}
+- {{{this.user}}}: {{{this.content}}}
+{{/each}}
+{{/if}}
+
 
 The user has sent the following message to you.
 {{#if photoDataUri}}

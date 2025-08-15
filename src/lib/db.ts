@@ -247,6 +247,7 @@ const defaultConfigs: DefaultConfigs = {
         agent_personality: 'serviable, direct et concis',
         custom_prompt: '',
         knowledge_base: [],
+        dedicated_channel_id: null,
     }
     // D'autres modules peuvent être ajoutés ici
 };

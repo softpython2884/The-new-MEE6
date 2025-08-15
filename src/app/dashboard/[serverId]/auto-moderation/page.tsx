@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Trash2, PlusCircle, ShieldAlert } from 'lucide-react';
+import { Trash2, PlusCircle, ShieldAlert, Sparkles, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog"
+import { generateKeywords } from '@/ai/flows/keyword-generation-flow';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -83,8 +84,59 @@ function AutoModerationPageSkeleton() {
     );
 }
 
+function KeywordGenerator({ onKeywordsGenerated }: { onKeywordsGenerated: (keywords: string[]) => void }) {
+    const [prompt, setPrompt] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const { toast } = useToast();
+
+    const handleGeneration = async () => {
+        if (!prompt) {
+            toast({ title: 'Veuillez entrer une description.', variant: 'destructive' });
+            return;
+        }
+        setIsGenerating(true);
+        try {
+            const result = await generateKeywords({ prompt });
+            onKeywordsGenerated(result.keywords);
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Erreur de génération", description: "Impossible de générer les mots-clés.", variant: 'destructive' });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Générer des mots-clés avec l'IA</DialogTitle>
+                <DialogDescription>
+                    Décrivez le type de mots que vous souhaitez bloquer. L'IA générera une liste de mots-clés correspondants.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+                <Label htmlFor="keyword-prompt">Description</Label>
+                <Textarea 
+                    id="keyword-prompt"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="Ex: 'Insultes légères en français', 'Mots liés aux arnaques et au phishing en anglais', 'Noms de logiciels de triche pour les jeux vidéo'."
+                />
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
+                <Button onClick={handleGeneration} disabled={isGenerating}>
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    Générer
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    )
+}
+
 function RuleEditor({ rule, onSave, onCancel, roles, channels }: { rule: Partial<AutoModRule>, onSave: (rule: Partial<AutoModRule>) => void, onCancel: () => void, roles: DiscordRole[], channels: DiscordChannel[] }) {
     const [editedRule, setEditedRule] = useState<Partial<AutoModRule>>(rule);
+    const [isGeneratorOpen, setGeneratorOpen] = useState(false);
     
     const handleFieldChange = (field: keyof AutoModRule, value: any) => {
         setEditedRule(prev => ({ ...prev, [field]: value }));
@@ -109,6 +161,13 @@ function RuleEditor({ rule, onSave, onCancel, roles, channels }: { rule: Partial
             };
             return { ...prev, actions: newActions };
         });
+    }
+
+    const handleKeywordsGenerated = (newKeywords: string[]) => {
+        const currentKeywords = editedRule.trigger_metadata?.keyword_filter || [];
+        const combined = Array.from(new Set([...currentKeywords, ...newKeywords]));
+        handleMetadataChange('keyword_filter', combined);
+        setGeneratorOpen(false); // Close the generator dialog
     }
 
     return (
@@ -142,15 +201,26 @@ function RuleEditor({ rule, onSave, onCancel, roles, channels }: { rule: Partial
                 </div>
                 
                  {/* Trigger Metadata */}
-                {editedRule.trigger_type === 1 && ( // Keyword
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="keyword_filter" className="text-right">Mots-clés</Label>
-                        <Textarea id="keyword_filter"
-                            placeholder="mot, phrase*, *fin"
-                            className="col-span-3"
-                            value={(editedRule.trigger_metadata?.keyword_filter || []).join(', ')}
-                            onChange={e => handleMetadataChange('keyword_filter', e.target.value.split(',').map(k => k.trim()))}
-                        />
+                {editedRule.trigger_type === 1 && (
+                    <div className="grid grid-cols-4 items-start gap-4">
+                        <Label htmlFor="keyword_filter" className="text-right pt-2">Mots-clés</Label>
+                        <div className="col-span-3 space-y-2">
+                             <Textarea id="keyword_filter"
+                                placeholder="mot, phrase*, *fin"
+                                value={(editedRule.trigger_metadata?.keyword_filter || []).join(', ')}
+                                onChange={e => handleMetadataChange('keyword_filter', e.target.value.split(',').map(k => k.trim()))}
+                                rows={4}
+                            />
+                            <Dialog open={isGeneratorOpen} onOpenChange={setGeneratorOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Générer avec l'IA
+                                    </Button>
+                                </DialogTrigger>
+                                <KeywordGenerator onKeywordsGenerated={handleKeywordsGenerated} />
+                            </Dialog>
+                        </div>
                     </div>
                 )}
                  {editedRule.trigger_type === 4 && ( // Preset

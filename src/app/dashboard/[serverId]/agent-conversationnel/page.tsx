@@ -18,6 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -28,6 +29,13 @@ interface AgentConfig {
     agent_personality: string;
     custom_prompt: string;
     knowledge_base: KnowledgeBaseItem[];
+    dedicated_channel_id: string | null;
+}
+
+interface DiscordChannel {
+    id: string;
+    name: string;
+    type: number;
 }
 
 function PageSkeleton() {
@@ -54,6 +62,7 @@ function PageSkeleton() {
 function AgentPageContent({ isPremium, serverId }: { isPremium: boolean, serverId: string }) {
     const { toast } = useToast();
     const [config, setConfig] = useState<AgentConfig | null>(null);
+    const [channels, setChannels] = useState<DiscordChannel[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -61,10 +70,15 @@ function AgentPageContent({ isPremium, serverId }: { isPremium: boolean, serverI
         const fetchData = async () => {
             setLoading(true);
             try {
-                const configRes = await fetch(`${API_URL}/get-config/${serverId}/conversational-agent`);
-                if (!configRes.ok) throw new Error('Failed to fetch initial data');
+                const [configRes, serverDetailsRes] = await Promise.all([
+                    fetch(`${API_URL}/get-config/${serverId}/conversational-agent`),
+                    fetch(`${API_URL}/get-server-details/${serverId}`)
+                ]);
+                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch initial data');
                 const configData = await configRes.json();
+                const serverDetailsData = await serverDetailsRes.json();
                 setConfig(configData);
+                setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0)); // Text channels only
             } catch (error) {
                 toast({ title: "Erreur", description: "Impossible de charger la configuration de l'agent.", variant: "destructive" });
             } finally {
@@ -125,9 +139,31 @@ function AgentPageContent({ isPremium, serverId }: { isPremium: boolean, serverI
                             <Switch id="enable-agent" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
                         </div>
                         <CardDescription>
-                            Activez l'agent pour qu'il réponde lorsqu'on le mentionne.
+                            Activez l'agent pour qu'il réponde lorsqu'on le mentionne ou dans son salon dédié.
                         </CardDescription>
                     </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2">
+                            <Label htmlFor="dedicated-channel">Salon de conversation dédié</Label>
+                             <p className="text-sm text-muted-foreground/80">
+                                Dans ce salon, chaque message sera traité par l'IA (les mentions ne sont pas nécessaires).
+                            </p>
+                             <Select value={config.dedicated_channel_id || 'none'} onValueChange={(value) => handleValueChange('dedicated_channel_id', value === 'none' ? null : value)}>
+                                <SelectTrigger id="dedicated-channel" className="w-full md:w-[280px]">
+                                    <SelectValue placeholder="Sélectionner un salon" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Salons textuels</SelectLabel>
+                                        <SelectItem value="none">Aucun (répond aux mentions seulement)</SelectItem>
+                                        {channels.map(channel => (
+                                            <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </CardContent>
                 </Card>
                 
                 {/* Section Personnalité */}
@@ -225,7 +261,7 @@ export default function ConversationalAgentPage() {
             <Badge className="bg-yellow-400 text-yellow-900">Premium</Badge>
         </h1>
         <p className="text-muted-foreground mt-2">
-          Créez un agent IA entièrement personnalisé qui répond lorsqu'on le mentionne. Définissez sa personnalité, son rôle et ses connaissances.
+          Créez un agent IA entièrement personnalisé qui répond lorsqu'on le mentionne ou dans un salon dédié.
         </p>
       </div>
       

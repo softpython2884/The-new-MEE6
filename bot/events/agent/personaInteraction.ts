@@ -3,11 +3,11 @@
 import { Events, Message, Collection } from 'discord.js';
 import { getServerConfig, getPersonasForGuild } from '../../../src/lib/db';
 import { personaInteractionFlow } from '../../../src/ai/flows/persona-flow';
-import type { Persona } from '@/types';
+import type { Persona, ConversationHistoryItem } from '@/types';
 
 // Cache conversation histories
-const conversationHistory = new Collection<string, { user: string; content: string }[]>();
-const HISTORY_LIMIT = 15;
+const conversationHistory = new Collection<string, ConversationHistoryItem[]>();
+const HISTORY_LIMIT = 20; // Increased history limit for better context
 
 export const name = Events.MessageCreate;
 export const once = false;
@@ -31,48 +31,43 @@ export async function execute(message: Message) {
     }
 
     // The persona should not respond to itself if it was somehow triggered by its own message.
-    if (message.author.username === activePersona.name) {
+    if (message.author.username.toLowerCase() === activePersona.name.toLowerCase()) {
         return;
     }
-    
-    // The persona responds to every message in its active channel.
-    // For a more advanced version, we could add a probability check or only respond to mentions.
-    
+
     console.log(`[Persona] Persona "${activePersona.name}" is processing a message from ${message.author.tag} in #${message.channel.name}.`);
     
     try {
         await message.channel.sendTyping();
 
         // --- Conversation History Handling ---
-        const historyForPrompt = conversationHistory.get(message.channel.id) || [];
+        const historyKey = message.channel.id;
+        const currentHistory = conversationHistory.get(historyKey) || [];
         
         // Add the new message to the history and trim it
-        const currentHistory = [...historyForPrompt];
         currentHistory.push({ user: message.author.username, content: message.content });
         if (currentHistory.length > HISTORY_LIMIT) {
             currentHistory.shift();
         }
-        conversationHistory.set(message.channel.id, currentHistory);
+        conversationHistory.set(historyKey, currentHistory);
         // --- End of History Handling ---
 
 
         const result = await personaInteractionFlow({
             personaPrompt: activePersona.persona_prompt,
-            conversationHistory: historyForPrompt, // Send the history BEFORE the new message
-            currentUser: message.author.username,
-            userMessage: message.content,
+            conversationHistory: currentHistory, // Send the full, updated history
         });
 
         if (result.response) {
             const responseMessage = await message.reply(result.response);
             
             // Add the persona's response to the history
-            const updatedHistory = conversationHistory.get(message.channel.id) || [];
+            const updatedHistory = conversationHistory.get(historyKey) || [];
             updatedHistory.push({ user: activePersona.name, content: responseMessage.content });
             if (updatedHistory.length > HISTORY_LIMIT) {
                 updatedHistory.shift();
             }
-            conversationHistory.set(message.channel.id, updatedHistory);
+            conversationHistory.set(historyKey, updatedHistory);
         }
 
     } catch (error) {
@@ -80,5 +75,3 @@ export async function execute(message: Message) {
         // Don't send an error message in the channel to avoid breaking immersion.
     }
 }
-
-    

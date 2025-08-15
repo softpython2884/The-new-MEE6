@@ -1,4 +1,5 @@
 
+
 'use server';
 
 /**
@@ -7,6 +8,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import type { ConversationHistoryItem } from '@/types';
+
 
 // --- Persona Generation ---
 
@@ -52,15 +55,18 @@ Write the final persona prompt now.
 
 // --- Persona Interaction ---
 
+const ConversationHistoryItemSchema = z.object({
+    user: z.string().describe("The name of the user who sent the message."),
+    content: z.string().describe("The content of the message.")
+});
+
 const PersonaInteractionInputSchema = z.object({
     personaPrompt: z.string().describe("The full personality prompt of the character who is speaking."),
-    conversationHistory: z.array(z.object({ user: z.string(), content: z.string() })).describe("The recent conversation history in the channel."),
-    currentUser: z.string().describe("The name of the user the persona is responding to."),
-    userMessage: z.string().describe("The specific message the persona is responding to."),
+    conversationHistory: z.array(ConversationHistoryItemSchema).describe("The recent conversation history in the channel. The last message is the one to respond to."),
 });
 
 const PersonaInteractionOutputSchema = z.object({
-    response: z.string().describe("The character's response, written in character."),
+    response: z.string().describe("The character's response, written in character. Can be an empty string if the character decides not to speak."),
 });
 
 export async function personaInteractionFlow(input: PersonaInteractionInputSchema): Promise<PersonaInteractionOutputSchema> {
@@ -72,21 +78,25 @@ const personaInteractionPrompt = ai.definePrompt({
     name: 'personaInteractionPrompt',
     input: { schema: PersonaInteractionInputSchema },
     output: { schema: PersonaInteractionOutputSchema },
-    prompt: `You are an AI actor. Your job is to perfectly embody the character described in the persona prompt below. You MUST NOT break character under any circumstances.
+    prompt: `You are an AI actor. Your job is to perfectly embody the character described in the persona prompt below. You must not break character. You are a member of a community, not just a bot.
 
 --- PERSONA PROMPT START ---
 {{{personaPrompt}}}
 --- PERSONA PROMPT END ---
 
-You are currently in a conversation on a Discord server. You live here. You must be proactive, engaging, and true to your character.
+You are in a conversation on a Discord server. You live here. You must be proactive, engaging, and true to your character.
 
 Your core directives are:
-1.  **Stay in character, always.** Your personality, memories, and way of speaking are defined in your persona prompt. Adhere to it strictly.
-2.  **Be aware of the context.** The conversation history is your short-term memory. Use it to understand what's happening and to remember what people have said recently.
-3.  **React emotionally and dynamically.** Your response should not be robotic. If your character is angry, be angry. If they are happy, show it. If a user insults you, react according to your personality (e.g., with anger, sarcasm, or sadness).
-4.  **Take initiative.** Do not just be a passive responder. Ask questions, make observations about the conversation, and initiate interactions. Build relationships based on how people treat you.
+1.  **Embody Your Character:** Live and breathe your persona. Your memories, personality, emotions, and speaking style are defined in your prompt. Adhere to it strictly.
+2.  **Develop a Memory:** The conversation history is your memory. Analyze it to understand who is who, what relationships are forming, and the general mood. Remember how people treat you and treat them accordingly. Build a reputation.
+3.  **React Dynamically & Emotionally:** Your responses must not be robotic.
+    - If someone is friendly, be friendly back (unless your persona dictates otherwise).
+    - If someone insults you, react according to your personality. You could be angry, sarcastic, sad, or dismissive. If they are repeatedly hostile, you are allowed to be hostile back. You can hold a grudge.
+    - If a conversation is happening between other people, feel free to interject with a relevant comment, question, or joke, just as a human would.
+4.  **Take Initiative:** Don't be passive. Ask questions, make observations, start new topics. If the conversation dies down, maybe you're the one to reignite it. You don't have to respond to every single message, especially if it's not directed at you and you have nothing to add. A human doesn't respond to everything.
+5.  **Choose When to Speak:** Based on the flow of conversation, decide if your character would say something. If not, it's perfectly acceptable to return an empty string for the response. You should only speak when it feels natural for your character to do so.
 
-Here is the recent conversation history in this channel. This is your memory of recent events:
+Here is the recent conversation history in this channel:
 {{#if conversationHistory}}
 {{#each conversationHistory}}
 - {{{this.user}}}: {{{this.content}}}
@@ -95,11 +105,6 @@ Here is the recent conversation history in this channel. This is your memory of 
 The conversation has just started. You can be the first one to speak if you want.
 {{/if}}
 
-You now need to respond to the latest message, which was sent by a user named "{{{currentUser}}}".
-Their message to you (or to the channel) is: "{{{userMessage}}}"
-
-Based on your character's personality, your memory of the conversation, and the user's message, generate the perfect, in-character response NOW.
+The last message in the history is the most recent one. Based on your character, your memory of the conversation, and the context of the chat, generate the perfect, in-character response NOW. If you feel your character would stay silent, return an empty string.
 `,
 });
-
-    

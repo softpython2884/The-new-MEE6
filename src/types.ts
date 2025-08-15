@@ -1,5 +1,6 @@
 
 
+
 import type {
   SlashCommandBuilder,
   CommandInteraction,
@@ -77,4 +78,9 @@ export interface Persona {
     creator_id: string;
     created_at: string;
     active_channel_id: string | null;
+}
+
+export interface ConversationHistoryItem {
+    user: string;
+    content: string;
 }

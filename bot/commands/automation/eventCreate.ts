@@ -1,6 +1,6 @@
 
 
-import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags, GuildScheduledEventEntityType, GuildScheduledEventManager } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags, GuildScheduledEventEntityType, GuildScheduledEventManager, GuildScheduledEventPrivacyLevel } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
 import { parse, isValid, isFuture } from 'date-fns';
@@ -70,8 +70,7 @@ const EventCreateCommand: Command = {
                 name: title,
                 description: description,
                 scheduledStartTime: scheduledStartTime,
-                scheduledEndTime: null, // Can be added as an option later
-                privacyLevel: 2, // GUILD_ONLY
+                privacyLevel: GuildScheduledEventPrivacyLevel.GuildOnly,
                 entityType: GuildScheduledEventEntityType.External,
                 entityMetadata: { location: location },
             });

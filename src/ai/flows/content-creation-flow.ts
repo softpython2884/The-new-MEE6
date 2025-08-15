@@ -66,7 +66,7 @@ export async function generateImage(input: ImageGenInput): Promise<ImageGenOutpu
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: input.prompt,
         config: {
-            responseModalities: ['IMAGE'],
+            responseModalities: ['IMAGE', 'TEXT'],
         },
     });
 

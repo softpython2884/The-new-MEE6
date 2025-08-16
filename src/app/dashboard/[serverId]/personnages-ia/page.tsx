@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import ShinyText from '@/components/ui/shiny-text';
 import type { Persona } from '@/types';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -47,6 +48,10 @@ interface DiscordChannel {
     id: string;
     name: string;
     type: number;
+}
+interface AIPersonasConfig {
+    enabled: boolean;
+    premium: boolean;
 }
 
 function PersonaPageSkeleton() {
@@ -78,6 +83,7 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [config, setConfig] = useState<AIPersonasConfig | null>(null);
     
     const [newName, setNewName] = useState('');
     const [newInstructions, setNewInstructions] = useState('');
@@ -95,23 +101,34 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
         }
     };
     
-    useEffect(() => {
-        if (!serverId) return;
-        const fetchData = async () => {
-            setLoading(true);
-            await fetchPersonas();
-             try {
-                const serverDetailsRes = await fetch(`${API_URL}/get-server-details/${serverId}`);
-                if (!serverDetailsRes.ok) throw new Error('Failed to fetch server details');
-                const serverDetailsData = await serverDetailsRes.json();
-                setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0));
-            } catch (error) {
-                 toast({ title: "Erreur", description: "Impossible de charger les salons.", variant: "destructive" });
-            }
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [configRes] = await Promise.all([
+                fetch(`${API_URL}/get-config/${serverId}/ai-personas`),
+                fetchPersonas(),
+            ]);
+
+            if (!configRes.ok) throw new Error('Failed to fetch config');
+            setConfig(await configRes.json());
+            
+            const serverDetailsRes = await fetch(`${API_URL}/get-server-details/${serverId}`);
+            if (!serverDetailsRes.ok) throw new Error('Failed to fetch server details');
+            const serverDetailsData = await serverDetailsRes.json();
+            setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0));
+
+        } catch (error) {
+            toast({ title: "Erreur de chargement", variant: "destructive" });
+        } finally {
             setLoading(false);
-        };
-        fetchData();
-    }, [serverId, toast]);
+        }
+    };
+
+    useEffect(() => {
+        if (serverId) {
+            fetchData();
+        }
+    }, [serverId]);
 
     const handleGeneratePrompt = async () => {
         if (!newName || !newInstructions) {
@@ -192,14 +209,46 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
         }
     };
 
+    const handleModuleToggle = async (enabled: boolean) => {
+        if (!config) return;
+        const newConfig = { ...config, enabled };
+        setConfig(newConfig);
+         try {
+            await fetch(`${API_URL}/update-config/${serverId}/ai-personas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig),
+            });
+        } catch (error) {
+            toast({ title: "Erreur", description: "Impossible d'activer/désactiver le module.", variant: "destructive" });
+        }
+    }
 
-    if (loading) {
+
+    if (loading || !config) {
         return <PersonaPageSkeleton />;
     }
 
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <div className="space-y-4">
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <CardTitle>Activation du Module</CardTitle>
+                             <Switch
+                                checked={config.enabled}
+                                onCheckedChange={handleModuleToggle}
+                            />
+                        </div>
+                        <CardDescription>
+                           Activez ce module pour utiliser les commandes `/personnage` et permettre à vos IA d'interagir.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+
+                 <Separator />
+
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                      <div>
                         <h2 className="text-xl font-bold">Vos Personnages IA</h2>

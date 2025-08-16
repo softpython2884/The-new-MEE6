@@ -35,6 +35,10 @@ export type ModerationAiInput = z.infer<typeof ModerationAiInputSchema>;
 export type ModerationAiOutput = z.infer<typeof ModerationAiOutputSchema>;
 
 export async function moderationAiFlow(input: ModerationAiInput): Promise<ModerationAiOutput> {
+  // Prevent analyzing very short, non-toxic messages
+    if (input.messageContent.length < 3 && !/[*@_~`|]/.test(input.messageContent)) {
+        return { isToxic: false, reason: '', severity: 'low', suggestedAction: 'none', suggestedDuration: undefined };
+    }
   return flow(input);
 }
 
@@ -98,11 +102,7 @@ const flow = ai.defineFlow(
     outputSchema: ModerationAiOutputSchema,
   },
   async (input) => {
-    // Prevent analyzing very short, non-toxic messages
-    if (input.messageContent.length < 3 && !/[*@_~`|]/.test(input.messageContent)) {
-        return { isToxic: false, reason: '', severity: 'low', suggestedAction: 'none' };
-    }
-    const { output } = await filterPrompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );

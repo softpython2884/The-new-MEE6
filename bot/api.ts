@@ -7,7 +7,7 @@ import { verifyAndConsumeAuthToken } from './auth';
 import { generatePersonaPrompt } from '@/ai/flows/persona-flow';
 import { v4 as uuidv4 } from 'uuid';
 
-const API_PORT = process.env.BOT_API_PORT || 3001;
+const API_PORT = process.env.BOT_API_PORT || 25875;
 
 export function startApi(client: Client) {
     const app = express();

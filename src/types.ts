@@ -44,6 +44,7 @@ export type Module =
     | 'autoroles'
     | 'server-identity'
     | 'security-alerts'
+    | 'moveall'
     | 'tester';
 
 export interface ModuleConfig {

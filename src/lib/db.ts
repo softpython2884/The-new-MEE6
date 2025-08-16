@@ -353,6 +353,10 @@ const defaultConfigs: DefaultConfigs = {
         account_age_threshold_days: 7,
         similar_username_check_enabled: true,
         similar_username_sensitivity: 80,
+    },
+    'moveall': {
+        enabled: false,
+        premium: true,
     }
 };
 

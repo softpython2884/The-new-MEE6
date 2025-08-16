@@ -47,7 +47,7 @@ For an announcement, the title should be like "📢 Annonce : [Sujet]".
 });
 
 export async function generateTextContent(input: TextContentInput): Promise<TextContentOutput> {
-  const { output } = await textGenPrompt(input);
+  const { output } = await textGenPrompt(input, { model: 'googleai/gemini-2.0-flash' });
   return output!;
 }
 

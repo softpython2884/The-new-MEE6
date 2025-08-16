@@ -82,7 +82,7 @@ export const serverBuilderFlow = ai.defineFlow(
     outputSchema: ServerBuilderOutputSchema,
   },
   async (input) => {
-    const { output } = await serverBuilderPrompt(input);
+    const { output } = await serverBuilderPrompt(input, { model: 'googleai/gemini-2.0-flash' });
     if (!output) {
       throw new Error('Failed to generate server structure.');
     }

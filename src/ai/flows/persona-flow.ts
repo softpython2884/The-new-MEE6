@@ -175,8 +175,8 @@ export const personaInteractionFlow = ai.defineFlow(
       ' on ' +
       now.toLocaleDateString('fr-FR', { weekday: 'long' });
 
-    // Use the model passed in from the context if available
-    const modelToUse = context?.flow?.model as any;
+    // Use the Gemini 2.5 Pro model for this flow for maximum performance
+    const modelToUse = 'googleai/gemini-2.5-pro';
 
     const { output } = await personaInteractionPrompt(
       { ...input, currentTime },

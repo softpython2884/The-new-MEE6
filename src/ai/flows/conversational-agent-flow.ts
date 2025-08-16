@@ -48,6 +48,7 @@ export type ConversationalAgentOutput = z.infer<typeof ConversationalAgentOutput
 const agentPrompt = ai.definePrompt({
   name: 'conversationalAgentPrompt',
   input: { schema: ConversationalAgentInputSchema },
+  output: { schema: z.object({ response: z.string() }) },
   prompt: `You are a conversational AI agent on a Discord server. You must fully embody the persona defined below.
 
 Your Identity:
@@ -109,9 +110,9 @@ export const conversationalAgentFlow = ai.defineFlow(
     for (const model of textModelCascade) {
       try {
         console.log(`[Agent] Trying model ${model}...`);
-        const llmResponse = await agentPrompt(input, { model });
+        const { output } = await agentPrompt(input, { model });
         console.log(`[Agent] Model ${model} succeeded.`);
-        return { response: llmResponse.text };
+        return { response: output!.response };
       } catch (error: any) {
         lastError = error;
         console.warn(`[Agent] Model ${model} failed with error:`, error.message);

@@ -101,7 +101,7 @@ const flow = ai.defineFlow(
     outputSchema: ModerationAiOutputSchema,
   },
   async (input) => {
-    const { output } = await filterPrompt(input);
+    const { output } = await filterPrompt(input, { model: 'googleai/gemini-2.0-flash' });
     return output!;
   }
 );

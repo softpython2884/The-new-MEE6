@@ -8,7 +8,6 @@ export const ai = genkit({
 // Define a model cascade for resilience against quota errors.
 // Tries the most powerful models first, then falls back to lighter ones.
 export const textModelCascade = [
-    'googleai/gemini-2.5-pro',
     'googleai/gemini-2.5-flash',
     'googleai/gemini-2.0-flash',
     'googleai/gemma-3' 

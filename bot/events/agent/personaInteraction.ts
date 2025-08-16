@@ -6,6 +6,9 @@ import { personaInteractionFlow, generatePersonaImage } from '@/ai/flows/persona
 import { memoryFlow } from '@/ai/flows/memory-flow';
 import type { Persona, ConversationHistoryItem } from '@/types';
 import fetch from 'node-fetch';
+import { ai, textModelCascade } from '@/ai/genkit';
+import { defineFlow } from 'genkit';
+
 
 const imageMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
 const PERSONA_WEBHOOK_NAME = "Marcus Persona";
@@ -113,46 +116,65 @@ export async function execute(message: Message) {
 
 
 async function handlePersonaInteraction(message: Message, persona: Persona, guildId: string, interactionContext: string) {
-     try {
-        if (message.channel.isTextBased()) {
-             await message.channel.sendTyping();
+     if (message.channel.isTextBased()) {
+         await message.channel.sendTyping();
+    }
+    
+    const imageAttachment = message.attachments.find(att => imageMimeTypes.some(mime => att.contentType?.startsWith(mime)));
+    let photoDataUri: string | undefined = undefined;
+    if (imageAttachment) {
+        try {
+            photoDataUri = await imageUrlToDataUri(imageAttachment.url);
+        } catch (error) {
+            console.error(`[Persona] Failed to process image for persona:`, error);
         }
-        
-        const imageAttachment = message.attachments.find(att => imageMimeTypes.some(mime => att.contentType?.startsWith(mime)));
-        let photoDataUri: string | undefined = undefined;
-        if (imageAttachment) {
-            try {
-                photoDataUri = await imageUrlToDataUri(imageAttachment.url);
-            } catch (error) {
-                console.error(`[Persona] Failed to process image for persona:`, error);
+    }
+
+    const historyKey = message.channel.id;
+    const currentHistory = conversationHistory.get(historyKey) || [];
+    
+    let messageTextForHistory = message.content;
+    if (persona.role_id && message.mentions.roles.has(persona.role_id)) {
+        messageTextForHistory = message.content.replace(`<@&${persona.role_id}>`, '').trim();
+    }
+    currentHistory.push({ user: message.author.username, content: messageTextForHistory });
+
+    if (currentHistory.length > HISTORY_LIMIT) {
+        currentHistory.shift();
+    }
+    conversationHistory.set(historyKey, currentHistory);
+
+    const relevantMemories = getMemoriesForPersona(persona.id, [message.author.id]);
+    console.log(`[Persona] Retrieved ${relevantMemories.length} relevant memories for "${persona.name}".`);
+
+    let result;
+    let lastError: any;
+    for (const model of textModelCascade) {
+        try {
+            console.log(`[Persona] Trying model ${model} for persona interaction...`);
+             result = await personaInteractionFlow({
+                personaPrompt: persona.persona_prompt,
+                conversationHistory: currentHistory, 
+                memories: relevantMemories.map(m => ({ content: m.content, salience_score: m.salience_score })),
+                photoDataUri: photoDataUri,
+                interactionContext: interactionContext,
+            }, model);
+            console.log(`[Persona] Model ${model} succeeded.`);
+            break; 
+        } catch (error: any) {
+            lastError = error;
+             console.warn(`[Persona] Model ${model} failed with error:`, error.message);
+            if (error.status === 429 || error.message.includes('quota')) {
+                 console.log(`[Persona] Quota exceeded for ${model}. Trying next model...`);
+                continue;
             }
+            // For other errors, don't retry, just fail.
+            break;
         }
+    }
 
-        const historyKey = message.channel.id;
-        const currentHistory = conversationHistory.get(historyKey) || [];
-        
-        let messageTextForHistory = message.content;
-        if (persona.role_id && message.mentions.roles.has(persona.role_id)) {
-            messageTextForHistory = message.content.replace(`<@&${persona.role_id}>`, '').trim();
-        }
-        currentHistory.push({ user: message.author.username, content: messageTextForHistory });
 
-        if (currentHistory.length > HISTORY_LIMIT) {
-            currentHistory.shift();
-        }
-        conversationHistory.set(historyKey, currentHistory);
-
-        const relevantMemories = getMemoriesForPersona(persona.id, [message.author.id]);
-        console.log(`[Persona] Retrieved ${relevantMemories.length} relevant memories for "${persona.name}".`);
-
-        const result = await personaInteractionFlow({
-            personaPrompt: persona.persona_prompt,
-            conversationHistory: currentHistory, 
-            memories: relevantMemories.map(m => ({ content: m.content, salience_score: m.salience_score })),
-            photoDataUri: photoDataUri,
-            interactionContext: interactionContext,
-        });
-
+    if (result) {
         if (result.response || result.image_prompt) {
             let files: AttachmentBuilder[] = [];
             if (result.image_prompt) {
@@ -215,8 +237,27 @@ async function handlePersonaInteraction(message: Message, persona: Persona, guil
         } else {
              console.log(`[Persona] Persona "${persona.name}" chose not to respond.`);
         }
-
-    } catch (error) {
-        console.error(`[Persona] Error during interaction flow for "${persona.name}":`, error);
+    } else {
+         // All models failed, handle the final error
+        console.error(`[Persona] All models in cascade failed. Last error:`, lastError);
+        const ownerIds = ['556529963877138442', '760977578839506985', '800041004400902145'];
+        const errorMessage = `🚨 **Erreur Critique de l'API Gemini** 🚨\n\nTous les modèles de la cascade ont échoué sur le serveur **${message.guild?.name || 'DM'}**. Les fonctionnalités IA sont probablement indisponibles.\n\n**Détails de la dernière erreur :**\n\`\`\`json\n${JSON.stringify(lastError.errorDetails || { message: lastError.message }, null, 2)}\n\`\`\``;
+        
+        for (const id of ownerIds) {
+            try {
+                const user = await message.client.users.fetch(id);
+                await user.send(errorMessage);
+            } catch (dmError) {
+                console.error(`[Persona Error] Impossible d'envoyer un DM d'erreur à l'utilisateur ${id}`, dmError);
+            }
+        }
+        
+        try {
+            await message.reply("Désolé, une erreur est survenue pendant que je réfléchissais. Les administrateurs ont été notifiés.");
+        } catch (replyError: any) {
+            if (replyError.code !== 10008) { // Ignore "Unknown Message" error
+                console.error('[Persona] Failed to send error message:', replyError);
+            }
+        }
     }
 }

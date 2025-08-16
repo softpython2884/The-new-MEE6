@@ -5,7 +5,7 @@
  * @fileOverview AI flow for generating and interacting with AI personas.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, imageModel } from '@/ai/genkit';
 import { z } from 'genkit';
 import type { ConversationHistoryItem, PersonaMemory } from '@/types';
 
@@ -15,7 +15,7 @@ export async function generatePersonaAvatar(input: PersonaAvatarInput): Promise<
     // This function is currently not called directly due to Discord API limitations with data URIs as webhook avatars.
     // It's kept for future use if an image hosting service is implemented.
     const { media } = await ai.generate({
-        model: 'googleai/gemini-2.0-flash-preview-image-generation',
+        model: imageModel,
         prompt: `Create a square avatar for a character named "${input.name}". Description: ${input.persona_prompt}. The style should be an anime or digital art portrait, focusing on the face.`,
         config: {
             responseModalities: ['IMAGE', 'TEXT'],
@@ -103,13 +103,6 @@ const PersonaInteractionOutputSchema = z.object({
     image_prompt: z.string().optional().describe("If the character decides to generate an image to accompany its response, this should be the prompt for the image generation model. Otherwise, this should be null.")
 });
 
-export async function personaInteractionFlow(input: Omit<z.infer<typeof PersonaInteractionInputSchema>, 'currentTime'>): Promise<z.infer<typeof PersonaInteractionOutputSchema>> {
-  const now = new Date();
-  const currentTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' on ' + now.toLocaleDateString('fr-FR', { weekday: 'long' });
-  const { output } = await personaInteractionPrompt({...input, currentTime});
-  return output!;
-}
-
 const personaInteractionPrompt = ai.definePrompt({
     name: 'personaInteractionPrompt',
     input: { schema: PersonaInteractionInputSchema },
@@ -166,6 +159,34 @@ Le dernier message de l'historique est le plus récent. En te basant sur ton per
 });
 
 
+export const personaInteractionFlow = ai.defineFlow(
+  {
+    name: 'personaInteractionFlow',
+    inputSchema: z.any(),
+    outputSchema: PersonaInteractionOutputSchema,
+  },
+  async (input, streamingCallback, context) => {
+    const now = new Date();
+    const currentTime =
+      now.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }) +
+      ' on ' +
+      now.toLocaleDateString('fr-FR', { weekday: 'long' });
+
+    // Use the model passed in from the context if available
+    const modelToUse = context?.flow?.model as any;
+
+    const { output } = await personaInteractionPrompt(
+      { ...input, currentTime },
+      { model: modelToUse }
+    );
+    return output!;
+  }
+);
+
+
 // --- Persona Image Generation (separate flow) ---
 const PersonaImageInputSchema = z.object({
   prompt: z.string().describe("A detailed description of the image to generate."),
@@ -180,7 +201,7 @@ export type PersonaImageOutput = z.infer<typeof PersonaImageOutputSchema>;
 
 export async function generatePersonaImage(input: PersonaImageInput): Promise<PersonaImageOutput> {
     const { media } = await ai.generate({
-        model: 'googleai/gemini-2.0-flash-preview-image-generation',
+        model: imageModel,
         prompt: input.prompt,
         config: {
             responseModalities: ['IMAGE', 'TEXT'],
@@ -207,7 +228,3 @@ const PersonaAvatarOutputSchema = z.object({
 });
 
 export type PersonaAvatarOutput = z.infer<typeof PersonaAvatarOutputSchema>;
-
-    
-
-    

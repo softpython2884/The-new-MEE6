@@ -5,7 +5,7 @@
  * @fileOverview A fully configurable conversational AI agent for Discord servers.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, textModelCascade } from '@/ai/genkit';
 import { z } from 'genkit';
 import type { KnowledgeBaseItem } from '@/types';
 
@@ -43,10 +43,6 @@ export const ConversationalAgentOutputSchema = z.object({
 
 export type ConversationalAgentInput = z.infer<typeof ConversationalAgentInputSchema>;
 export type ConversationalAgentOutput = z.infer<typeof ConversationalAgentOutputSchema>;
-
-export async function conversationalAgentFlow(input: ConversationalAgentInput): Promise<ConversationalAgentOutput> {
-  return agentFlow(input);
-}
 
 // Define the Genkit prompt
 const agentPrompt = ai.definePrompt({
@@ -101,17 +97,35 @@ Now, generate the response for {{{agentName}}}:
 `,
 });
 
-// Define the Genkit flow
-const agentFlow = ai.defineFlow(
+// Define the Genkit flow with model cascade
+export const conversationalAgentFlow = ai.defineFlow(
   {
     name: 'conversationalAgentFlow',
     inputSchema: ConversationalAgentInputSchema,
     outputSchema: ConversationalAgentOutputSchema,
   },
   async (input) => {
-    const llmResponse = await agentPrompt(input);
-    const responseText = llmResponse.text;
-    
-    return { response: responseText };
+    let lastError: any;
+    for (const model of textModelCascade) {
+      try {
+        console.log(`[Agent] Trying model ${model}...`);
+        const llmResponse = await agentPrompt(input, { model });
+        console.log(`[Agent] Model ${model} succeeded.`);
+        return { response: llmResponse.text };
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`[Agent] Model ${model} failed with error:`, error.message);
+        if (error.status === 429 || error.message.includes('quota')) {
+          console.log(`[Agent] Quota exceeded for ${model}. Trying next model...`);
+          continue; // Try the next model in the cascade
+        }
+        // For other types of errors, we might not want to retry.
+        break;
+      }
+    }
+
+    // If all models in the cascade failed, throw the last error.
+    console.error(`[Agent] All models in cascade failed. Last error:`, lastError);
+    throw lastError;
   }
 );

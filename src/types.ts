@@ -45,7 +45,8 @@ export type Module =
     | 'server-identity'
     | 'security-alerts'
     | 'moveall'
-    | 'tester';
+    | 'tester'
+    | 'manual-voice-control';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

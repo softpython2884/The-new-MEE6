@@ -373,6 +373,13 @@ const defaultConfigs: DefaultConfigs = {
     'moveall': {
         enabled: true,
         premium: true,
+    },
+    'manual-voice-control': {
+        enabled: true,
+        command_permissions: {
+            join: null,
+            leave: null,
+        }
     }
 };
 

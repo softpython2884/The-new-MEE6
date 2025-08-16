@@ -52,7 +52,6 @@ export async function conversationalAgentFlow(input: ConversationalAgentInput): 
 const agentPrompt = ai.definePrompt({
   name: 'conversationalAgentPrompt',
   input: { schema: ConversationalAgentInputSchema },
-  output: { schema: ConversationalAgentOutputSchema },
   prompt: `You are a conversational AI agent on a Discord server. You must fully embody the persona defined below.
 
 Your Identity:
@@ -96,9 +95,9 @@ The user has also included an image in their message. Analyze the image as part 
 Image: {{media url=photoDataUri}}
 {{/if}}
 
-Generate an appropriate response now.
-
 User Message from {{{userName}}}: "{{{userMessage}}}"
+
+Now, generate the response for {{{agentName}}}:
 `,
 });
 
@@ -110,7 +109,9 @@ const agentFlow = ai.defineFlow(
     outputSchema: ConversationalAgentOutputSchema,
   },
   async (input) => {
-    const { output } = await agentPrompt(input);
-    return output!;
+    const llmResponse = await agentPrompt(input);
+    const responseText = llmResponse.text;
+    
+    return { response: responseText };
   }
 );

@@ -68,7 +68,7 @@ export async function execute(message: Message) {
         return;
     }
 
-    console.log(`[Persona] Persona "${triggeredPersona.name}" is processing a message from ${message.author.tag} in #${(message.channel as TextChannel).name}.`);
+    console.log(`[Persona] Triggered: Persona "${triggeredPersona.name}" is processing a message from ${message.author.tag} in #${(message.channel as TextChannel).name}.`);
     
     try {
         await message.channel.sendTyping();
@@ -102,8 +102,8 @@ export async function execute(message: Message) {
         // --- End of History Handling ---
 
         // --- Memory Retrieval ---
-        // Get memories about the specific user interacting, and also general memories (about the persona itself).
         const relevantMemories = getMemoriesForPersona(triggeredPersona.id, [message.author.id]);
+        console.log(`[Persona] Retrieved ${relevantMemories.length} relevant memories for "${triggeredPersona.name}".`);
         // --- End of Memory Retrieval ---
 
         const result = await personaInteractionFlow({
@@ -140,7 +140,7 @@ export async function execute(message: Message) {
             conversationHistory.set(historyKey, updatedHistory);
 
             // After responding, trigger the memory creation flow asynchronously
-            // We don't need to wait for this to finish.
+            console.log(`[Persona Memory] Triggering memory creation for "${triggeredPersona.name}".`);
             memoryFlow({
                 persona_id: triggeredPersona.id,
                 conversationTranscript: updatedHistory.map(h => `${h.user}: ${h.content}`).join('\n')
@@ -148,9 +148,13 @@ export async function execute(message: Message) {
                 if (newMemories && newMemories.length > 0) {
                      console.log(`[Persona Memory] Creating ${newMemories.length} new memories for ${triggeredPersona.name}.`);
                      createMultipleMemories(newMemories);
+                } else {
+                    console.log(`[Persona Memory] No new significant memories to create for "${triggeredPersona.name}".`);
                 }
-            }).catch(err => console.error(`[Persona Memory] Error creating memories:`, err));
+            }).catch(err => console.error(`[Persona Memory] Error creating memories for "${triggeredPersona.name}":`, err));
 
+        } else {
+             console.log(`[Persona] Persona "${triggeredPersona.name}" chose not to respond.`);
         }
 
     } catch (error) {

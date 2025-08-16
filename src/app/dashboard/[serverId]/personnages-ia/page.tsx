@@ -254,7 +254,12 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
                         <h2 className="text-xl font-bold">Vos Personnages IA</h2>
                         <p className="text-muted-foreground">Créez et gérez des personnalités IA uniques pour votre serveur.</p>
                      </div>
-                    <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+                    <Dialog open={isDialogOpen} onOpenChange={(isOpen) => {
+                        if (!isOpen) {
+                            resetAndCloseDialog();
+                        }
+                        setDialogOpen(isOpen);
+                    }}>
                         <DialogTrigger asChild>
                             <Button onClick={() => setCurrentStep(1)}><PlusCircle />Créer un Personnage</Button>
                         </DialogTrigger>
@@ -276,7 +281,7 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
                                     </div>
                                 </div>
                                 <DialogFooter>
-                                    <DialogClose asChild><Button variant="ghost" onClick={resetAndCloseDialog}>Annuler</Button></DialogClose>
+                                    <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
                                     <Button onClick={handleGeneratePrompt} disabled={isGenerating}>
                                         {isGenerating ? <Loader2 className="animate-spin" /> : <Sparkles />}
                                         Générer la personnalité

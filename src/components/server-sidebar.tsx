@@ -89,21 +89,23 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
                 return (
                   <Tooltip key={server.id}>
                     <TooltipTrigger asChild>
-                      <Link href={destination} className="relative group">
-                        <div className={cn(
-                          "absolute -left-3 top-1/2 -translate-y-1/2 h-0 w-1 bg-white rounded-r-full transition-all",
-                          isActive ? "h-10" : "group-hover:h-5"
-                        )}></div>
-                        <Avatar className={cn(
-                          "h-12 w-12 rounded-full transition-all group-hover:rounded-2xl",
-                          isActive ? "rounded-2xl" : ""
-                        )}>
-                          {server.iconURL ? (
-                             <AvatarImage src={server.iconURL} />
-                          ) : (
-                             <AvatarFallback>{server.name.charAt(0)}</AvatarFallback>
-                          )}
-                        </Avatar>
+                      <Link href={destination} passHref>
+                        <div className="relative group">
+                            <div className={cn(
+                                "absolute -left-3 top-1/2 -translate-y-1/2 h-0 w-1 bg-white rounded-r-full transition-all",
+                                isActive ? "h-10" : "group-hover:h-5"
+                            )}></div>
+                            <Avatar className={cn(
+                                "h-12 w-12 rounded-full transition-all group-hover:rounded-2xl",
+                                isActive ? "rounded-2xl" : ""
+                            )}>
+                            {server.iconURL ? (
+                                <AvatarImage src={server.iconURL} alt={server.name} />
+                            ) : (
+                                <AvatarFallback>{server.name.charAt(0)}</AvatarFallback>
+                            )}
+                            </Avatar>
+                        </div>
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent side="right">
@@ -118,9 +120,9 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
           <Tooltip>
             <TooltipTrigger asChild>
                 <a href={inviteUrl} target="_blank" rel="noopener noreferrer">
-                    <button className="flex size-12 items-center justify-center rounded-full bg-card-foreground/10 text-green-400 transition-all hover:bg-green-400 hover:text-white">
+                    <div className="flex size-12 items-center justify-center rounded-full bg-card-foreground/10 text-green-400 transition-all hover:bg-green-400 hover:text-white">
                         <Plus size={24} />
-                    </button>
+                    </div>
                 </a>
             </TooltipTrigger>
             <TooltipContent side="right">

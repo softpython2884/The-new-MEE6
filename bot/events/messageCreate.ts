@@ -6,6 +6,8 @@ import { autoTranslateFlow } from '../../src/ai/flows/auto-translate-flow';
 export const name = Events.MessageCreate;
 export const once = false;
 
+const WEBHOOK_NAME = "Marcus Translator";
+
 async function handleAutoTranslate(message: Message) {
     if (!message.guild || message.author.bot || !message.content) return;
 
@@ -23,9 +25,8 @@ async function handleAutoTranslate(message: Message) {
         });
 
         if (result.translationNeeded && result.translatedText) {
-            const targetChannel = await message.guild.channels.fetch(message.channel.id) as TextChannel;
-            if (!targetChannel) return;
-
+            const targetChannel = message.channel as TextChannel;
+            
             const embed = {
                 color: 0x3498DB, // Blue
                 description: `**Traduction :** ${result.translatedText}`,
@@ -38,10 +39,26 @@ async function handleAutoTranslate(message: Message) {
             if (config.mode === 'inline') {
                 await message.reply({ embeds: [embed] });
             } else if (config.mode === 'replace') {
+                // Delete original message
                 await message.delete();
-                await targetChannel.send({
-                    content: `_Message de ${message.author.toString()}:_`,
-                    embeds: [embed],
+                
+                // Find or create a webhook
+                const webhooks = await targetChannel.fetchWebhooks();
+                let webhook = webhooks.find(wh => wh.name === WEBHOOK_NAME && wh.token !== null);
+
+                if (!webhook) {
+                    webhook = await targetChannel.createWebhook({
+                        name: WEBHOOK_NAME,
+                        avatar: message.client.user?.displayAvatarURL(),
+                        reason: 'Webhook pour la traduction automatique'
+                    });
+                }
+                
+                // Send message via webhook with user's identity
+                await webhook.send({
+                    content: result.translatedText,
+                    username: message.member?.displayName || message.author.username,
+                    avatarURL: message.author.displayAvatarURL(),
                 });
             }
         }

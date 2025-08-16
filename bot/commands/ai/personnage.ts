@@ -65,6 +65,12 @@ const PersonnageCommand: Command = {
                     return;
                 }
                 
+                // Desactivate any other persona that might be active in this channel
+                const alreadyActive = personas.find(p => p.active_channel_id === interaction.channelId);
+                if (alreadyActive && alreadyActive.id !== persona.id) {
+                    updatePersona(alreadyActive.id, { active_channel_id: null });
+                }
+
                 updatePersona(persona.id, { active_channel_id: interaction.channelId });
                 await interaction.editReply({ content: `✅ **${persona.name}** est maintenant actif dans ce salon.` });
                 break;

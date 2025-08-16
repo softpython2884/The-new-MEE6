@@ -79,7 +79,6 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     
-    // States for the creation dialog
     const [newName, setNewName] = useState('');
     const [newInstructions, setNewInstructions] = useState('');
     const [generatedPrompt, setGeneratedPrompt] = useState('');
@@ -140,7 +139,6 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
     const handleCreatePersona = async () => {
          setIsGenerating(true);
          try {
-            // This is a placeholder for the creator's ID. In a real app with user auth, this would be the actual user's ID.
             const creatorId = "panel-user";
             const res = await fetch(`${API_URL}/personas/create`, {
                 method: 'POST',
@@ -154,7 +152,7 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
             });
             if (!res.ok) throw new Error('Failed to create persona');
             toast({ title: "Succès", description: `Le personnage ${newName} a été créé.` });
-            await fetchPersonas(); // Refresh list
+            await fetchPersonas();
             resetAndCloseDialog();
          } catch(error) {
             toast({ title: "Erreur", description: "Impossible de créer le personnage.", variant: "destructive" });
@@ -178,7 +176,7 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates),
             });
-            await fetchPersonas(); // Refresh
+            await fetchPersonas();
         } catch (error) {
             toast({ title: "Erreur", description: "Impossible de mettre à jour le personnage.", variant: "destructive" });
         }
@@ -188,7 +186,7 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
         try {
             await fetch(`${API_URL}/personas/${personaId}`, { method: 'DELETE' });
             toast({ title: "Succès", description: `Personnage supprimé.`, variant: 'destructive' });
-            await fetchPersonas(); // Refresh
+            await fetchPersonas();
         } catch (error) {
              toast({ title: "Erreur", description: "Impossible de supprimer le personnage.", variant: "destructive" });
         }

@@ -23,14 +23,12 @@ const upgradeSchema = () => {
     try {
         db.pragma('journal_mode = WAL');
         
-        // Check for premium column
         const configColumns = db.pragma('table_info(server_configs)') as any[];
         if (!configColumns.some(col => col.name === 'premium')) {
             console.log('[Database] Mise à jour du schéma : Ajout de la colonne "premium" à server_configs.');
             db.exec('ALTER TABLE server_configs ADD COLUMN premium BOOLEAN DEFAULT FALSE');
         }
         
-        // Create testers table
         db.exec(`
             CREATE TABLE IF NOT EXISTS testers (
                 user_id TEXT NOT NULL,
@@ -39,9 +37,8 @@ const upgradeSchema = () => {
                 PRIMARY KEY (user_id, guild_id)
             );
         `);
-         console.log('[Database] La table "testers" est prête.');
+        console.log('[Database] La table "testers" est prête.');
 
-         // Create ai_personas table
         db.exec(`
             CREATE TABLE IF NOT EXISTS ai_personas (
                 id TEXT PRIMARY KEY,
@@ -50,14 +47,22 @@ const upgradeSchema = () => {
                 persona_prompt TEXT NOT NULL,
                 creator_id TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                active_channel_id TEXT,
-                avatar_url TEXT,
-                role_id TEXT
+                active_channel_id TEXT
             );
         `);
+        // Check for persona columns and add them if they don't exist
+        const personaColumns = db.pragma('table_info(ai_personas)') as any[];
+        if (!personaColumns.some(col => col.name === 'avatar_url')) {
+            console.log('[Database] Mise à jour du schéma : Ajout de la colonne "avatar_url" à ai_personas.');
+            db.exec('ALTER TABLE ai_personas ADD COLUMN avatar_url TEXT');
+        }
+        if (!personaColumns.some(col => col.name === 'role_id')) {
+             console.log('[Database] Mise à jour du schéma : Ajout de la colonne "role_id" à ai_personas.');
+            db.exec('ALTER TABLE ai_personas ADD COLUMN role_id TEXT');
+        }
         console.log('[Database] La table "ai_personas" est prête.');
 
-        // Create persona_memories table
+
         db.exec(`
             CREATE TABLE IF NOT EXISTS persona_memories (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +78,6 @@ const upgradeSchema = () => {
         `);
          console.log('[Database] La table "persona_memories" est prête.');
 
-         // Create premium_keys table
         db.exec(`
             CREATE TABLE IF NOT EXISTS premium_keys (
                 key TEXT PRIMARY KEY,
@@ -104,12 +108,10 @@ const createConfigTable = () => {
         );
     `);
     console.log('[Database] La table "server_configs" est prête.');
-    // Run schema upgrades after ensuring the table exists
     upgradeSchema();
 };
 
 // --- Configurations par défaut pour les nouveaux serveurs ---
-// Basé sur la documentation fournie
 const defaultConfigs: DefaultConfigs = {
     'moderation': { 
         enabled: false, 
@@ -127,7 +129,7 @@ const defaultConfigs: DefaultConfigs = {
     'general-commands': {
         enabled: true,
         command_permissions: {
-            invite: null, // null means @everyone
+            invite: null,
             ping: null,
             help: null,
             marcus: null,
@@ -145,7 +147,7 @@ const defaultConfigs: DefaultConfigs = {
     },
     'community-assistant': {
         enabled: false,
-        premium: true, // Defaulting to false, will be checked
+        premium: true,
         confidence_threshold: 75,
         knowledge_base: [],
         command_permissions: {
@@ -154,7 +156,7 @@ const defaultConfigs: DefaultConfigs = {
     },
     'auto-moderation': {
         enabled: false,
-        rules: [], // This will now store native discord auto-mod rules
+        rules: [],
         scanned_channels: [],
     },
     'logs': { 
@@ -292,7 +294,9 @@ const defaultConfigs: DefaultConfigs = {
     'tester-commands': {
         enabled: true,
         command_permissions: {
-            mp: null, // null means only testers
+            mp: null,
+            webhook: null,
+            tester: null,
         },
     },
     'conversational-agent': {
@@ -342,20 +346,11 @@ const defaultConfigs: DefaultConfigs = {
     }
 };
 
-/**
- * Initialise la base de données en créant les tables nécessaires.
- */
 export function initializeDatabase() {
     createConfigTable();
     console.log('[Database] Initialisation de la base de données terminée.');
 }
 
-/**
- * Récupère la configuration d'un module pour un serveur donné.
- * @param guildId L'ID du serveur.
- * @param module Le nom du module.
- * @returns La configuration du module, ou la configuration par défaut si aucune n'est trouvée.
- */
 export function getServerConfig(guildId: string, module: Module): ModuleConfig | null {
     try {
         const stmt = db.prepare('SELECT config, premium FROM server_configs WHERE guild_id = ? AND module = ?');
@@ -363,13 +358,10 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
 
         if (result && result.config) {
             const config = JSON.parse(result.config);
-            
-            // Merge with default config to ensure all keys are present
             const defaultConfig = defaultConfigs[module] || {};
             const finalConfig = { ...defaultConfig, ...config };
 
-            // Deep merge for nested objects like command_permissions
-             if (defaultConfig.command_permissions && config.command_permissions) {
+            if (defaultConfig.command_permissions && config.command_permissions) {
                 finalConfig.command_permissions = { ...defaultConfig.command_permissions, ...config.command_permissions };
             }
              if (defaultConfig.command_enabled && config.command_enabled) {
@@ -379,17 +371,13 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
                 finalConfig.actions = { ...defaultConfig.actions, ...config.actions };
             }
 
-
             finalConfig.premium = !!result.premium;
-            
             return finalConfig;
         } else {
-            // Si aucune config n'est trouvée, on insère la config par défaut et on la retourne
             const defaultConfig = defaultConfigs[module];
             if (defaultConfig) {
                 console.log(`[Database] Aucune config trouvée pour ${guildId} et le module ${module}. Création de la config par défaut.`);
                 updateServerConfig(guildId, module, defaultConfig);
-                // Return the default config with the current premium status of the server
                 const premiumStatusStmt = db.prepare('SELECT premium FROM server_configs WHERE guild_id = ? LIMIT 1');
                 const premiumResult = premiumStatusStmt.get(guildId) as { premium: number } | undefined;
                 defaultConfig.premium = premiumResult ? !!premiumResult.premium : false;
@@ -399,20 +387,12 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
         }
     } catch (error) {
         console.error(`[Database] Erreur lors de la récupération de la config pour ${guildId} (module: ${module}):`, error);
-        return defaultConfigs[module] || null; // Fallback sécurisé
+        return defaultConfigs[module] || null;
     }
 }
 
-/**
- * Met à jour la configuration d'un module pour un serveur donné.
- * @param guildId L'ID du serveur.
- * @param module Le nom du module.
- * @param configData Les nouvelles données de configuration.
- */
 export function updateServerConfig(guildId: string, module: Module, configData: ModuleConfig) {
     try {
-        // Le statut premium est géré globalement par setPremiumStatus, et récupéré par getServerConfig.
-        // Nous n'avons pas besoin de le lire ou de le réécrire ici, juste de ne pas l'inclure dans la string JSON.
         const { premium, ...restConfig } = configData;
         const configString = JSON.stringify(restConfig);
         
@@ -422,17 +402,11 @@ export function updateServerConfig(guildId: string, module: Module, configData: 
             ON CONFLICT(guild_id, module) DO UPDATE SET config = excluded.config;
         `);
         stmt.run(guildId, module, configString);
-        // console.log(`[Database] Configuration mise à jour pour le serveur ${guildId}, module ${module}.`);
     } catch (error) {
         console.error(`[Database] Erreur lors de la mise à jour de la config pour ${guildId} (module: ${module}):`, error);
     }
 }
 
-
-/**
- * Sets up the default configurations for all modules for a given guild.
- * @param guildId The ID of the guild to set up.
- */
 export function setupDefaultConfigs(guildId: string) {
     const stmt = db.prepare('SELECT 1 FROM server_configs WHERE guild_id = ? AND module = ?');
     
@@ -445,12 +419,6 @@ export function setupDefaultConfigs(guildId: string) {
     }
 }
 
-
-/**
- * Synchronise les serveurs du bot avec la base de données.
- * Crée une configuration par défaut pour chaque module pour les nouveaux serveurs.
- * @param client Le client Discord.
- */
 export async function syncGuilds(client: Client) {
     console.log('[Database] Synchronisation des serveurs...');
     const guilds = await client.guilds.fetch();
@@ -461,10 +429,6 @@ export async function syncGuilds(client: Client) {
     console.log('[Database] Synchronisation des serveurs terminée.');
 }
 
-// Fonction pour récupérer la liste de tous les serveurs sur lesquels le bot est présent.
-// Utile pour le panel afin d'afficher la liste des serveurs.
-// Cette fonction est appelée par l'API du bot, qui a accès au client Discord.
-// Pour l'instant on se base sur la DB.
 export function getAllBotServers(): { id: string; name: string; icon: string | null }[] {
     try {
         const stmt = db.prepare('SELECT DISTINCT guild_id FROM server_configs');
@@ -476,11 +440,6 @@ export function getAllBotServers(): { id: string; name: string; icon: string | n
     }
 }
 
-/**
- * Met à jour le statut premium d'un serveur pour tous ses modules.
- * @param guildId L'ID du serveur.
- * @param isPremium Le nouveau statut premium.
- */
 export function setPremiumStatus(guildId: string, isPremium: boolean) {
     try {
         const stmt = db.prepare(`UPDATE server_configs SET premium = ? WHERE guild_id = ?`);
@@ -491,15 +450,6 @@ export function setPremiumStatus(guildId: string, isPremium: boolean) {
     }
 }
 
-
-// --- Fonctions de gestion des Testeurs ---
-
-/**
- * Accorde le statut de testeur à un utilisateur.
- * @param userId L'ID de l'utilisateur.
- * @param guildId L'ID du serveur.
- * @param expiresAt La date d'expiration du statut. Si null, le statut n'expirera pas (cas du boost).
- */
 export function giveTesterStatus(userId: string, guildId: string, expiresAt: Date | null) {
     try {
         const stmt = db.prepare(`
@@ -513,11 +463,6 @@ export function giveTesterStatus(userId: string, guildId: string, expiresAt: Dat
     }
 }
 
-/**
- * Révoque le statut de testeur d'un utilisateur.
- * @param userId L'ID de l'utilisateur.
- * @param guildId L'ID du serveur.
- */
 export function revokeTesterStatus(userId: string, guildId: string) {
     try {
         const stmt = db.prepare('DELETE FROM testers WHERE user_id = ? AND guild_id = ?');
@@ -527,12 +472,6 @@ export function revokeTesterStatus(userId: string, guildId: string) {
     }
 }
 
-/**
- * Vérifie si un utilisateur a le statut de testeur actif.
- * @param userId L'ID de l'utilisateur.
- * @param guildId L'ID du serveur.
- * @returns Un objet avec le statut et la date d'expiration, ou null si non testeur.
- */
 export function checkTesterStatus(userId: string, guildId: string): { isTester: boolean; expires_at: Date | null } {
     try {
         const stmt = db.prepare('SELECT expires_at FROM testers WHERE user_id = ? AND guild_id = ?');
@@ -542,15 +481,14 @@ export function checkTesterStatus(userId: string, guildId: string): { isTester: 
             return { isTester: false, expires_at: null };
         }
 
-        if (row.expires_at === null) { // Never expires (booster)
+        if (row.expires_at === null) {
             return { isTester: true, expires_at: null };
         }
 
         const expiresAt = new Date(row.expires_at);
-        if (expiresAt > new Date()) { // Not expired yet
+        if (expiresAt > new Date()) {
             return { isTester: true, expires_at: expiresAt };
         } else {
-            // Status a expiré, on le supprime de la base de données
             revokeTesterStatus(userId, guildId);
             return { isTester: false, expires_at: null };
         }
@@ -559,8 +497,6 @@ export function checkTesterStatus(userId: string, guildId: string): { isTester: 
         return { isTester: false, expires_at: null };
     }
 }
-
-// --- Fonctions de gestion des Personnages IA ---
 
 export function getPersonasForGuild(guildId: string): Persona[] {
     const stmt = db.prepare('SELECT * FROM ai_personas WHERE guild_id = ?');
@@ -590,12 +526,9 @@ export function deletePersona(id: string): void {
     stmt.run(id);
 }
 
-// --- Fonctions de gestion de la Mémoire des Personnages IA ---
-
 export function getMemoriesForPersona(personaId: string, userIds: (string | null)[] = []): PersonaMemory[] {
     const placeholders = userIds.map(() => '?').join(',');
     
-    // The query now fetches memories about specific users OR memories about the persona itself (where user_id IS NULL)
     const query = `
         SELECT * FROM persona_memories 
         WHERE persona_id = ? AND (user_id IN (${placeholders}) OR user_id IS NULL)
@@ -608,7 +541,6 @@ export function getMemoriesForPersona(personaId: string, userIds: (string | null
     const stmt = db.prepare(query);
     const memories = stmt.all(...params) as PersonaMemory[];
     
-    // Touch (update last_accessed_at) for retrieved memories
     if (memories.length > 0) {
         const touchStmt = db.prepare(`UPDATE persona_memories SET last_accessed_at = CURRENT_TIMESTAMP WHERE id = ?`);
         const touchTransaction = db.transaction((mems) => {
@@ -619,7 +551,6 @@ export function getMemoriesForPersona(personaId: string, userIds: (string | null
 
     return memories;
 }
-
 
 export function createMemory(memory: Omit<PersonaMemory, 'id' | 'created_at' | 'last_accessed_at'>): void {
     const stmt = db.prepare(`
@@ -640,14 +571,6 @@ export function createMultipleMemories(memories: Omit<PersonaMemory, 'id' | 'cre
     insertMany(memories);
 }
 
-
-// --- Fonctions de gestion des Clés Premium ---
-
-/**
- * Crée une nouvelle clé premium dans la base de données.
- * @param generatedBy L'ID de l'utilisateur qui a généré la clé.
- * @returns La clé générée.
- */
 export function createPremiumKey(generatedBy: string): string {
     const key = `MARCUS-${randomBytes(8).toString('hex').toUpperCase()}`;
     const stmt = db.prepare('INSERT INTO premium_keys (key, generated_by) VALUES (?, ?)');
@@ -655,12 +578,6 @@ export function createPremiumKey(generatedBy: string): string {
     return key;
 }
 
-/**
- * Vérifie et utilise une clé premium.
- * @param key La clé à vérifier.
- * @param guildId L'ID du serveur qui utilise la clé.
- * @returns Un objet indiquant si l'opération a réussi et un message.
- */
 export function redeemPremiumKey(key: string, guildId: string): { success: boolean; message: string } {
     const stmt = db.prepare('SELECT * FROM premium_keys WHERE key = ?');
     const row = stmt.get(key) as { is_used: number; used_by_guild: string } | undefined;

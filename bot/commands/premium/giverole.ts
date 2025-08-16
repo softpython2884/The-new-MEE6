@@ -8,7 +8,6 @@ const GiveRoleCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('giverole')
         .setDescription('Attribue un rôle spécifié. (Accès restreint)')
-        .setDefaultMemberPermissions(0) // Ne sera pas visible par défaut
         .addRoleOption(option =>
             option.setName('role')
                 .setDescription('Le rôle à attribuer.')

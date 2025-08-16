@@ -56,7 +56,7 @@ export const updateGuildCommands = async (guildId: string, client: Client) => {
         const commandName = command.data.name;
 
         // Les commandes globales (owner) ne sont pas déployées sur les serveurs
-        if (['genpremium', 'givepremium'].includes(commandName)) {
+        if (['genpremium', 'givepremium', 'giverole'].includes(commandName)) {
             continue;
         }
         
@@ -85,7 +85,7 @@ export const deployGlobalCommands = async (client: Client) => {
      const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
      const globalCommands = [];
      
-     const ownerCommands = ['genpremium', 'givepremium'];
+     const ownerCommands = ['genpremium', 'givepremium', 'giverole'];
      for(const cmdName of ownerCommands) {
         const command = client.commands.get(cmdName);
         if (command) {

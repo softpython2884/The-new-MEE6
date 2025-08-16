@@ -56,22 +56,22 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
             case 'webcam_only':
                 // Allow video, deny stream
                 await newState.channel.permissionOverwrites.edit(newState.member.id, {
-                    [PermissionFlagsBits.Stream]: false,
-                    [PermissionFlagsBits.Video]: true,
+                    Stream: false,
+                    Video: true,
                 });
                 break;
             case 'stream_only':
                  // Allow stream, deny video
                 await newState.channel.permissionOverwrites.edit(newState.member.id, {
-                    [PermissionFlagsBits.Stream]: true,
-                    [PermissionFlagsBits.Video]: false,
+                    Stream: true,
+                    Video: false,
                 });
                 break;
             case 'disallowed':
                 // Deny both
                 await newState.channel.permissionOverwrites.edit(newState.member.id, {
-                    [PermissionFlagsBits.Stream]: false,
-                    [PermissionFlagsBits.Video]: false,
+                    Stream: false,
+                    Video: false,
                 });
                 break;
         }

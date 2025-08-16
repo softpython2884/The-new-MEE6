@@ -11,7 +11,7 @@ export const loadCommands = async (client: Client) => {
     const commandsPath = path.join(__dirname, '../commands');
     
     // Add faq.ts to the list of commands to load
-    const commandFiles = [];
+    const commandFiles: string[] = [];
     
     const traverseDirectory = (dir: string) => {
         const files = fs.readdirSync(dir);
@@ -27,21 +27,6 @@ export const loadCommands = async (client: Client) => {
     };
 
     traverseDirectory(commandsPath);
-
-    // Manually add the new command if it's not being picked up
-    const faqPath = path.join(__dirname, '../commands/ai/faq.ts');
-    if (!commandFiles.includes(faqPath) && fs.existsSync(faqPath)) {
-        commandFiles.push(faqPath);
-    }
-     const webhookPath = path.join(__dirname, '../commands/premium/webhook.ts');
-    if (!commandFiles.includes(webhookPath) && fs.existsSync(webhookPath)) {
-        commandFiles.push(webhookPath);
-    }
-    const testerPath = path.join(__dirname, '../commands/premium/tester.ts');
-    if (!commandFiles.includes(testerPath) && fs.existsSync(testerPath)) {
-        commandFiles.push(testerPath);
-    }
-    
 
     for (const filePath of commandFiles) {
         try {

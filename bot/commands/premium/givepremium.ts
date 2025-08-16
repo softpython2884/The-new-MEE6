@@ -6,7 +6,7 @@ import { setPremiumStatus } from '../../../src/lib/db';
 const GivePremiumCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('givepremium')
-        .setDescription('Donne le statut premium à un serveur. (Réservé au propriétaire du bot)')
+        .setDescription('Donne ou retire le statut premium à un serveur. (Propriétaire du bot seulement)')
         .setDMPermission(false)
         .addStringOption(option =>
             option.setName('server_id')
@@ -25,6 +25,8 @@ const GivePremiumCommand: Command = {
             return;
         }
 
+        await interaction.deferReply({ephemeral: true});
+
         const guildId = interaction.options.getString('server_id', true);
         const status = interaction.options.getBoolean('status', true);
 
@@ -32,7 +34,7 @@ const GivePremiumCommand: Command = {
             // Check if the bot is in the target guild
             const guild = await interaction.client.guilds.fetch(guildId).catch(() => null);
             if (!guild) {
-                await interaction.reply({ content: `Je ne suis pas sur le serveur avec l'ID \`${guildId}\`.`, flags: MessageFlags.Ephemeral });
+                await interaction.editReply({ content: `Je ne suis pas sur le serveur avec l'ID \`${guildId}\`.` });
                 return;
             }
 
@@ -44,11 +46,11 @@ const GivePremiumCommand: Command = {
                 .setDescription(`Le statut premium pour le serveur **${guild.name}** (\`${guildId}\`) a été mis à **${status ? 'Activé' : 'Désactivé'}**.`)
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
             console.error('[GivePremium] Error setting premium status:', error);
-            await interaction.reply({ content: 'Une erreur est survenue lors de la mise à jour du statut premium.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply({ content: 'Une erreur est survenue lors de la mise à jour du statut premium.' });
         }
     },
 };

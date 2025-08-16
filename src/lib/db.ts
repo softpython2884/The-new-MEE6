@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { Client } from 'discord.js';
 import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory } from '../types';
+import { randomBytes } from 'crypto';
 
 // Assurez-vous que le répertoire de la base de données existe
 const dbDir = path.resolve(process.cwd(), 'database');
@@ -71,6 +72,19 @@ const upgradeSchema = () => {
             );
         `);
          console.log('[Database] La table "persona_memories" est prête.');
+
+         // Create premium_keys table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS premium_keys (
+                key TEXT PRIMARY KEY,
+                generated_by TEXT NOT NULL,
+                generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                is_used BOOLEAN DEFAULT FALSE,
+                used_by_guild TEXT,
+                used_at DATETIME
+            );
+        `);
+        console.log('[Database] La table "premium_keys" est prête.');
 
 
     } catch (error) {
@@ -626,4 +640,46 @@ export function createMultipleMemories(memories: Omit<PersonaMemory, 'id' | 'cre
     insertMany(memories);
 }
 
-    
+
+// --- Fonctions de gestion des Clés Premium ---
+
+/**
+ * Crée une nouvelle clé premium dans la base de données.
+ * @param generatedBy L'ID de l'utilisateur qui a généré la clé.
+ * @returns La clé générée.
+ */
+export function createPremiumKey(generatedBy: string): string {
+    const key = `MARCUS-${randomBytes(8).toString('hex').toUpperCase()}`;
+    const stmt = db.prepare('INSERT INTO premium_keys (key, generated_by) VALUES (?, ?)');
+    stmt.run(key, generatedBy);
+    return key;
+}
+
+/**
+ * Vérifie et utilise une clé premium.
+ * @param key La clé à vérifier.
+ * @param guildId L'ID du serveur qui utilise la clé.
+ * @returns Un objet indiquant si l'opération a réussi et un message.
+ */
+export function redeemPremiumKey(key: string, guildId: string): { success: boolean; message: string } {
+    const stmt = db.prepare('SELECT * FROM premium_keys WHERE key = ?');
+    const row = stmt.get(key) as { is_used: number; used_by_guild: string } | undefined;
+
+    if (!row) {
+        return { success: false, message: 'Clé invalide.' };
+    }
+
+    if (row.is_used) {
+        if (row.used_by_guild === guildId) {
+            return { success: false, message: 'Cette clé a déjà été activée pour ce serveur.' };
+        }
+        return { success: false, message: 'Cette clé a déjà été utilisée par un autre serveur.' };
+    }
+
+    const updateStmt = db.prepare('UPDATE premium_keys SET is_used = TRUE, used_by_guild = ?, used_at = CURRENT_TIMESTAMP WHERE key = ?');
+    updateStmt.run(guildId, key);
+
+    setPremiumStatus(guildId, true);
+
+    return { success: true, message: 'Clé premium activée avec succès !' };
+}

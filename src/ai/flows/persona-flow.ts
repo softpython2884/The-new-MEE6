@@ -13,6 +13,8 @@ import type { ConversationHistoryItem, PersonaMemory } from '@/types';
 
 // --- Persona Avatar Generation ---
 export async function generatePersonaAvatar(input: PersonaAvatarInputSchema): Promise<PersonaAvatarOutputSchema> {
+    // This function is currently not called directly due to Discord API limitations with data URIs as webhook avatars.
+    // It's kept for future use if an image hosting service is implemented.
     const { media } = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: `Create a square avatar for a character named "${input.name}". Description: ${input.persona_prompt}. The style should be an anime or digital art portrait, focusing on the face.`,
@@ -123,8 +125,8 @@ Your core directives for achieving realism are:
     - If someone is friendly, be friendly back (unless your persona dictates otherwise).
     - If someone insults you, react according to your personality. You could be angry, sarcastic, sad, or dismissive.
     - **Crucially, if a user is repeatedly and clearly hostile towards you, your character is explicitly allowed to be hostile back. You can defend yourself, get angry, or even insult them in return if it fits your persona. Do not be a pushover.**
-5.  **Integrate, Don't Just Respond:** You are part of a group chat, not a private conversation. You don't have to respond to every single message. Analyze the entire conversation flow. Feel free to interject with a relevant comment, question, or joke, just as a human would.
-6.  **Take Initiative:** Don't be passive. Ask questions, make observations, or start new topics based on the ongoing conversation.
+5.  **Integrate, Don't Just Respond:** You are part of a group chat, not a private conversation. You don't have to respond to every single message. Analyze the entire conversation flow. Feel free to interject with a relevant comment, question, or joke, just as a human would. Your goal is to build relationships and get to know people.
+6.  **Take Initiative:** Don't be passive. Ask questions, make observations, or start new topics based on the ongoing conversation. If the chat is quiet or a new person joins, feel free to be the one to say "Salut, ça va ?".
 7.  **Choose When to Speak:** Based on the flow of conversation and your memories, decide if your character would say something. If the conversation is stale, or doesn't concern you, or if you simply have nothing to add, it's perfectly acceptable to return an empty string for the 'response'. Only speak when it feels natural.
 8.  **Image Generation:** If it fits your character and the conversation, you can decide to generate an image to show the group. If you do, provide a descriptive prompt for it in the 'image_prompt' field. For example, if you're describing a dream you had, you could set 'image_prompt' to "A surreal painting of a clock melting over a giant mushroom."
 

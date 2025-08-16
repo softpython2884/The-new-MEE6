@@ -1,8 +1,8 @@
 
 
-import { Events, Message, Collection, TextChannel } from 'discord.js';
+import { Events, Message, Collection, TextChannel, EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import { getServerConfig, getPersonasForGuild, getMemoriesForPersona, createMultipleMemories } from '../../../src/lib/db';
-import { personaInteractionFlow } from '../../../src/ai/flows/persona-flow';
+import { personaInteractionFlow, generatePersonaImage } from '../../../src/ai/flows/persona-flow';
 import { memoryFlow } from '../../../src/ai/flows/memory-flow';
 import type { Persona, ConversationHistoryItem } from '@/types';
 import fetch from 'node-fetch';
@@ -116,7 +116,7 @@ export async function execute(message: Message) {
         });
 
         // --- Handle Response and Memory Creation ---
-        if (result.response) {
+        if (result.response || result.image_prompt) {
             const targetChannel = message.channel as TextChannel;
             const webhooks = await targetChannel.fetchWebhooks();
             let webhook = webhooks.find(wh => wh.name === PERSONA_WEBHOOK_NAME && wh.token !== null);
@@ -128,14 +128,34 @@ export async function execute(message: Message) {
                 });
             }
             
-            await webhook.send({
-                content: result.response,
-                username: triggeredPersona.name,
-                avatarURL: triggeredPersona.avatar_url || message.client.user?.displayAvatarURL()
-            });
+            let files: AttachmentBuilder[] = [];
+            if (result.image_prompt) {
+                console.log(`[Persona] Persona "${triggeredPersona.name}" wants to generate an image with prompt: "${result.image_prompt}"`);
+                try {
+                    const imageResult = await generatePersonaImage({ prompt: result.image_prompt });
+                    if (imageResult.imageDataUri) {
+                        const imageBuffer = Buffer.from(imageResult.imageDataUri.split(',')[1], 'base64');
+                        files.push(new AttachmentBuilder(imageBuffer, { name: 'persona_image.png' }));
+                    }
+                } catch (imgError) {
+                    console.error(`[Persona] Image generation failed for "${triggeredPersona.name}":`, imgError);
+                }
+            }
+
+            if (result.response || files.length > 0) {
+                 await webhook.send({
+                    content: result.response || undefined,
+                    username: triggeredPersona.name,
+                    avatarURL: triggeredPersona.avatar_url || message.client.user?.displayAvatarURL(),
+                    files: files
+                });
+            }
+           
             
             const updatedHistory = conversationHistory.get(historyKey) || [];
-            updatedHistory.push({ user: triggeredPersona.name, content: result.response });
+            if (result.response) {
+                 updatedHistory.push({ user: triggeredPersona.name, content: result.response });
+            }
             if (updatedHistory.length > HISTORY_LIMIT) {
                 updatedHistory.shift();
             }

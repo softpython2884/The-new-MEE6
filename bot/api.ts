@@ -5,7 +5,7 @@ import cors from 'cors';
 import { Client, CategoryChannel, ChannelType } from 'discord.js';
 import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGuild, updatePersona, deletePersona, createPersona } from '@/lib/db';
 import { verifyAndConsumeAuthToken } from './auth';
-import { generatePersonaPrompt, generatePersonaAvatar } from '@/ai/flows/persona-flow';
+import { generatePersonaPrompt } from '@/ai/flows/persona-flow';
 import { v4 as uuidv4 } from 'uuid';
 
 const API_PORT = process.env.BOT_API_PORT || 25875;
@@ -270,10 +270,7 @@ export function startApi(client: Client) {
                 return res.status(404).json({ error: 'Guild not found.' });
             }
 
-            // 1. Generate Avatar (REMOVED due to length issues)
-            // const { avatarDataUri } = await generatePersonaAvatar({ name, persona_prompt });
-
-            // 2. Create Role
+            // Create Role
             const newRole = await guild.roles.create({
                 name: name,
                 mentionable: true,

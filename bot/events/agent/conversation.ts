@@ -101,7 +101,8 @@ async function handleConversationalAgent(message: Message) {
             photoDataUri = await imageUrlToDataUri(imageAttachment.url);
         }
 
-        let historyForPrompt = [];
+        // Fetch last 5 messages for context, unless it's a dedicated channel (which has its own history)
+        let historyForPrompt: { user: string, content: string }[] = [];
         if (isInDedicatedChannel) {
             const currentHistory = conversationHistory.get(message.channel.id) || [];
             historyForPrompt = [...currentHistory]; 
@@ -111,6 +112,9 @@ async function handleConversationalAgent(message: Message) {
                 currentHistory.shift();
             }
             conversationHistory.set(message.channel.id, currentHistory);
+        } else {
+             const lastMessages = await message.channel.messages.fetch({ limit: 5, before: message.id });
+             historyForPrompt = lastMessages.map(m => ({ user: m.author.username, content: m.content })).reverse();
         }
 
         const result = await conversationalAgentFlow({

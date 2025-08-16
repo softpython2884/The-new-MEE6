@@ -21,7 +21,7 @@ const ConversationHistoryItemSchema = z.object({
 });
 
 export const ConversationalAgentInputSchema = z.object({
-  userMessage: z.string().describe('The message sent by the user to the agent.'),
+  userMessage: z.string().describe('The message sent by the agent to the user.'),
   userName: z.string().describe("The user's display name (nickname)."),
   agentName: z.string().describe("The agent's name."),
   agentRole: z.string().describe("The agent's role or job on the server."),

@@ -41,10 +41,16 @@ const WebhookCommand: Command = {
         await interaction.deferReply({ ephemeral: true });
 
         const targetUser = interaction.options.getUser('utilisateur', true);
+        const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
         const messageContent = interaction.options.getString('message', true);
         const imageUrl = interaction.options.getString('image_url');
         const targetChannel = (interaction.options.getChannel('salon') || interaction.channel) as TextChannel;
 
+        if (!targetMember) {
+            await interaction.editReply({ content: 'Impossible de trouver cet utilisateur sur le serveur.' });
+            return;
+        }
+        
         if (!targetChannel.isTextBased()) {
              await interaction.editReply({ content: "Le salon spécifié n'est pas un salon textuel." });
             return;
@@ -64,12 +70,12 @@ const WebhookCommand: Command = {
 
             await webhook.send({
                 content: messageContent,
-                username: targetUser.username,
+                username: targetMember.displayName,
                 avatarURL: targetUser.displayAvatarURL(),
                 files: imageUrl ? [imageUrl] : [],
             });
 
-            await interaction.editReply({ content: `✅ Message envoyé avec succès dans ${targetChannel} en tant que **${targetUser.tag}**.` });
+            await interaction.editReply({ content: `✅ Message envoyé avec succès dans ${targetChannel} en tant que **${targetMember.displayName}**.` });
 
         } catch (error) {
             console.error(`[WebhookCommand] Could not send webhook message:`, error);

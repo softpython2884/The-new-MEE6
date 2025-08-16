@@ -73,7 +73,8 @@ Example for a "Gaming" theme:
 - Activities: "Webcam on", "Just chatting" -> Name: "💬 Session blabla", Bio: "Discussions en face à face."
 
 IMPORTANT: Do not just return the current name. Always generate a new, relevant name based on the situation.
-If the member count is 0, the channel should be named "Vocal intéractif". This logic is handled outside this prompt, but keep it in mind.
+If the member count is 0, the AI flow should suggest "Vocal intéractif". This logic is also handled outside this prompt, but your response should be consistent with it.
+If you cannot come up with a good name, return the default name "Vocal intéractif".
 `,
 });
 
@@ -85,6 +86,14 @@ const flow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    return output!;
+    
+    // Ensure we don't return an empty name
+    if (!output?.channelName) {
+        return {
+            channelName: "Vocal intéractif",
+            channelBio: "En attente d'inspiration !"
+        }
+    }
+    return output;
   }
 );

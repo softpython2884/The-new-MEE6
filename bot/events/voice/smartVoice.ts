@@ -1,5 +1,5 @@
 
-import { Events, VoiceState, ActivityType, Collection, ChannelType, GuildChannel } from 'discord.js';
+import { Events, VoiceState, ActivityType, Collection, ChannelType, GuildChannel, NonThreadGuildBasedChannel } from 'discord.js';
 import { smartVoiceFlow } from '../../../src/ai/flows/smart-voice-flow';
 import { getServerConfig } from '../../../src/lib/db';
 import type { InteractiveChannel } from '../../../src/types';
@@ -8,8 +8,11 @@ import type { InteractiveChannel } from '../../../src/types';
 // Simple cache to prevent spamming the API for the same channel within a short time
 const channelUpdateCache = new Collection<string, number>();
 const UPDATE_COOLDOWN = 60000; // 1 minute (60,000 ms)
+const DEFAULT_CHANNEL_NAME = "Vocal intéractif";
 
-async function updateChannel(channel: GuildChannel) {
+async function updateChannelName(channel: NonThreadGuildBasedChannel) {
+    if (channel.type !== ChannelType.GuildVoice) return;
+    
     // --- Check if the channel is an interactive channel ---
     const smartVoiceConfig = await getServerConfig(channel.guild.id, 'smart-voice');
     const isPremium = smartVoiceConfig?.premium || false;
@@ -29,6 +32,16 @@ async function updateChannel(channel: GuildChannel) {
         if (channel.members.size > 0) {
             return;
         }
+    }
+
+    // --- Reset channel if empty ---
+    if (channel.members.size === 0) {
+        if (channel.name !== DEFAULT_CHANNEL_NAME) {
+            console.log(`[Smart-Voice] Channel "${channel.name}" is empty. Resetting.`);
+            await channel.setName(DEFAULT_CHANNEL_NAME);
+            channelUpdateCache.delete(channel.id); // Clear cache on reset
+        }
+        return;
     }
     
     try {
@@ -60,11 +73,7 @@ async function updateChannel(channel: GuildChannel) {
             
             // Update cache timestamp after a successful rename
             channelUpdateCache.set(channel.id, now);
-        } else if (memberCount === 0 && channel.name !== "Vocal intéractif") {
-            // This is a direct check to ensure an empty channel gets reset if the AI fails to provide the name
-             await (channel as GuildChannel).setName("Vocal intéractif");
-        }
-        else {
+        } else {
             console.log(`[Smart-Voice] AI proposed the same name or an empty name. No change made for channel ${channel.id}.`);
         }
 
@@ -77,21 +86,20 @@ async function updateChannel(channel: GuildChannel) {
 export const name = Events.VoiceStateUpdate;
 
 export async function execute(oldState: VoiceState, newState: VoiceState) {
-    // A user joined a channel or switched from another one
-    if (newState.channel && newState.channel.type === ChannelType.GuildVoice && newState.channelId !== oldState.channelId) {
-        await updateChannel(newState.channel as GuildChannel);
+    const oldChannel = oldState.channel;
+    const newChannel = newState.channel;
+
+    // A user's state changed (e.g., streaming, camera on/off, activity change) but they stayed in the same channel.
+    // This is hard to detect with VoiceStateUpdate alone, but we catch joins/leaves/switches.
+    // A PresenceUpdate event handler would be needed for perfect activity tracking.
+
+    // User joined a channel or switched from another one
+    if (newChannel && newChannelId !== oldChannel?.id) {
+        await updateChannelName(newChannel);
     }
 
-    // A user left a channel
-    if (oldState.channel && oldState.channel.type === ChannelType.GuildVoice && oldState.channelId !== newState.channelId) {
-        // We also need to update the old channel to reflect the change in member count/activities
-        await updateChannel(oldState.channel as GuildChannel);
-    }
-
-     // A user's presence (activity) updated, but they didn't change channels
-    if (newState.channel && newState.channelId === oldState.channelId && newState.member) {
-         // This logic could be tied to a PresenceUpdate event handler for better accuracy
-         // For simplicity, we'll re-evaluate on any voice state change.
-        await updateChannel(newState.channel as GuildChannel);
+    // User left a channel (and didn't join another) or switched
+    if (oldChannel && oldChannel.id !== newChannel?.id) {
+        await updateChannelName(oldChannel);
     }
 }

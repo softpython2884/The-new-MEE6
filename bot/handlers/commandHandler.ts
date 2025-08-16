@@ -30,7 +30,10 @@ traverseDirectory(commandsPath);
 export const loadCommands = (client: Client) => {
     for (const filePath of commandFiles) {
         try {
-            const command: Command = require(filePath).default;
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const commandModule = require(filePath);
+            const command: Command = commandModule.default || commandModule;
+
             if (command && command.data && command.execute) {
                 if (!client.commands.has(command.data.name)) {
                     client.commands.set(command.data.name, command);
@@ -44,32 +47,32 @@ export const loadCommands = (client: Client) => {
 };
 
 // Helper function to map a command name to its module folder
-const getCommandModule = (commandName: string): Module | 'unknown' => {
-    const commandFile = commandFiles.find(file => path.basename(file, '.ts').toLowerCase() === commandName.toLowerCase());
-    if (commandFile) {
-        const relativePath = path.relative(commandsPath, commandFile);
-        const moduleDir = relativePath.split(path.sep)[0];
-        
-        // This mapping ensures that directory names match the Module type
-        const moduleMap: { [key: string]: Module } = {
-            'ai': 'content-ai', // Example, adjust as needed
-            'automation': 'private-rooms', // Example
-            'config': 'general-commands',
-            'general': 'general-commands',
-            'moderation': 'moderation',
-            'premium': 'premium',
-            'security': 'security-alerts'
-        };
+const getCommandModule = (commandName: string): Module | 'general' | 'unknown' => {
+    const commandFile = commandFiles.find(file => path.basename(file, '.ts').toLowerCase() === commandName.toLowerCase() || path.basename(file, '.js').toLowerCase() === commandName.toLowerCase());
+    if (!commandFile) return 'unknown';
 
-        // A more robust mapping based on command properties would be better
-        if (['iacreateserv', 'iaeditserv', 'iadeleteserv', 'iaresetserv'].includes(commandName)) return 'server-builder';
-        if (['faq'].includes(commandName)) return 'community-assistant';
-        if (['personnage'].includes(commandName)) return 'ai-personas';
-        if (['lock', 'unlock'].includes(commandName)) return 'lock';
-        
-        return moduleMap[moduleDir] || 'unknown';
-    }
-    return 'unknown';
+    const relativePath = path.relative(commandsPath, commandFile);
+    const moduleDir = relativePath.split(path.sep)[0];
+    
+    // This is a mapping from folder name to module name in the DB
+    const moduleMap: { [key: string]: Module } = {
+        'moderation': 'moderation',
+        'security': 'security-alerts', // A reasonable default
+        'automation': 'private-rooms', // A reasonable default
+        'ai': 'content-ai', // A reasonable default
+        'premium': 'premium', // A special case for premium commands
+    };
+    
+    if (['lock', 'unlock'].includes(commandName)) return 'lock';
+    if (['backup'].includes(commandName)) return 'backup';
+    if (['iacreateserv', 'iaeditserv', 'iadeleteserv', 'iaresetserv'].includes(commandName)) return 'server-builder';
+    if (['personnage'].includes(commandName)) return 'ai-personas';
+    if (['faq'].includes(commandName)) return 'community-assistant';
+    if (['traduire'].includes(commandName)) return 'auto-translation';
+    if (['addprivate', 'privateresum'].includes(commandName)) return 'private-rooms';
+    if (['event-create', 'event-list'].includes(commandName)) return 'smart-events';
+
+    return moduleMap[moduleDir] || 'general';
 }
 
 
@@ -88,18 +91,15 @@ export const updateGuildCommands = async (guildId: string, client: Client) => {
 
         const module = getCommandModule(commandName);
 
-        if (module !== 'unknown') {
+        if (module === 'general' || module === 'unknown') {
+            // If the command is general, always deploy it.
+             commandsToDeploy.push(command.data.toJSON());
+        } else {
+             // If the command belongs to a module, check if that module is enabled.
             const config = getServerConfig(guildId, module);
             if (config?.enabled) {
                 commandsToDeploy.push(command.data.toJSON());
             }
-        } else {
-             // Fallback for general commands or those without a specific module toggle
-             // This assumes 'general-commands' module enables most basic commands
-             const generalConfig = getServerConfig(guildId, 'general-commands');
-             if(generalConfig?.enabled) {
-                 commandsToDeploy.push(command.data.toJSON());
-             }
         }
     }
 
@@ -129,18 +129,22 @@ export const deployGlobalCommands = async (client: Client) => {
      for(const cmdName of ownerCommands) {
         const command = client.commands.get(cmdName);
         if (command) {
-             command.data.setDefaultMemberPermissions(undefined);
+             command.data.setDefaultMemberPermissions(undefined); // No permissions required by default, handled in code
              globalCommands.push(command.data.toJSON());
         }
      }
 
      try {
-        console.log(`[Commands] Refreshing ${globalCommands.length} global (owner) commands.`);
-        await rest.put(
-            Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!),
-            { body: globalCommands },
-        );
-        console.log(`[Commands] Successfully reloaded global commands.`);
+        if (globalCommands.length > 0) {
+            console.log(`[Commands] Refreshing ${globalCommands.length} global (owner) commands.`);
+            await rest.put(
+                Routes.applicationCommands(process.env.DISCORD_CLIENT_ID!),
+                { body: globalCommands },
+            );
+            console.log(`[Commands] Successfully reloaded global commands.`);
+        } else {
+            console.log('[Commands] No global commands to refresh.');
+        }
      } catch(error) {
         console.error('[Commands] Failed to deploy global commands:', error);
      }

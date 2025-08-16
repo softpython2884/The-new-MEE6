@@ -1,9 +1,9 @@
 
 
 import { Events, Message, Collection, TextChannel, EmbedBuilder, AttachmentBuilder, DMChannel } from 'discord.js';
-import { getServerConfig, getPersonasForGuild, getMemoriesForPersona, createMultipleMemories } from '../../../src/lib/db';
-import { personaInteractionFlow, generatePersonaImage } from '../../../src/ai/flows/persona-flow';
-import { memoryFlow } from '../../../src/ai/flows/memory-flow';
+import { getServerConfig, getPersonasForGuild, getMemoriesForPersona, createMultipleMemories } from '@/lib/db';
+import { personaInteractionFlow } from '@/ai/flows/persona-flow';
+import { memoryFlow } from '@/ai/flows/memory-flow';
 import type { Persona, ConversationHistoryItem } from '@/types';
 import fetch from 'node-fetch';
 
@@ -153,47 +153,28 @@ async function handlePersonaInteraction(message: Message, persona: Persona, guil
             interactionContext: interactionContext,
         });
 
-        if (result.response || result.image_prompt) {
-            let files: AttachmentBuilder[] = [];
-            if (result.image_prompt) {
-                console.log(`[Persona] Persona "${persona.name}" wants to generate an image with prompt: "${result.image_prompt}"`);
-                try {
-                    const imageResult = await generatePersonaImage({ prompt: result.image_prompt });
-                    if (imageResult.imageDataUri) {
-                        const imageBuffer = Buffer.from(imageResult.imageDataUri.split(',')[1], 'base64');
-                        files.push(new AttachmentBuilder(imageBuffer, { name: 'persona_image.png' }));
-                    }
-                } catch (imgError) {
-                    console.error(`[Persona] Image generation failed for "${persona.name}":`, imgError);
-                }
-            }
+        if (result.response) {
+             if (message.channel instanceof DMChannel) {
+                 await message.channel.send({ content: result.response });
+             } else if (message.channel instanceof TextChannel) {
+                const webhooks = await message.channel.fetchWebhooks();
+                let webhook = webhooks.find(wh => wh.name === PERSONA_WEBHOOK_NAME && wh.token !== null);
 
-            if (result.response || files.length > 0) {
-                 if (message.channel instanceof DMChannel) {
-                     await message.channel.send({ content: result.response || undefined, files: files });
-                 } else if (message.channel instanceof TextChannel) {
-                    const webhooks = await message.channel.fetchWebhooks();
-                    let webhook = webhooks.find(wh => wh.name === PERSONA_WEBHOOK_NAME && wh.token !== null);
-
-                    if (!webhook) {
-                        webhook = await message.channel.createWebhook({
-                            name: PERSONA_WEBHOOK_NAME,
-                            reason: 'Webhook for AI Personas'
-                        });
-                    }
-                    await webhook.send({
-                        content: result.response || undefined,
-                        username: persona.name,
-                        avatarURL: persona.avatar_url || message.client.user?.displayAvatarURL(),
-                        files: files
+                if (!webhook) {
+                    webhook = await message.channel.createWebhook({
+                        name: PERSONA_WEBHOOK_NAME,
+                        reason: 'Webhook for AI Personas'
                     });
-                 }
-            }
+                }
+                await webhook.send({
+                    content: result.response,
+                    username: persona.name,
+                    avatarURL: persona.avatar_url || message.client.user?.displayAvatarURL(),
+                });
+             }
             
             const updatedHistory = conversationHistory.get(historyKey) || [];
-            if (result.response) {
-                 updatedHistory.push({ user: persona.name, content: result.response });
-            }
+            updatedHistory.push({ user: persona.name, content: result.response });
             if (updatedHistory.length > HISTORY_LIMIT) {
                 updatedHistory.shift();
             }

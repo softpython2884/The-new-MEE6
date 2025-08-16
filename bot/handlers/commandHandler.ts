@@ -46,76 +46,21 @@ export const loadCommands = (client: Client) => {
     console.log(`[+] Loaded ${client.commands.size} command modules into the client.`);
 };
 
-// Helper function to map a command name to its module folder
-const getCommandModule = (commandName: string): Module | 'unknown' => {
-    const commandFile = commandFiles.find(file => {
-        const baseName = path.basename(file, '.ts').toLowerCase();
-        const jsBaseName = path.basename(file, '.js').toLowerCase();
-        return baseName === commandName.toLowerCase() || jsBaseName === commandName.toLowerCase();
-    });
-
-    if (!commandFile) return 'unknown';
-
-    const relativePath = path.relative(commandsPath, commandFile);
-    const moduleDir = relativePath.split(path.sep)[0];
-    
-    // This is a mapping from folder name to module name in the DB
-    const moduleMap: { [key: string]: Module } = {
-        'moderation': 'moderation',
-        'security': 'security-alerts', // A reasonable default
-        'automation': 'private-rooms', // A reasonable default
-        'ai': 'content-ai', // A reasonable default
-        'premium': 'premium', // A special case for premium commands
-        'general': 'general-commands',
-    };
-    
-    // Command-specific overrides for multi-module folders
-    if (['lock', 'unlock'].includes(commandName)) return 'lock';
-    if (['backup'].includes(commandName)) return 'backup';
-    if (['iacreateserv', 'iaeditserv', 'iadeleteserv', 'iaresetserv'].includes(commandName)) return 'server-builder';
-    if (['personnage'].includes(commandName)) return 'ai-personas';
-    if (['faq'].includes(commandName)) return 'community-assistant';
-    if (['traduire'].includes(commandName)) return 'general-commands';
-    if (['addprivate', 'privateresum'].includes(commandName)) return 'private-rooms';
-    if (['event-create', 'event-list'].includes(commandName)) return 'smart-events';
-    if (['setsuggest', 'suggest'].includes(commandName)) return 'suggestions';
-
-
-    return moduleMap[moduleDir] || 'unknown';
-}
-
-
 // Fonction pour mettre à jour les commandes pour UN serveur spécifique
 export const updateGuildCommands = async (guildId: string, client: Client) => {
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
     const commandsToDeploy = [];
 
+    // On déploie toutes les commandes SAUF les commandes globales (owner-only)
     for (const command of client.commands.values()) {
         const commandName = command.data.name;
 
-        // Owner-only commands are global and should not be deployed to guilds
+        // Les commandes globales (owner) ne sont pas déployées sur les serveurs
         if (['genpremium', 'givepremium'].includes(commandName)) {
             continue;
         }
-
-        const module = getCommandModule(commandName);
         
-        if (module === 'unknown') {
-             commandsToDeploy.push(command.data.toJSON());
-             continue;
-        }
-        
-        const config = await getServerConfig(guildId, module);
-
-        // A special check for commands within the 'general-commands' module that can be individually toggled
-        if (module === 'general-commands' && config?.enabled) {
-            if (config?.command_enabled?.[commandName]) {
-                 commandsToDeploy.push(command.data.toJSON());
-            }
-        }
-        else if (config?.enabled) {
-            commandsToDeploy.push(command.data.toJSON());
-        }
+        commandsToDeploy.push(command.data.toJSON());
     }
 
     try {
@@ -164,5 +109,3 @@ export const deployGlobalCommands = async (client: Client) => {
         console.error('[Commands] Failed to deploy global commands:', error);
      }
 }
-
-    

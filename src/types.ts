@@ -45,7 +45,6 @@ export type Module =
     | 'server-identity'
     | 'security-alerts'
     | 'moveall'
-    | 'tester'
     | 'manual-voice-control';
 
 export interface ModuleConfig {

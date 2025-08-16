@@ -12,7 +12,7 @@ import type { ConversationHistoryItem, PersonaMemory } from '@/types';
 
 
 // --- Persona Avatar Generation ---
-export async function generatePersonaAvatar(input: PersonaAvatarInputSchema): Promise<PersonaAvatarOutputSchema> {
+export async function generatePersonaAvatar(input: PersonaAvatarInput): Promise<PersonaAvatarOutput> {
     // This function is currently not called directly due to Discord API limitations with data URIs as webhook avatars.
     // It's kept for future use if an image hosting service is implemented.
     const { media } = await ai.generate({
@@ -199,12 +199,12 @@ const PersonaAvatarInputSchema = z.object({
     persona_prompt: z.string().describe("The detailed persona description."),
 });
 
-type PersonaAvatarInputSchema = z.infer<typeof PersonaAvatarInputSchema>;
+export type PersonaAvatarInput = z.infer<typeof PersonaAvatarInputSchema>;
 
 const PersonaAvatarOutputSchema = z.object({
     avatarDataUri: z.string().describe("The generated avatar image as a data URI."),
 });
 
-type PersonaAvatarOutputSchema = z.infer<typeof PersonaAvatarOutputSchema>;
+export type PersonaAvatarOutput = z.infer<typeof PersonaAvatarOutputSchema>;
 
     

@@ -6,7 +6,8 @@ import { ServerSidebar } from '@/components/server-sidebar';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Menu, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const RippleGrid = dynamic(() => import('@/components/ripple-grid'), {
   ssr: false,
@@ -21,7 +22,6 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!serverId) {
-      // Should not happen on this layout, but as a safeguard
       router.push('/dashboard');
       return;
     }
@@ -46,7 +46,6 @@ function AuthGuard({ children }: { children: ReactNode }) {
   }
 
   if (!isVerified) {
-    // This will be shown briefly before redirection kicks in
      return (
         <div className="flex h-full w-full items-center justify-center">
           <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -65,6 +64,8 @@ export default function DashboardLayout({
   children: ReactNode;
   params: { serverId: string };
 }) {
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="relative flex h-screen bg-background text-foreground overflow-hidden">
       <div className="absolute inset-0 z-0">
@@ -85,9 +86,14 @@ export default function DashboardLayout({
       </div>
       <div className="relative z-10 flex h-full w-full">
         <ServerSidebar serverId={params.serverId} />
-        <ModuleSidebar serverId={params.serverId} />
+        <ModuleSidebar serverId={params.serverId} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
         <main className="flex-1 overflow-y-auto bg-transparent">
-          <div className="container mx-auto p-6 lg:p-8">
+           <div className="md:hidden flex items-center p-4">
+              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+                  <Menu className="h-6 w-6" />
+              </Button>
+            </div>
+          <div className="container mx-auto p-6 lg:p-8 pt-0 md:pt-8">
              <AuthGuard>{children}</AuthGuard>
           </div>
         </main>

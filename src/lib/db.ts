@@ -47,7 +47,9 @@ const upgradeSchema = () => {
                 persona_prompt TEXT NOT NULL,
                 creator_id TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                active_channel_id TEXT
+                active_channel_id TEXT,
+                avatar_url TEXT,
+                role_id TEXT
             );
         `);
         // Check for persona columns and add them if they don't exist

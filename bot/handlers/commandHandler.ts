@@ -33,6 +33,10 @@ export const loadCommands = async (client: Client) => {
     if (!commandFiles.includes(faqPath) && fs.existsSync(faqPath)) {
         commandFiles.push(faqPath);
     }
+     const webhookPath = path.join(__dirname, '../commands/premium/webhook.ts');
+    if (!commandFiles.includes(webhookPath) && fs.existsSync(webhookPath)) {
+        commandFiles.push(webhookPath);
+    }
     
 
     for (const filePath of commandFiles) {

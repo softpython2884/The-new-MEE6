@@ -94,7 +94,7 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
     // A PresenceUpdate event handler would be needed for perfect activity tracking.
 
     // User joined a channel or switched from another one
-    if (newChannel && newChannelId !== oldChannel?.id) {
+    if (newChannel && newChannel.id !== oldChannel?.id) {
         await updateChannelName(newChannel);
     }
 

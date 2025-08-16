@@ -95,3 +95,14 @@ export interface PersonaMemory {
     last_accessed_at: string;
     created_at: string;
 }
+
+export interface SanctionHistoryEntry {
+    id: number;
+    guild_id: string;
+    user_id: string;
+    moderator_id: string; // Can be a user ID or 'AUTOMOD'
+    action_type: 'warn' | 'mute' | 'kick' | 'ban';
+    reason?: string;
+    duration_seconds?: number;
+    timestamp: string;
+}

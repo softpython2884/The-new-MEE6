@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { Client } from 'discord.js';
-import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory } from '../types';
+import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory, SanctionHistoryEntry } from '../types';
 import { randomBytes } from 'crypto';
 
 // Assurez-vous que le répertoire de la base de données existe
@@ -22,6 +22,20 @@ console.log(`[Database] Connecté à la base de données SQLite sur ${dbPath}`);
 const upgradeSchema = () => {
     try {
         db.pragma('journal_mode = WAL');
+        
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS sanction_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                moderator_id TEXT NOT NULL,
+                action_type TEXT NOT NULL,
+                reason TEXT,
+                duration_seconds INTEGER,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('[Database] La table "sanction_history" est prête.');
         
         const configColumns = db.pragma('table_info(server_configs)') as any[];
         if (!configColumns.some(col => col.name === 'premium')) {
@@ -603,4 +617,31 @@ export function redeemPremiumKey(key: string, guildId: string): { success: boole
     setPremiumStatus(guildId, true);
 
     return { success: true, message: 'Clé premium activée avec succès !' };
+}
+
+// --- Sanction History ---
+
+export function recordSanction(sanction: Omit<SanctionHistoryEntry, 'id' | 'timestamp'>) {
+    const stmt = db.prepare(`
+        INSERT INTO sanction_history (guild_id, user_id, moderator_id, action_type, reason, duration_seconds)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+        sanction.guild_id,
+        sanction.user_id,
+        sanction.moderator_id,
+        sanction.action_type,
+        sanction.reason,
+        sanction.duration_seconds
+    );
+}
+
+export function getUserSanctionHistory(guildId: string, userId: string): SanctionHistoryEntry[] {
+    const stmt = db.prepare(`
+        SELECT * FROM sanction_history
+        WHERE guild_id = ? AND user_id = ?
+        ORDER BY timestamp DESC
+        LIMIT 10
+    `);
+    return stmt.all(guildId, userId) as SanctionHistoryEntry[];
 }

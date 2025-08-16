@@ -146,9 +146,9 @@ export default function WebcamControlPage() {
             <Separator />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
                 <div>
-                  <Label htmlFor="webcam-mode" className="font-bold text-sm uppercase text-muted-foreground">Mode de webcam</Label>
+                  <Label htmlFor="webcam-mode" className="font-bold text-sm uppercase text-muted-foreground">Politique d'utilisation de la caméra</Label>
                   <p className="text-sm text-muted-foreground/80">
-                    Définit les permissions de vidéo et de stream pour les utilisateurs.
+                    Choisissez une politique globale qui s'appliquera à tous les membres (non exemptés) dans les salons vocaux. Ce réglage contrôle s'ils peuvent activer leur caméra et/ou partager leur écran.
                   </p>
                 </div>
                  <Select value={config.mode} onValueChange={(value) => handleValueChange('mode', value)}>

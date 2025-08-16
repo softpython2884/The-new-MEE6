@@ -126,20 +126,38 @@ async function handleConversationalAgent(message: Message) {
         });
 
         if (result.response) {
-            await message.reply(result.response);
-            if (isInDedicatedChannel) {
-                const currentHistory = conversationHistory.get(message.channel.id) || [];
-                currentHistory.push({ user: config.agent_name, content: result.response });
-                if (currentHistory.length > HISTORY_LIMIT) {
-                    currentHistory.shift();
+            // Use a try-catch block to handle cases where the original message is deleted before the bot can reply.
+            try {
+                await message.reply(result.response);
+                if (isInDedicatedChannel) {
+                    const currentHistory = conversationHistory.get(message.channel.id) || [];
+                    currentHistory.push({ user: config.agent_name, content: result.response });
+                    if (currentHistory.length > HISTORY_LIMIT) {
+                        currentHistory.shift();
+                    }
+                    conversationHistory.set(message.channel.id, currentHistory);
                 }
-                conversationHistory.set(message.channel.id, currentHistory);
+            } catch (replyError: any) {
+                 if (replyError.code === 10008) { // Unknown Message
+                    console.warn(`[Agent] Could not reply to message ${message.id} because it was deleted.`);
+                } else {
+                    throw replyError; // Re-throw other errors
+                }
             }
         }
 
     } catch (error) {
         console.error('[Agent] Error during conversational agent flow:', error);
-        await message.reply("Désolé, une erreur est survenue pendant que je réfléchissais. Veuillez réessayer.");
+        // Also wrap the error message reply in a try-catch
+        try {
+            await message.reply("Désolé, une erreur est survenue pendant que je réfléchissais. Veuillez réessayer.");
+        } catch (finalError: any) {
+             if (finalError.code === 10008) { // Unknown Message
+                console.warn(`[Agent] Could not send error reply to message ${message.id} because it was also deleted.`);
+            } else {
+                console.error('[Agent] Failed to send error message:', finalError);
+            }
+        }
     }
 }
 

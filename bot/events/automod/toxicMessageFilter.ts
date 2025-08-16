@@ -64,8 +64,14 @@ export async function execute(message: Message) {
             const member = await message.guild.members.fetch(message.author.id).catch(() => null);
             if (!member) return;
 
-            // Always delete the toxic message
-            await message.delete().catch(e => console.error(`[Mod-AI] Failed to delete message:`, e));
+            // Always delete the toxic message, but catch the error if it's already gone.
+            await message.delete().catch(e => {
+                if (e.code === 10008) { // Unknown Message
+                    console.log(`[Mod-AI] Tried to delete a message that was already deleted: ${message.id}`);
+                } else {
+                    console.error(`[Mod-AI] Failed to delete message:`, e);
+                }
+            });
 
             switch (action) {
                 case 'warn':

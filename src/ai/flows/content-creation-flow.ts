@@ -56,6 +56,7 @@ export async function generateTextContent(input: TextContentInput): Promise<Text
 
 const ImageGenInputSchema = z.object({
     prompt: z.string().describe('A detailed description of the image to generate.'),
+    allow_nsfw: z.boolean().optional().describe('Whether to allow NSFW content generation.'),
 });
 
 const ImageGenOutputSchema = z.object({
@@ -66,11 +67,16 @@ export type ImageGenInput = z.infer<typeof ImageGenInputSchema>;
 export type ImageGenOutput = z.infer<typeof ImageGenOutputSchema>;
 
 export async function generateImage(input: ImageGenInput): Promise<ImageGenOutput> {
+    const safetySettings = input.allow_nsfw 
+        ? [{ category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' }]
+        : [];
+
     const { media } = await ai.generate({
         model: 'googleai/gemini-2.0-flash-preview-image-generation',
         prompt: input.prompt,
         config: {
             responseModalities: ['IMAGE', 'TEXT'],
+            safetySettings,
         },
     });
 

@@ -279,6 +279,7 @@ const defaultConfigs: DefaultConfigs = {
         premium: true,
         default_tone: 'familiar', 
         custom_instructions: '',
+        allow_nsfw_images: false,
         command_permissions: {
             iacontent: null
         }

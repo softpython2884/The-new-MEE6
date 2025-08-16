@@ -21,13 +21,14 @@ import {
   SelectGroup,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Palette } from 'lucide-react';
+import { Palette, AlertTriangle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -37,6 +38,7 @@ interface ContentAiConfig {
     premium: boolean;
     default_tone: 'familiar' | 'professional' | 'narrative';
     custom_instructions: string;
+    allow_nsfw_images: boolean;
     command_permissions: { [key: string]: string | null };
 }
 interface DiscordRole {
@@ -168,6 +170,27 @@ function AiContentCreatorPageContent({ isPremium }: { isPremium: boolean }) {
                     onBlur={(e) => handleValueChange('custom_instructions', e.target.value)}
                     />
                 </div>
+                 <Separator />
+                  <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="enable-nsfw" className="font-bold text-sm uppercase text-muted-foreground">Autoriser la génération d'images NSFW</Label>
+                                <p className="text-sm text-muted-foreground/80">
+                                    Permet à l'IA de générer du contenu potentiellement inapproprié.
+                                </p>
+                            </div>
+                            <Switch id="enable-nsfw" checked={config.allow_nsfw_images} onCheckedChange={(val) => handleValueChange('allow_nsfw_images', val)} />
+                        </div>
+                        {config.allow_nsfw_images && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Attention</AlertTitle>
+                                <AlertDescription>
+                                    En activant cette option, vous autorisez la génération d'images qui peuvent ne pas être appropriées pour tous les publics. Utilisez avec prudence.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
 

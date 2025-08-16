@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -380,9 +379,8 @@ export default function AutoModerationPage() {
                                     </CardDescription>
                                  </div>
                                  <div className="flex items-center gap-2">
-                                    <Switch checked={rule.enabled} onCheckedChange={(val) => saveRule({...rule, enabled: val})} />
-                                    <Button variant="ghost" onClick={() => handleEditClick(rule)}>Modifier</Button>
-                                    <Button variant="ghost" size="icon" onClick={() => deleteRule(rule.id!)}>
+                                     <Button variant="ghost" onClick={() => handleEditClick(rule)}>Modifier</Button>
+                                     <Button variant="ghost" size="icon" onClick={() => deleteRule(rule.id!)}>
                                         <Trash2 className="w-4 h-4 text-destructive"/>
                                     </Button>
                                  </div>

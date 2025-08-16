@@ -270,8 +270,8 @@ export function startApi(client: Client) {
                 return res.status(404).json({ error: 'Guild not found.' });
             }
 
-            // 1. Generate Avatar
-            const { avatarDataUri } = await generatePersonaAvatar({ name, persona_prompt });
+            // 1. Generate Avatar (REMOVED due to length issues)
+            // const { avatarDataUri } = await generatePersonaAvatar({ name, persona_prompt });
 
             // 2. Create Role
             const newRole = await guild.roles.create({
@@ -287,7 +287,7 @@ export function startApi(client: Client) {
                 persona_prompt,
                 creator_id,
                 active_channel_id: null,
-                avatar_url: avatarDataUri,
+                avatar_url: null, // Avatar URL is initially null
                 role_id: newRole.id
             };
             createPersona(newPersona);

@@ -45,6 +45,8 @@ export async function execute(message: Message) {
     }
 
     const personas = getPersonasForGuild(message.guild.id);
+    if (personas.length === 0) return;
+
     const activePersona = personas.find(p => p.active_channel_id === message.channel.id);
     const mentionedPersona = personas.find(p => p.role_id && message.mentions.roles.has(p.role_id));
 

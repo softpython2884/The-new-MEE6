@@ -10,8 +10,8 @@ const TesterCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('tester')
         .setDescription('Gère le statut de Testeur pour les utilisateurs.')
-        .setDMPermission(false)
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+        .setDMPermission(false)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('give')

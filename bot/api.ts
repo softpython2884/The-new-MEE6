@@ -7,6 +7,7 @@ import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGu
 import { verifyAndConsumeAuthToken } from './auth';
 import { generatePersonaPrompt, generatePersonaAvatar } from '@/ai/flows/persona-flow';
 import { v4 as uuidv4 } from 'uuid';
+import { updateGuildCommands } from './handlers/commandHandler';
 
 const API_PORT = process.env.BOT_API_PORT || 25875;
 
@@ -67,6 +68,9 @@ export function startApi(client: Client) {
         try {
             console.log(`[Bot API] Mise à jour de la config pour le serveur ${guildId}, module ${module}`);
             await updateServerConfig(guildId, module as any, configData);
+
+            // Trigger command update for the guild
+            await updateGuildCommands(guildId, client);
 
             // Handle specific side-effects for modules
             if (module === 'server-identity' && configData.enabled) {

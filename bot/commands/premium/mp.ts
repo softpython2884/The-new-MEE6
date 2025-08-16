@@ -7,6 +7,7 @@ const MpCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('mp')
         .setDescription('Envoie un message privé à un utilisateur. (Réservé aux Testeurs)')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addUserOption(option =>
             option.setName('utilisateur')
                 .setDescription('L\'utilisateur à qui envoyer le message.')

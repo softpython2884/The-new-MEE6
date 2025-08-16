@@ -1,10 +1,9 @@
 
-
 import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags, ChannelType, OverwriteType, EmbedBuilder, TextChannel, ModalSubmitInteraction, Interaction } from 'discord.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
-import { loadCommands } from './handlers/commandHandler';
+import { loadCommands, updateGuildCommands, deployGlobalCommands } from './handlers/commandHandler';
 import type { Command } from '@/types';
 import { initializeDatabase, syncGuilds, getServerConfig } from '@/lib/db';
 import { startApi } from './api';
@@ -107,11 +106,17 @@ client.once(Events.ClientReady, async (readyClient) => {
         status: 'online',
     });
     
-    // Sync guilds with the database
-    await syncGuilds(readyClient);
+    // Load all command modules into the client
+    loadCommands(client);
+    
+    // Deploy global commands (owner-only)
+    await deployGlobalCommands();
 
-    // Load and register slash commands
-    await loadCommands(client);
+    // Sync guilds with the database and deploy guild-specific commands
+    await syncGuilds(readyClient);
+    for (const guild of readyClient.guilds.cache.values()) {
+        await updateGuildCommands(guild.id, client);
+    }
 
     // Start the API for the web panel
     startApi(client);

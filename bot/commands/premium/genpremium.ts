@@ -9,7 +9,7 @@ const GenPremiumCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('genpremium')
         .setDescription('Génère une nouvelle clé d\'activation premium. (Propriétaire seulement)')
-        .setDMPermission(false), // Commande de serveur uniquement
+        .setDMPermission(true), // Can be used in DMs
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (interaction.user.id !== OWNER_ID) {

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Trash2, PlusCircle, ShieldAlert, Sparkles, Loader2 } from 'lucide-react';
+import { Trash2, PlusCircle, ShieldAlert, Sparkles, Loader2, Bot } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,13 +24,14 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { generateKeywords } from '@/ai/flows/keyword-generation-flow';
+import { Switch } from '@/components/ui/switch';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
 // Types matching Discord's API structure for Auto-Mod
 interface AutoModAction {
-    type: number;
+    type: number; // 1: Block Message, 2: Send Alert, 3: Timeout User
     metadata?: {
         channel_id?: string;
         duration_seconds?: number;
@@ -49,8 +50,8 @@ interface AutoModRule {
     id?: string;
     guild_id: string;
     name: string;
-    event_type: number;
-    trigger_type: number;
+    event_type: number; // 1: Message Send
+    trigger_type: number; // 1: Keyword, 2: Spam, 3: Keyword Preset, 4: Mention Spam
     trigger_metadata: AutoModTriggerMetadata;
     actions: AutoModAction[];
     enabled: boolean;
@@ -72,7 +73,10 @@ function AutoModerationPageSkeleton() {
     return (
         <div className="space-y-8">
             <div className="flex justify-between items-center">
-                 <Skeleton className="h-8 w-64" />
+                 <div className="space-y-2">
+                    <Skeleton className="h-8 w-64" />
+                    <Skeleton className="h-4 w-96" />
+                 </div>
                  <Skeleton className="h-10 w-32" />
             </div>
             <div className="space-y-4">
@@ -110,7 +114,7 @@ function KeywordGenerator({ onKeywordsGenerated }: { onKeywordsGenerated: (keywo
             <DialogHeader>
                 <DialogTitle>Générer des mots-clés avec l'IA</DialogTitle>
                 <DialogDescription>
-                    Décrivez le type de mots que vous souhaitez bloquer. L'IA générera une liste de mots-clés correspondants.
+                    Décrivez le type de mots que vous souhaitez bloquer. L'IA générera une liste de mots-clés correspondants que vous pourrez affiner.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -133,129 +137,35 @@ function KeywordGenerator({ onKeywordsGenerated }: { onKeywordsGenerated: (keywo
     )
 }
 
-function RuleEditor({ rule, onSave, onCancel, roles, channels }: { rule: Partial<AutoModRule>, onSave: (rule: Partial<AutoModRule>) => void, onCancel: () => void, roles: DiscordRole[], channels: DiscordChannel[] }) {
-    const [editedRule, setEditedRule] = useState<Partial<AutoModRule>>(rule);
-    const [isGeneratorOpen, setGeneratorOpen] = useState(false);
+function RuleCard({ rule, onEdit, onDelete }: { rule: AutoModRule, onEdit: () => void, onDelete: () => void }) {
+    const triggerTypeMap: { [key: number]: string } = {
+        1: 'Mots-clés personnalisés',
+        3: 'Mots-clés Discord',
+        4: 'Spam de Mentions'
+    };
     
-    const handleFieldChange = (field: keyof AutoModRule, value: any) => {
-        setEditedRule(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleMetadataChange = (field: keyof AutoModTriggerMetadata, value: any) => {
-        setEditedRule(prev => ({
-            ...prev,
-            trigger_metadata: { ...prev.trigger_metadata, [field]: value }
-        }));
-    };
-
-    const handleActionChange = (index: number, field: keyof AutoModAction['metadata'], value: any) => {
-         setEditedRule(prev => {
-            const newActions = [...(prev.actions || [])];
-            newActions[index] = {
-                ...newActions[index],
-                metadata: {
-                    ...newActions[index].metadata,
-                    [field]: value
-                }
-            };
-            return { ...prev, actions: newActions };
-        });
-    }
-
-    const handleKeywordsGenerated = (newKeywords: string[]) => {
-        const currentKeywords = editedRule.trigger_metadata?.keyword_filter || [];
-        const combined = Array.from(new Set([...currentKeywords, ...newKeywords]));
-        handleMetadataChange('keyword_filter', combined);
-        setGeneratorOpen(false); // Close the generator dialog
-    }
-
     return (
-        <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-                <DialogTitle>{rule.id ? 'Modifier la Règle' : 'Créer une Règle'}</DialogTitle>
-                <DialogDescription>
-                    Configurez les détails de votre règle d'auto-modération.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                {/* Rule Name */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Nom</Label>
-                    <Input id="name" value={editedRule.name || ''} onChange={e => handleFieldChange('name', e.target.value)} className="col-span-3" />
+        <Card>
+            <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                    <CardTitle>{rule.name}</CardTitle>
+                    <CardDescription>{triggerTypeMap[rule.trigger_type] || 'Type inconnu'}</CardDescription>
                 </div>
-
-                {/* Trigger Type */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="trigger_type" className="text-right">Déclencheur</Label>
-                    <Select value={String(editedRule.trigger_type || 1)} onValueChange={val => handleFieldChange('trigger_type', parseInt(val))}>
-                        <SelectTrigger className="col-span-3">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="1">Mots-clés</SelectItem>
-                            <SelectItem value="4">Contenu Nocif (Presets)</SelectItem>
-                            <SelectItem value="5">Spam de mentions</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="flex items-center gap-2">
+                    <Switch checked={rule.enabled} onCheckedChange={onEdit} />
                 </div>
-                
-                 {/* Trigger Metadata */}
-                {editedRule.trigger_type === 1 && (
-                    <div className="grid grid-cols-4 items-start gap-4">
-                        <Label htmlFor="keyword_filter" className="text-right pt-2">Mots-clés</Label>
-                        <div className="col-span-3 space-y-2">
-                             <Textarea id="keyword_filter"
-                                placeholder="mot, phrase*, *fin"
-                                value={(editedRule.trigger_metadata?.keyword_filter || []).join(', ')}
-                                onChange={e => handleMetadataChange('keyword_filter', e.target.value.split(',').map(k => k.trim()))}
-                                rows={4}
-                            />
-                            <Dialog open={isGeneratorOpen} onOpenChange={setGeneratorOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" size="sm">
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        Générer avec l'IA
-                                    </Button>
-                                </DialogTrigger>
-                                <KeywordGenerator onKeywordsGenerated={handleKeywordsGenerated} />
-                            </Dialog>
-                        </div>
-                    </div>
-                )}
-                 {editedRule.trigger_type === 4 && ( // Preset
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="presets" className="text-right">Types de contenu</Label>
-                        <Select value={String(editedRule.trigger_metadata?.presets?.[0] || 1)} onValueChange={val => handleMetadataChange('presets', [parseInt(val)])}>
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="1">Propos grossiers</SelectItem>
-                                <SelectItem value="2">Contenu sexuel</SelectItem>
-                                <SelectItem value="3">Insultes et calomnies</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-                {editedRule.trigger_type === 5 && ( // Mention Spam
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="mention_total_limit" className="text-right">Mentions Max</Label>
-                        <Input id="mention_total_limit" type="number" 
-                            className="col-span-3"
-                            value={editedRule.trigger_metadata?.mention_total_limit || 5}
-                            onChange={e => handleMetadataChange('mention_total_limit', parseInt(e.target.value))}
-                         />
-                    </div>
-                )}
-            </div>
-            <DialogFooter>
-                <DialogClose asChild>
-                    <Button type="button" variant="secondary" onClick={onCancel}>Annuler</Button>
-                </DialogClose>
-                <Button type="submit" onClick={() => onSave(editedRule)}>Sauvegarder</Button>
-            </DialogFooter>
-        </DialogContent>
-    );
+            </CardHeader>
+            <CardContent className="flex justify-end gap-2">
+                 <Button variant="ghost" onClick={onDelete}>
+                    <Trash2 className="w-4 h-4 mr-2 text-destructive"/>
+                    Supprimer
+                </Button>
+                <Button variant="outline" onClick={onEdit}>
+                    Modifier
+                </Button>
+            </CardContent>
+        </Card>
+    )
 }
 
 export default function AutoModerationPage() {
@@ -264,74 +174,31 @@ export default function AutoModerationPage() {
     const { toast } = useToast();
 
     const [rules, setRules] = useState<AutoModRule[]>([]);
-    const [roles, setRoles] = useState<DiscordRole[]>([]);
-    const [channels, setChannels] = useState<DiscordChannel[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isEditorOpen, setEditorOpen] = useState(false);
-    const [currentRule, setCurrentRule] = useState<Partial<AutoModRule> | null>(null);
 
-    // --- API Calls ---
     const fetchRules = async () => {
         // TODO: Implement API endpoint in bot/api.ts
-        // For now, using mock data.
+        // For now, this will be empty.
         setRules([]); 
     };
 
-    const saveRule = async (rule: Partial<AutoModRule>) => {
-         // TODO: Implement API endpoint in bot/api.ts
+    useEffect(() => {
+        setLoading(true);
+        fetchRules().finally(() => setLoading(false));
+    }, [serverId]);
+    
+    const onSave = async (rule: AutoModRule) => {
+        console.log("Saving rule:", rule);
+        // TODO: Implement API logic
         toast({ title: rule.id ? "Règle mise à jour" : "Règle créée", description: `La règle "${rule.name}" a été sauvegardée.` });
         await fetchRules();
-        setEditorOpen(false);
     };
 
-    const deleteRule = async (ruleId: string) => {
-        // TODO: Implement API endpoint in bot/api.ts
+    const onDelete = async (ruleId: string) => {
+        console.log("Deleting rule:", ruleId);
+        // TODO: Implement API logic
         toast({ title: "Règle supprimée", variant: 'destructive'});
         await fetchRules();
-    }
-
-    // --- Data Fetching ---
-    useEffect(() => {
-        if (!serverId) return;
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                // TODO: Replace with fetchRules() when API is ready
-                await fetchRules();
-
-                const serverDetailsRes = await fetch(`${API_URL}/get-server-details/${serverId}`);
-                if (!serverDetailsRes.ok) throw new Error('Failed to fetch server details');
-                const serverDetailsData = await serverDetailsRes.json();
-                
-                setRoles(serverDetailsData.roles);
-                setChannels(serverDetailsData.channels);
-            } catch (error) {
-                toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, [serverId, toast]);
-
-    const handleCreateClick = () => {
-        setCurrentRule({
-            guild_id: serverId,
-            name: '',
-            event_type: 1, // MESSAGE_SEND
-            trigger_type: 1, // KEYWORD
-            trigger_metadata: { keyword_filter: [] },
-            actions: [{ type: 1 }], // BLOCK_MESSAGE
-            enabled: true,
-            exempt_roles: [],
-            exempt_channels: [],
-        });
-        setEditorOpen(true);
-    };
-
-    const handleEditClick = (rule: AutoModRule) => {
-        setCurrentRule(rule);
-        setEditorOpen(true);
     };
 
     if (loading) {
@@ -339,68 +206,45 @@ export default function AutoModerationPage() {
     }
 
   return (
-    <Dialog open={isEditorOpen} onOpenChange={setEditorOpen}>
-        <div className="space-y-8 text-white max-w-4xl">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Auto-Modération (Discord)</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Gérez les règles d'auto-modération natives de Discord.
-                    </p>
-                </div>
-                 <DialogTrigger asChild>
-                    <Button onClick={handleCreateClick}>
-                        <PlusCircle className="mr-2"/>
-                        Créer une règle
-                    </Button>
-                </DialogTrigger>
+    <div className="space-y-8 text-white max-w-4xl">
+        <div className="flex items-center justify-between">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Auto-Modération (Discord)</h1>
+                <p className="text-muted-foreground mt-2">
+                    Gérez les règles d'auto-modération natives de Discord pour filtrer le contenu.
+                </p>
             </div>
-            
-            <Separator />
-            
-            {rules.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                    <ShieldAlert className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">Aucune règle définie</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Cliquez sur "Créer une règle" pour commencer.
-                    </p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {rules.map(rule => (
-                        <Card key={rule.id}>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                 <div>
-                                    <CardTitle>{rule.name}</CardTitle>
-                                    <CardDescription>
-                                        {/* You can add more details here based on rule type */}
-                                        Déclencheur : Mot-clé
-                                    </CardDescription>
-                                 </div>
-                                 <div className="flex items-center gap-2">
-                                     <Button variant="ghost" onClick={() => handleEditClick(rule)}>Modifier</Button>
-                                     <Button variant="ghost" size="icon" onClick={() => deleteRule(rule.id!)}>
-                                        <Trash2 className="w-4 h-4 text-destructive"/>
-                                    </Button>
-                                 </div>
-                            </CardHeader>
-                        </Card>
-                    ))}
-                </div>
-            )}
+             <Button disabled>
+                <PlusCircle className="mr-2"/>
+                Créer une règle
+            </Button>
         </div>
-
-        {/* The Dialog Content for editing/creating */}
-        {currentRule && (
-            <RuleEditor 
-                rule={currentRule}
-                onSave={saveRule}
-                onCancel={() => setEditorOpen(false)}
-                roles={roles}
-                channels={channels}
-            />
+        
+        <Separator />
+        
+        {rules.length === 0 ? (
+            <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                <Bot className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-semibold">Aucune règle définie</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    La gestion des règles d'auto-modération natives est en cours de développement.
+                </p>
+                 <p className="mt-1 text-sm text-muted-foreground">
+                    Utilisez l'assistant de modération IA en attendant.
+                </p>
+            </div>
+        ) : (
+            <div className="space-y-4">
+                {rules.map(rule => (
+                    <RuleCard 
+                        key={rule.id} 
+                        rule={rule} 
+                        onEdit={() => {/* TODO */}}
+                        onDelete={() => onDelete(rule.id!)}
+                    />
+                ))}
+            </div>
         )}
-    </Dialog>
+    </div>
   );
 }

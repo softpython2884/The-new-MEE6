@@ -7,7 +7,7 @@ const GivePremiumCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('givepremium')
         .setDescription('Donne ou retire le statut premium à un serveur. (Propriétaire du bot seulement)')
-        .setDMPermission(false)
+        .setDMPermission(true)
         .addStringOption(option =>
             option.setName('server_id')
                 .setDescription('L\'ID du serveur à qui donner le premium.')

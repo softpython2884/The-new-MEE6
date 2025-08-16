@@ -10,7 +10,6 @@ export const ai = genkit({
 export const textModelCascade = [
     'googleai/gemini-2.5-flash',
     'googleai/gemini-2.0-flash',
-    'googleai/gemma-3' 
 ];
 
 export const imageModel = 'googleai/gemini-2.0-flash-preview-image-generation';

@@ -11,9 +11,18 @@ import type { ConversationHistoryItem, PersonaMemory } from '@/types';
 
 
 // --- Persona Avatar Generation ---
+const PersonaAvatarInputSchema = z.object({
+    name: z.string().describe("The name of the character."),
+    persona_prompt: z.string().describe("The detailed persona description."),
+});
+export type PersonaAvatarInput = z.infer<typeof PersonaAvatarInputSchema>;
+
+const PersonaAvatarOutputSchema = z.object({
+    avatarDataUri: z.string().describe("The generated avatar image as a data URI."),
+});
+export type PersonaAvatarOutput = z.infer<typeof PersonaAvatarOutputSchema>;
+
 export async function generatePersonaAvatar(input: PersonaAvatarInput): Promise<PersonaAvatarOutput> {
-    // This function is currently not called directly due to Discord API limitations with data URIs as webhook avatars.
-    // It's kept for future use if an image hosting service is implemented.
     const { media } = await ai.generate({
         model: imageModel,
         prompt: `Create a square avatar for a character named "${input.name}". Description: ${input.persona_prompt}. The style should be an anime or digital art portrait, focusing on the face.`,
@@ -49,6 +58,7 @@ const personaGenPrompt = ai.definePrompt({
     name: 'personaGenPrompt',
     input: { schema: PersonaPromptInputSchema },
     output: { schema: PersonaPromptOutputSchema },
+    model: 'googleai/gemini-2.0-flash',
     prompt: `You are a master storyteller and character designer.
 Your task is to create a rich and detailed persona for a new AI character that will live on a Discord server.
 The persona should be written as a comprehensive prompt that will be fed to another AI to make it act as this character.
@@ -107,6 +117,7 @@ const personaInteractionPrompt = ai.definePrompt({
     name: 'personaInteractionPrompt',
     input: { schema: PersonaInteractionInputSchema },
     output: { schema: PersonaInteractionOutputSchema },
+    model: 'googleai/gemini-2.5-pro',
     safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }],
     prompt: `You are an AI actor. Your role is to perfectly and realistically embody the character described in the persona prompt below.
 
@@ -162,10 +173,10 @@ Le dernier message de l'historique est le plus récent. En te basant sur ton per
 export const personaInteractionFlow = ai.defineFlow(
   {
     name: 'personaInteractionFlow',
-    inputSchema: z.any(),
+    inputSchema: PersonaInteractionInputSchema,
     outputSchema: PersonaInteractionOutputSchema,
   },
-  async (input, streamingCallback, context) => {
+  async (input) => {
     const now = new Date();
     const currentTime =
       now.toLocaleTimeString('fr-FR', {
@@ -175,13 +186,7 @@ export const personaInteractionFlow = ai.defineFlow(
       ' on ' +
       now.toLocaleDateString('fr-FR', { weekday: 'long' });
 
-    // Use the Gemini 2.5 Pro model for this flow for maximum performance
-    const modelToUse = 'googleai/gemini-2.5-pro';
-
-    const { output } = await personaInteractionPrompt(
-      { ...input, currentTime },
-      { model: modelToUse }
-    );
+    const { output } = await personaInteractionPrompt({ ...input, currentTime });
     return output!;
   }
 );
@@ -214,17 +219,3 @@ export async function generatePersonaImage(input: PersonaImageInput): Promise<Pe
 
     return { imageDataUri: undefined };
 }
-
-// Persona Avatar Input and Output Schema
-const PersonaAvatarInputSchema = z.object({
-    name: z.string().describe("The name of the character."),
-    persona_prompt: z.string().describe("The detailed persona description."),
-});
-
-export type PersonaAvatarInput = z.infer<typeof PersonaAvatarInputSchema>;
-
-const PersonaAvatarOutputSchema = z.object({
-    avatarDataUri: z.string().describe("The generated avatar image as a data URI."),
-});
-
-export type PersonaAvatarOutput = z.infer<typeof PersonaAvatarOutputSchema>;

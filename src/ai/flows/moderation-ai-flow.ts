@@ -46,6 +46,7 @@ const filterPrompt = ai.definePrompt({
   name: 'moderationAiPrompt',
   input: { schema: ModerationAiInputSchema },
   output: { schema: ModerationAiOutputSchema },
+  model: 'googleai/gemini-2.0-flash',
   prompt: `You are an expert content moderator for a French-speaking Discord server. Your task is to analyze a user's message for any toxic content and suggest a fair and proportionate action. You MUST provide your reasons in French.
 
 Your Core Directives:
@@ -101,7 +102,7 @@ const flow = ai.defineFlow(
     outputSchema: ModerationAiOutputSchema,
   },
   async (input) => {
-    const { output } = await filterPrompt(input, { model: 'googleai/gemini-2.0-flash' });
+    const { output } = await filterPrompt(input);
     return output!;
   }
 );

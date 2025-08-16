@@ -58,6 +58,7 @@ const serverBuilderPrompt = ai.definePrompt({
   input: { schema: ServerBuilderInputSchema },
   output: { schema: ServerBuilderOutputSchema },
   tools: [getServerStructure],
+  model: 'googleai/gemini-2.0-flash',
   prompt: `You are an expert Discord community architect. Your task is to generate or modify a complete Discord server structure based on a user's request.
 The final output must be a parsable JSON object conforming to the output schema.
 
@@ -82,7 +83,7 @@ export const serverBuilderFlow = ai.defineFlow(
     outputSchema: ServerBuilderOutputSchema,
   },
   async (input) => {
-    const { output } = await serverBuilderPrompt(input, { model: 'googleai/gemini-2.0-flash' });
+    const { output } = await serverBuilderPrompt(input);
     if (!output) {
       throw new Error('Failed to generate server structure.');
     }

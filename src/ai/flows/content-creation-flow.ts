@@ -29,6 +29,7 @@ const textGenPrompt = ai.definePrompt({
     name: 'textContentPrompt',
     input: { schema: TextContentInputSchema },
     output: { schema: TextContentOutputSchema },
+    model: 'googleai/gemini-2.0-flash',
     prompt: `You are a creative writer and community manager for a Discord server.
 Your task is to write a piece of content based on a specified type and topic.
 
@@ -47,7 +48,7 @@ For an announcement, the title should be like "📢 Annonce : [Sujet]".
 });
 
 export async function generateTextContent(input: TextContentInput): Promise<TextContentOutput> {
-  const { output } = await textGenPrompt(input, { model: 'googleai/gemini-2.0-flash' });
+  const { output } = await textGenPrompt(input);
   return output!;
 }
 

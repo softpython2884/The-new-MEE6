@@ -40,6 +40,7 @@ const faqPrompt = ai.definePrompt({
   name: 'faqPrompt',
   input: { schema: FaqFlowInputSchema },
   output: { schema: FaqFlowOutputSchema },
+  model: 'googleai/gemini-2.0-flash',
   prompt: `You are an expert Q&A assistant for a Discord server. Your task is to provide the most helpful answer possible to a user's question based *exclusively* on a provided knowledge base.
 
 You will be given:

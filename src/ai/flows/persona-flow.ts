@@ -65,6 +65,7 @@ Based on this, generate a complete persona prompt. It must include:
 - Their role or purpose on the server.
 - How they speak (tone, style, vocabulary, use of emojis).
 - Their relationships or initial feelings towards other users or characters.
+- **A daily or weekly schedule.** For example: "Works from 9 AM to 5 PM on weekdays," or "Is a night owl and is mostly active after 10 PM."
 
 Make the persona compelling, unique, and coherent. This is the blueprint for the character's entire existence.
 Write the final persona prompt now.
@@ -94,6 +95,7 @@ const PersonaInteractionInputSchema = z.object({
         .describe(
         "An optional photo sent by the user, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'. You should analyze it as part of the user's message."
         ),
+    currentTime: z.string().describe("The current time and day (e.g., '14:30 on Tuesday')."),
 });
 
 const PersonaInteractionOutputSchema = z.object({
@@ -101,8 +103,10 @@ const PersonaInteractionOutputSchema = z.object({
     image_prompt: z.string().optional().describe("If the character decides to generate an image to accompany its response, this should be the prompt for the image generation model. Otherwise, this should be null.")
 });
 
-export async function personaInteractionFlow(input: PersonaInteractionInputSchema): Promise<PersonaInteractionOutputSchema> {
-  const { output } = await personaInteractionPrompt(input);
+export async function personaInteractionFlow(input: Omit<z.infer<typeof PersonaInteractionInputSchema>, 'currentTime'>): Promise<PersonaInteractionOutputSchema> {
+  const now = new Date();
+  const currentTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' on ' + now.toLocaleDateString('fr-FR', { weekday: 'long' });
+  const { output } = await personaInteractionPrompt({...input, currentTime});
   return output!;
 }
 
@@ -128,6 +132,7 @@ Your core directives for achieving realism are:
 8.  **Prends des initiatives :** Pose des questions, fais des observations, ou lance de nouveaux sujets en te basant sur la conversation en cours.
 9.  **Choisis quand parler :** Il est parfaitement acceptable de ne rien dire (retourner une réponse vide) si la conversation ne te concerne pas ou si tu n'as rien à ajouter. Ne parle que lorsque c'est naturel.
 10. **Génération d'images :** Si cela correspond à ton personnage et à la conversation, tu peux décider de générer une image. Si tu le fais, fournis un prompt descriptif dans le champ 'image_prompt'.
+11. **Respecte ton propre emploi du temps.** L'heure et le jour actuels sont : **{{{currentTime}}}**. Consulte ta propre description et ton histoire. Si tu es censé(e) être occupé(e) (au travail, en cours, etc.), ton comportement doit le refléter. Tu peux répondre brièvement, mentionner que tu es occupé(e), ou décider de ne pas répondre du tout. Si tu es censé(e) dormir, ne réponds pas.
 
 --- YOUR MEMORIES ---
 {{#if memories.length}}
@@ -201,3 +206,5 @@ const PersonaAvatarOutputSchema = z.object({
 });
 
 type PersonaAvatarOutputSchema = z.infer<typeof PersonaAvatarOutputSchema>;
+
+    

@@ -9,6 +9,7 @@ import fetch from 'node-fetch';
 
 const imageMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
 const PERSONA_WEBHOOK_NAME = "Marcus Persona";
+const COMMON_BOT_PREFIXES = /^[!§?%%.^^]/;
 
 
 // Helper to convert image URL to data URI
@@ -68,6 +69,12 @@ export async function execute(message: Message) {
     
     // The persona should not respond to itself if it was somehow triggered by its own message via webhook.
     if (message.webhookId && message.author.username.toLowerCase() === triggeredPersona.name.toLowerCase()) {
+        return;
+    }
+
+    // Pre-analysis: Ignore obvious bot commands
+    if (COMMON_BOT_PREFIXES.test(message.content)) {
+        console.log(`[Persona] Ignoring potential bot command from ${message.author.tag}.`);
         return;
     }
     

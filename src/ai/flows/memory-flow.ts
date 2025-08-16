@@ -1,4 +1,5 @@
 
+
 'use server';
 
 /**
@@ -58,7 +59,7 @@ You must extract key information and convert it into memories. For each potentia
 2.  Write the memory's content from a first-person perspective (e.g., 'I learned that Bob enjoys fishing.' or 'I told everyone that I dislike rainy days.').
 3.  Assign a salience score (1-10) based on its importance.
 4.  If the memory is about a specific user, include their user ID. If it's about yourself, do not include a user ID.
-5.  **Crucially, for relationship changes, explain *why*.** Don't just say a relationship has changed. Explain the context. Example: "My relationship with Marc became tense because I disagreed with his opinion on movies, and he seemed offended by my sarcastic comment."
+5.  **Crucially, for relationship changes, explain *why and how*.** Don't just say a relationship has changed. Explain the context. Example: "My relationship with Marc became tense because I disagreed with his opinion on movies, and he seemed offended by my sarcastic comment."
 
 Only create memories for significant information. Do not create memories for trivial small talk.
 If nothing noteworthy happened, you can return an empty array.

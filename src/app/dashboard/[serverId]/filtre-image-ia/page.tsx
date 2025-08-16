@@ -13,12 +13,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { ChevronDown } from 'lucide-react';
+
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
 interface ImageFilterConfig {
     enabled: boolean;
     sensitivity: 'low' | 'medium' | 'high';
+    exempt_roles: string[];
+}
+
+interface DiscordRole {
+    id: string;
+    name: string;
 }
 
 function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
@@ -27,6 +37,7 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
     const { toast } = useToast();
 
     const [config, setConfig] = useState<ImageFilterConfig | null>(null);
+    const [roles, setRoles] = useState<DiscordRole[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -34,10 +45,19 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const configRes = await fetch(`${API_URL}/get-config/${serverId}/image-filter`);
-                if (!configRes.ok) throw new Error('Failed to fetch data');
+                const [configRes, serverDetailsRes] = await Promise.all([
+                    fetch(`${API_URL}/get-config/${serverId}/image-filter`),
+                    fetch(`${API_URL}/get-server-details/${serverId}`)
+                ]);
+
+                if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
+                
                 const configData = await configRes.json();
+                const serverDetailsData = await serverDetailsRes.json();
+                
                 setConfig(configData);
+                setRoles(serverDetailsData.roles.filter((r: DiscordRole) => r.name !== '@everyone'));
+
             } catch (error) {
                 toast({ title: "Erreur", description: "Impossible de charger la configuration.", variant: "destructive" });
             } finally {
@@ -65,8 +85,16 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
         saveConfig({ ...config, [key]: value });
     };
 
+    const handleRoleToggle = (roleId: string) => {
+        if (!config) return;
+        const newExemptRoles = config.exempt_roles.includes(roleId)
+            ? config.exempt_roles.filter(id => id !== roleId)
+            : [...config.exempt_roles, roleId];
+        handleValueChange('exempt_roles', newExemptRoles);
+    };
+
     if (loading || !config) {
-        return <Skeleton className="h-48 w-full" />;
+        return <Skeleton className="h-64 w-full" />;
     }
 
     return (
@@ -110,6 +138,41 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
                         </SelectContent>
                     </Select>
                 </div>
+                 <Separator/>
+                 <div className="space-y-2">
+                    <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés</Label>
+                    <p className="text-sm text-muted-foreground/80">
+                        Les images envoyées par les utilisateurs avec ces rôles ne seront pas analysées.
+                    </p>
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full justify-between">
+                                <div className="flex-1 text-left truncate">
+                                    {config.exempt_roles.length > 0 
+                                        ? config.exempt_roles.map(id => (
+                                            <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
+                                        ))
+                                        : "Sélectionner des rôles..."}
+                                </div>
+                                <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                            <DropdownMenuLabel>Choisir les rôles à exempter</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {roles.map(role => (
+                                <DropdownMenuCheckboxItem
+                                    key={role.id}
+                                    checked={config.exempt_roles.includes(role.id)}
+                                    onCheckedChange={() => handleRoleToggle(role.id)}
+                                    onSelect={(e) => e.preventDefault()}
+                                >
+                                    {role.name}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </CardContent>
         </Card>
       </PremiumFeatureWrapper>
@@ -133,7 +196,7 @@ export default function ImageFilterPage() {
       <Separator />
 
        {loading ? (
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-64 w-full" />
         ) : (
             <ImageFilterPageContent isPremium={serverInfo?.isPremium || false} />
         )}

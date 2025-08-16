@@ -26,7 +26,7 @@ export const name = Events.MessageCreate;
 export const once = false;
 
 export async function execute(message: Message) {
-    if (!message.guild || message.author.bot) return;
+    if (!message.guild || message.author.bot || !message.member) return;
 
     // Check for image attachments
     const imageAttachment = message.attachments.find(att => imageMimeTypes.some(mime => att.contentType?.startsWith(mime)));
@@ -39,6 +39,12 @@ export async function execute(message: Message) {
         return;
     }
     
+    // Check for exempt roles
+    const exemptRoles = filterConfig.exempt_roles || [];
+    if (message.member.roles.cache.some(role => exemptRoles.includes(role.id))) {
+        return;
+    }
+
     console.log(`[Image-Filter] Analyzing image from ${message.author.tag} in ${message.guild.name}. Sensitivity: ${filterConfig.sensitivity}`);
 
     try {

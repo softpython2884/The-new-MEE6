@@ -8,12 +8,18 @@ export const name = Events.MessageCreate;
 export const once = false;
 
 export async function execute(message: Message) {
-    if (!message.guild || message.author.bot || !message.content) return;
+    if (!message.guild || message.author.bot || !message.content || !message.member) return;
 
     const modAiConfig = await getServerConfig(message.guild.id, 'moderation-ai');
     const isPremium = modAiConfig?.premium || false;
 
     if (!modAiConfig?.enabled || !isPremium) {
+        return;
+    }
+
+    // Check for exempt roles
+    const exemptRoles = modAiConfig.exempt_roles || [];
+    if (message.member.roles.cache.some(role => exemptRoles.includes(role.id))) {
         return;
     }
     

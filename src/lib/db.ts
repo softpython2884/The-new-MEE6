@@ -212,7 +212,8 @@ const defaultConfigs: DefaultConfigs = {
     'image-filter': { 
         enabled: false, 
         sensitivity: 'medium',
-        premium: true
+        premium: true,
+        exempt_roles: []
     },
     'moderation-ai': { 
         enabled: false,
@@ -220,6 +221,7 @@ const defaultConfigs: DefaultConfigs = {
         alert_channel_id: null,
         alert_role_id: null,
         sensitivity: 'medium',
+        exempt_roles: [],
         actions: {
             low: 'warn',
             medium: 'mute_5m',

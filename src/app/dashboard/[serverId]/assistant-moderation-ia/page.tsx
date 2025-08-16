@@ -21,6 +21,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { ChevronDown } from 'lucide-react';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -31,6 +34,7 @@ interface ModAssistantConfig {
     alert_channel_id: string | null;
     alert_role_id: string | null;
     sensitivity: 'low' | 'medium' | 'high';
+    exempt_roles: string[];
     actions: {
         low: string;
         medium: string;
@@ -125,6 +129,14 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
         handleValueChange('actions', newActions);
     };
 
+     const handleRoleToggle = (roleId: string) => {
+        if (!config) return;
+        const newExemptRoles = config.exempt_roles.includes(roleId)
+            ? config.exempt_roles.filter(id => id !== roleId)
+            : [...config.exempt_roles, roleId];
+        handleValueChange('exempt_roles', newExemptRoles);
+    };
+
     if (loading || !config) {
         return <Skeleton className="h-96 w-full" />;
     }
@@ -167,7 +179,7 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
                     </div>
                     <Separator/>
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">Notifications</h3>
+                        <h3 className="font-semibold text-lg">Notifications & Exceptions</h3>
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
                              <div>
                                 <Label htmlFor="alert-channel" className="font-bold text-sm uppercase text-muted-foreground">Salon d'alertes</Label>
@@ -207,6 +219,40 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
                                     </SelectGroup>
                                 </SelectContent>
                             </Select>
+                        </div>
+                         <div className="space-y-2 pt-2">
+                            <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés</Label>
+                             <p className="text-sm text-muted-foreground/80">
+                                Les messages des utilisateurs avec ces rôles ne seront pas analysés.
+                            </p>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between">
+                                        <div className="flex-1 text-left truncate">
+                                            {config.exempt_roles.length > 0 
+                                                ? config.exempt_roles.map(id => (
+                                                    <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
+                                                ))
+                                                : "Sélectionner des rôles..."}
+                                        </div>
+                                        <ChevronDown className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                    <DropdownMenuLabel>Choisir les rôles à exempter</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {roles.map(role => (
+                                        <DropdownMenuCheckboxItem
+                                            key={role.id}
+                                            checked={config.exempt_roles.includes(role.id)}
+                                            onCheckedChange={() => handleRoleToggle(role.id)}
+                                            onSelect={(e) => e.preventDefault()}
+                                        >
+                                            {role.name}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
                      <Separator/>

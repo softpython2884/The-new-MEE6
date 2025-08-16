@@ -37,15 +37,10 @@ export const once = false;
 
 export async function execute(message: Message) {
     if (message.author.bot || !message.member) {
-        return;
-    }
-
-    // Handle DM interactions
-    if (!message.guild) {
-        // TODO: Implement logic for DMs. This is complex because we don't know which persona the user
-        // intends to talk to. A potential solution would be to have a command like `/talkto <persona_name>`
-        // to initiate a DM session with a specific persona. For now, we'll log and return.
-        console.log(`[Persona] Received DM from ${message.author.tag}, but DM logic is not yet fully implemented.`);
+         if (!message.guild) {
+            // TODO: Implement DM logic
+            console.log(`[Persona] Received DM from ${message.author.tag}, but DM logic is not yet fully implemented.`);
+         }
         return;
     }
 

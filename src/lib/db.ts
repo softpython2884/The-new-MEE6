@@ -63,7 +63,8 @@ const upgradeSchema = () => {
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 active_channel_id TEXT,
                 avatar_url TEXT,
-                role_id TEXT
+                role_id TEXT,
+                bot_token TEXT
             );
         `);
         console.log('[Database] La table "ai_personas" est prête.');
@@ -542,10 +543,10 @@ export function getPersonasForGuild(guildId: string): Persona[] {
 
 export function createPersona(persona: Omit<Persona, 'created_at'>): void {
     const stmt = db.prepare(`
-        INSERT INTO ai_personas (id, guild_id, name, persona_prompt, creator_id, active_channel_id, avatar_url, role_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO ai_personas (id, guild_id, name, persona_prompt, creator_id, active_channel_id, avatar_url, role_id, bot_token)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(persona.id, persona.guild_id, persona.name, persona.persona_prompt, persona.creator_id, persona.active_channel_id, persona.avatar_url, persona.role_id);
+    stmt.run(persona.id, persona.guild_id, persona.name, persona.persona_prompt, persona.creator_id, persona.active_channel_id, persona.avatar_url, persona.role_id, persona.bot_token);
 }
 
 export function updatePersona(id: string, updates: Partial<Omit<Persona, 'id' | 'guild_id' | 'creator_id'>>): void {

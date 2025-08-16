@@ -29,7 +29,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Users, Trash2, PlusCircle, Sparkles, Loader2, Wand2, BotMessageSquare, VenetianMask } from 'lucide-react';
+import { Users, Trash2, PlusCircle, Sparkles, Loader2, Wand2, BotMessageSquare, VenetianMask, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useServerInfo } from '@/hooks/use-server-info';
@@ -39,6 +39,12 @@ import ShinyText from '@/components/ui/shiny-text';
 import type { Persona } from '@/types';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -354,6 +360,28 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
                                             className="text-xs h-32"
                                             defaultValue={persona.persona_prompt}
                                             onBlur={(e) => handleUpdatePersona(persona.id, { persona_prompt: e.target.value })}
+                                        />
+                                    </div>
+                                     <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <Label htmlFor={`token-${persona.id}`}>Token du Bot (Optionnel)</Label>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info className="w-4 h-4 text-muted-foreground" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                    <p className="max-w-xs">Fonctionnalité en cours de développement. Lier un token ici préparera votre personnage pour le futur.</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
+                                        <Input
+                                            id={`token-${persona.id}`}
+                                            type="password"
+                                            placeholder="Collez le token du bot ici"
+                                            defaultValue={persona.bot_token || ''}
+                                            onBlur={(e) => handleUpdatePersona(persona.id, { bot_token: e.target.value })}
                                         />
                                     </div>
                                 </CardContent>

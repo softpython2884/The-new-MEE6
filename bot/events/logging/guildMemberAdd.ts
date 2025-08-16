@@ -18,15 +18,16 @@ export async function execute(member: GuildMember) {
     const logChannel = await member.guild.channels.fetch(targetChannelId).catch(() => null) as TextChannel;
     if (!logChannel) return;
 
+    const accountAge = `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`;
+
     const embed = new EmbedBuilder()
         .setColor(0x57F287) // Discord Green
-        .setAuthor({ name: `${member.user.tag} a rejoint`, iconURL: member.user.displayAvatarURL() })
-        .setDescription(`${member.user} a rejoint le serveur.`)
+        .setAuthor({ name: 'Un membre a rejoint', iconURL: member.user.displayAvatarURL() })
+        .setDescription(`${member.user} ${member.user.tag}`)
         .setThumbnail(member.user.displayAvatarURL())
         .addFields(
-            { name: 'Nom d\'utilisateur', value: member.user.username, inline: true },
-            { name: 'Mention', value: `<@${member.user.id}>`, inline: true },
-            { name: 'Compte créé le', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:f>`, inline: false },
+            { name: 'Compte créé', value: accountAge, inline: true },
+            { name: 'Total Membres', value: member.guild.memberCount.toString(), inline: true }
         )
         .setTimestamp()
         .setFooter({ text: `ID: ${member.user.id}` });

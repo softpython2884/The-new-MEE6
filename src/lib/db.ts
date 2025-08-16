@@ -191,6 +191,7 @@ const defaultConfigs: DefaultConfigs = {
             channels: { enabled: false, channel_id: null },
             roles: { enabled: false, channel_id: null },
             moderation: { enabled: true, channel_id: null },
+            voice: { enabled: false, channel_id: null },
         }
     },
     'auto-translation': {
@@ -221,7 +222,7 @@ const defaultConfigs: DefaultConfigs = {
     },
     'webcam': {
         enabled: true,
-        mode: 'allowed',
+        mode: 'video_allowed',
         exempt_roles: [],
     },
     'captcha': { 
@@ -334,6 +335,7 @@ const defaultConfigs: DefaultConfigs = {
         custom_prompt: '',
         knowledge_base: [],
         dedicated_channel_id: null,
+        engagement_module_enabled: false
     },
     'suggestions': {
         enabled: true,

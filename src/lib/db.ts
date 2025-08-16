@@ -550,13 +550,12 @@ export function deletePersona(id: string): void {
 }
 
 export function getMemoriesForPersona(personaId: string, userIds: (string | null)[]): PersonaMemory[] {
-    const placeholders = userIds.map(() => '?').join(',');
-    // Ensure that even if userIds is empty, we have a valid query for persona's self-memories.
-    const userInClause = userIds.length > 0 ? `user_id IN (${placeholders}) OR` : '';
-
+    // Ensure userIds always contains at least one value to prevent SQL syntax errors, even if it's a value that won't match (like NULL for user_id)
+    const placeholders = userIds.length > 0 ? userIds.map(() => '?').join(',') : 'NULL';
+    
     const query = `
         SELECT * FROM persona_memories 
-        WHERE persona_id = ? AND (${userInClause} user_id IS NULL)
+        WHERE persona_id = ? AND (user_id IN (${placeholders}) OR user_id IS NULL)
         ORDER BY salience_score DESC, last_accessed_at DESC 
         LIMIT 20
     `;
@@ -577,6 +576,7 @@ export function getMemoriesForPersona(personaId: string, userIds: (string | null
 
     return memories;
 }
+
 
 export function createMemory(memory: Omit<PersonaMemory, 'id' | 'created_at' | 'last_accessed_at'>): void {
     const stmt = db.prepare(`
@@ -653,3 +653,4 @@ export function getUserSanctionHistory(guildId: string, userId: string): Sanctio
     `);
     return stmt.all(guildId, userId) as SanctionHistoryEntry[];
 }
+

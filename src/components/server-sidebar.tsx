@@ -78,7 +78,7 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className="flex h-full w-20 flex-col items-center gap-3 bg-transparent py-4">
+      <aside className="flex h-full w-20 flex-col items-center gap-3 bg-card/50 backdrop-blur-sm p-4">
         {loading ? (
             <ServerSidebarSkeleton />
         ) : (
@@ -91,7 +91,7 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
                     <TooltipTrigger asChild>
                       <Link href={destination} className="relative group">
                         <div className={cn(
-                          "absolute -left-1 top-1/2 -translate-y-1/2 h-0 w-1 bg-white rounded-r-full transition-all",
+                          "absolute -left-3 top-1/2 -translate-y-1/2 h-0 w-1 bg-white rounded-r-full transition-all",
                           isActive ? "h-10" : "group-hover:h-5"
                         )}></div>
                         <Avatar className={cn(

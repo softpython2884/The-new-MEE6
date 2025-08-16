@@ -138,8 +138,7 @@ const defaultConfigs: DefaultConfigs = {
         enabled: false, 
         log_channel_id: null, 
         dm_user_on_action: true, 
-        presets: [], 
-        premium: false,
+        presets: [],
         command_permissions: {
             ban: null,
             unban: null,

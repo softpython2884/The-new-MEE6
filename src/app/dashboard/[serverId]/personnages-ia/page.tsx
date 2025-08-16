@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,17 +36,13 @@ import { useServerInfo } from '@/hooks/use-server-info';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { Badge } from '@/components/ui/badge';
 import ShinyText from '@/components/ui/shiny-text';
+import type { Persona } from '@/types';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
-// Types
-interface Persona {
-    id: string;
-    guild_id: string;
-    name: string;
-    persona_prompt: string;
-    active_channel_id: string | null;
-}
+
 interface DiscordChannel {
     id: string;
     name: string;
@@ -269,9 +266,15 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
                             <Card key={persona.id} className="flex flex-col">
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
-                                        <CardTitle className="flex items-center gap-2">
-                                            <VenetianMask /> {persona.name}
-                                        </CardTitle>
+                                        <div className='flex items-center gap-3'>
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={persona.avatar_url || ''} />
+                                                <AvatarFallback>{persona.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <CardTitle className="flex items-center gap-2">
+                                                {persona.name}
+                                            </CardTitle>
+                                        </div>
                                         <Button variant="ghost" size="icon" onClick={() => handleDeletePersona(persona.id)}><Trash2 className="text-destructive" /></Button>
                                     </div>
                                 </CardHeader>

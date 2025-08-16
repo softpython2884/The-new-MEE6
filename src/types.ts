@@ -76,6 +76,8 @@ export interface Persona {
     creator_id: string;
     created_at: string;
     active_channel_id: string | null;
+    avatar_url: string | null;
+    role_id: string | null;
 }
 
 export interface ConversationHistoryItem {

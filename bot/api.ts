@@ -1,10 +1,11 @@
 
+
 import express from 'express';
 import cors from 'cors';
 import { Client, CategoryChannel, ChannelType } from 'discord.js';
 import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGuild, updatePersona, deletePersona, createPersona } from '@/lib/db';
 import { verifyAndConsumeAuthToken } from './auth';
-import { generatePersonaPrompt } from '@/ai/flows/persona-flow';
+import { generatePersonaPrompt, generatePersonaAvatar } from '@/ai/flows/persona-flow';
 import { v4 as uuidv4 } from 'uuid';
 
 const API_PORT = process.env.BOT_API_PORT || 25875;
@@ -258,23 +259,41 @@ export function startApi(client: Client) {
         }
     });
 
-    app.post('/api/personas/create', (req, res) => {
+    app.post('/api/personas/create', async (req, res) => {
         const { guild_id, name, persona_prompt, creator_id } = req.body;
          if (!guild_id || !name || !persona_prompt || !creator_id) {
             return res.status(400).json({ error: 'Missing required fields for persona creation.' });
         }
         try {
+            const guild = await client.guilds.fetch(guild_id);
+            if (!guild) {
+                return res.status(404).json({ error: 'Guild not found.' });
+            }
+
+            // 1. Generate Avatar
+            const { avatarDataUri } = await generatePersonaAvatar({ name, persona_prompt });
+
+            // 2. Create Role
+            const newRole = await guild.roles.create({
+                name: name,
+                mentionable: true,
+                reason: `Role for AI Persona: ${name}`
+            });
+
             const newPersona = {
                 id: uuidv4(),
                 guild_id,
                 name,
                 persona_prompt,
                 creator_id,
-                active_channel_id: null
+                active_channel_id: null,
+                avatar_url: avatarDataUri,
+                role_id: newRole.id
             };
             createPersona(newPersona);
             res.status(201).json(newPersona);
         } catch (error) {
+            console.error("[API] Failed to create persona:", error);
             res.status(500).json({ error: 'Failed to create persona.' });
         }
     });
@@ -290,9 +309,15 @@ export function startApi(client: Client) {
         }
     });
 
-    app.delete('/api/personas/:personaId', (req, res) => {
+    app.delete('/api/personas/:personaId', async (req, res) => {
         const { personaId } = req.params;
         try {
+            // Optional: Find persona to get role_id and delete it
+            // const persona = getPersonaById(personaId); // You'd need to create this function in db.ts
+            // if (persona && persona.role_id) {
+            //     const guild = await client.guilds.fetch(persona.guild_id);
+            //     await guild.roles.delete(persona.role_id);
+            // }
             deletePersona(personaId);
             res.status(204).send();
         } catch (error) {

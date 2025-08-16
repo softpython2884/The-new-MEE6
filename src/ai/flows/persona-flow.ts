@@ -11,6 +11,32 @@ import { z } from 'genkit';
 import type { ConversationHistoryItem, PersonaMemory } from '@/types';
 
 
+// --- Persona Avatar Generation ---
+const PersonaAvatarInputSchema = z.object({
+  name: z.string().describe("The name of the character."),
+  persona_prompt: z.string().describe("The detailed personality description of the character."),
+});
+
+const PersonaAvatarOutputSchema = z.object({
+    avatarDataUri: z.string().describe("The generated avatar image as a data URI."),
+});
+
+export async function generatePersonaAvatar(input: PersonaAvatarInputSchema): Promise<PersonaAvatarOutputSchema> {
+    const { media } = await ai.generate({
+        model: 'googleai/gemini-2.0-flash-preview-image-generation',
+        prompt: `Create a square avatar for a character named "${input.name}". Description: ${input.persona_prompt}. The style should be an anime or digital art portrait, focusing on the face.`,
+        config: {
+            responseModalities: ['IMAGE', 'TEXT'],
+        },
+    });
+
+    if (!media.url) {
+        throw new Error("Avatar generation failed.");
+    }
+    return { avatarDataUri: media.url };
+}
+
+
 // --- Persona Generation ---
 
 const PersonaPromptInputSchema = z.object({

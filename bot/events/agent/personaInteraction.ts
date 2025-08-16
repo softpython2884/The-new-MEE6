@@ -1,6 +1,6 @@
 
 
-import { Events, Message, Collection } from 'discord.js';
+import { Events, Message, Collection, TextChannel } from 'discord.js';
 import { getServerConfig, getPersonasForGuild, getMemoriesForPersona, createMultipleMemories } from '../../../src/lib/db';
 import { personaInteractionFlow } from '../../../src/ai/flows/persona-flow';
 import { memoryFlow } from '../../../src/ai/flows/memory-flow';
@@ -8,6 +8,8 @@ import type { Persona, ConversationHistoryItem } from '@/types';
 import fetch from 'node-fetch';
 
 const imageMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+const PERSONA_WEBHOOK_NAME = "Marcus Persona";
+
 
 // Helper to convert image URL to data URI
 async function imageUrlToDataUri(url: string): Promise<string> {
@@ -49,6 +51,9 @@ export async function execute(message: Message) {
     if (!activePersona) {
         return;
     }
+    
+    // Check if the message is a mention to the persona's role
+    const wasMentioned = message.mentions.roles.has(activePersona.role_id || '');
 
     // The persona should not respond to itself if it was somehow triggered by its own message.
     if (message.author.username.toLowerCase() === activePersona.name.toLowerCase()) {
@@ -58,12 +63,12 @@ export async function execute(message: Message) {
     // Check for image attachments in the user's message
     const imageAttachment = message.attachments.find(att => imageMimeTypes.some(mime => att.contentType?.startsWith(mime)));
     
-    // The persona should only be triggered if there is text content or an image.
-    if (!message.content && !imageAttachment) {
+    // The persona should only be triggered if there is text content, an image, or it was mentioned.
+    if (!message.content && !imageAttachment && !wasMentioned) {
         return;
     }
 
-    console.log(`[Persona] Persona "${activePersona.name}" is processing a message from ${message.author.tag} in #${message.channel.name}.`);
+    console.log(`[Persona] Persona "${activePersona.name}" is processing a message from ${message.author.tag} in #${(message.channel as TextChannel).name}.`);
     
     try {
         await message.channel.sendTyping();
@@ -103,10 +108,25 @@ export async function execute(message: Message) {
 
         // --- Handle Response and Memory Creation ---
         if (result.response) {
-            const responseMessage = await message.reply(result.response);
+            const targetChannel = message.channel as TextChannel;
+            const webhooks = await targetChannel.fetchWebhooks();
+            let webhook = webhooks.find(wh => wh.name === PERSONA_WEBHOOK_NAME && wh.token !== null);
+
+            if (!webhook) {
+                webhook = await targetChannel.createWebhook({
+                    name: PERSONA_WEBHOOK_NAME,
+                    reason: 'Webhook for AI Personas'
+                });
+            }
+            
+            const responseMessage = await webhook.send({
+                content: result.response,
+                username: activePersona.name,
+                avatarURL: activePersona.avatar_url || message.client.user?.displayAvatarURL()
+            });
             
             const updatedHistory = conversationHistory.get(historyKey) || [];
-            updatedHistory.push({ user: activePersona.name, content: responseMessage.content });
+            updatedHistory.push({ user: activePersona.name, content: result.response });
             if (updatedHistory.length > HISTORY_LIMIT) {
                 updatedHistory.shift();
             }

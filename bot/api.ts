@@ -2,9 +2,9 @@
 
 import express from 'express';
 import cors from 'cors';
-import { Client, CategoryChannel, ChannelType } from 'discord.js';
+import { Client, CategoryChannel, ChannelType, REST, Routes } from 'discord.js';
 import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGuild, updatePersona, deletePersona, createPersona } from '@/lib/db';
-import { verifyAndConsumeAuthToken } from './auth';
+import { verifyAndConsumeAuthToken, getBotAccessToken } from './auth';
 import { generatePersonaPrompt, generatePersonaAvatar } from '@/ai/flows/persona-flow';
 import { v4 as uuidv4 } from 'uuid';
 import { updateGuildCommands } from './handlers/commandHandler';
@@ -13,6 +13,7 @@ const API_PORT = process.env.BOT_API_PORT || 25875;
 
 export function startApi(client: Client) {
     const app = express();
+    const rest = new REST({ version: '10' });
 
     // Options CORS pour autoriser les requêtes depuis n'importe quelle origine.
     // C'est utile pour le développement local.
@@ -31,6 +32,21 @@ export function startApi(client: Client) {
         console.log(`[Bot API] Requête reçue : ${req.method} ${req.path}`);
         next();
     });
+
+    /**
+     * Middleware pour s'assurer que le token du bot est prêt pour l'API Discord.
+     */
+    const ensureBotToken = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        try {
+            const token = await getBotAccessToken();
+            rest.setToken(token);
+            next();
+        } catch (error) {
+            console.error('[Bot API] Erreur lors de la récupération du token bot:', error);
+            res.status(500).json({ error: "Erreur d'authentification interne du bot." });
+        }
+    };
+
 
     /**
      * Endpoint for the panel to verify a user's auth token.
@@ -336,6 +352,52 @@ export function startApi(client: Client) {
             res.status(204).send();
         } catch (error) {
             res.status(500).json({ error: 'Failed to delete persona.' });
+        }
+    });
+
+
+    // --- Discord Auto-Moderation API ---
+    app.get('/api/automod-rules/:guildId', ensureBotToken, async (req, res) => {
+        const { guildId } = req.params;
+        try {
+            const rules = await rest.get(Routes.guildAutoModerationRules(guildId));
+            res.json(rules);
+        } catch (error) {
+            console.error(`[AutoMod API] Failed to fetch rules for guild ${guildId}:`, error);
+            res.status(500).json({ error: "Failed to fetch AutoMod rules from Discord." });
+        }
+    });
+
+    app.post('/api/automod-rules/:guildId', ensureBotToken, async (req, res) => {
+        const { guildId } = req.params;
+        try {
+            const newRule = await rest.post(Routes.guildAutoModerationRules(guildId), { body: req.body });
+            res.status(201).json(newRule);
+        } catch (error) {
+            console.error(`[AutoMod API] Failed to create rule for guild ${guildId}:`, error);
+            res.status(500).json({ error: "Failed to create AutoMod rule on Discord." });
+        }
+    });
+
+    app.patch('/api/automod-rules/:guildId/:ruleId', ensureBotToken, async (req, res) => {
+        const { guildId, ruleId } = req.params;
+        try {
+            const updatedRule = await rest.patch(Routes.guildAutoModerationRule(guildId, ruleId), { body: req.body });
+            res.json(updatedRule);
+        } catch (error) {
+            console.error(`[AutoMod API] Failed to update rule ${ruleId} for guild ${guildId}:`, error);
+            res.status(500).json({ error: "Failed to update AutoMod rule on Discord." });
+        }
+    });
+
+    app.delete('/api/automod-rules/:guildId/:ruleId', ensureBotToken, async (req, res) => {
+        const { guildId, ruleId } = req.params;
+        try {
+            await rest.delete(Routes.guildAutoModerationRule(guildId, ruleId));
+            res.status(204).send();
+        } catch (error) {
+            console.error(`[AutoMod API] Failed to delete rule ${ruleId} for guild ${guildId}:`, error);
+            res.status(500).json({ error: "Failed to delete AutoMod rule on Discord." });
         }
     });
 

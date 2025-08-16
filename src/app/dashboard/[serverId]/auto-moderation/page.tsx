@@ -1,18 +1,18 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Trash2, PlusCircle, ShieldAlert, Sparkles, Loader2, Bot } from 'lucide-react';
+import { Trash2, PlusCircle, Sparkles, Loader2, Bot, BotMessageSquare, ShieldAlert } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,10 @@ import {
 } from "@/components/ui/dialog"
 import { generateKeywords } from '@/ai/flows/keyword-generation-flow';
 import { Switch } from '@/components/ui/switch';
+import { useServerInfo } from '@/hooks/use-server-info';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -35,23 +39,21 @@ interface AutoModAction {
     metadata?: {
         channel_id?: string;
         duration_seconds?: number;
-        custom_message?: string;
     };
 }
 interface AutoModTriggerMetadata {
     keyword_filter?: string[];
-    regex_patterns?: string[];
-    presets?: number[];
+    presets?: number[]; // 1: Profanity, 2: Sexual Content, 3: Slurs
     allow_list?: string[];
     mention_total_limit?: number;
     mention_raid_protection_enabled?: boolean;
 }
 interface AutoModRule {
-    id?: string;
+    id: string;
     guild_id: string;
     name: string;
     event_type: number; // 1: Message Send
-    trigger_type: number; // 1: Keyword, 2: Spam, 3: Keyword Preset, 4: Mention Spam
+    trigger_type: number; // 1: Keyword, 3: Keyword Preset, 4: Mention Spam
     trigger_metadata: AutoModTriggerMetadata;
     actions: AutoModAction[];
     enabled: boolean;
@@ -87,72 +89,33 @@ function AutoModerationPageSkeleton() {
     );
 }
 
-function KeywordGenerator({ onKeywordsGenerated }: { onKeywordsGenerated: (keywords: string[]) => void }) {
-    const [prompt, setPrompt] = useState('');
-    const [isGenerating, setIsGenerating] = useState(false);
-    const { toast } = useToast();
+const triggerTypeMap: { [key: number]: string } = {
+    1: 'Mots-clés personnalisés',
+    3: 'Listes de mots Discord',
+    4: 'Spam de Mentions'
+};
 
-    const handleGeneration = async () => {
-        if (!prompt) {
-            toast({ title: 'Veuillez entrer une description.', variant: 'destructive' });
-            return;
-        }
-        setIsGenerating(true);
-        try {
-            const result = await generateKeywords({ prompt });
-            onKeywordsGenerated(result.keywords);
-        } catch (error) {
-            console.error(error);
-            toast({ title: "Erreur de génération", description: "Impossible de générer les mots-clés.", variant: 'destructive' });
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
-    return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Générer des mots-clés avec l'IA</DialogTitle>
-                <DialogDescription>
-                    Décrivez le type de mots que vous souhaitez bloquer. L'IA générera une liste de mots-clés correspondants que vous pourrez affiner.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-                <Label htmlFor="keyword-prompt">Description</Label>
-                <Textarea 
-                    id="keyword-prompt"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Ex: 'Insultes légères en français', 'Mots liés aux arnaques et au phishing en anglais', 'Noms de logiciels de triche pour les jeux vidéo'."
-                />
-            </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-                <Button onClick={handleGeneration} disabled={isGenerating}>
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                    Générer
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    )
+const presetTypeMap: { [key: number]: string } = {
+    1: 'Propos injurieux',
+    2: 'Contenu sexuel',
+    3: 'Insultes et Incitations à la haine'
 }
 
-function RuleCard({ rule, onEdit, onDelete }: { rule: AutoModRule, onEdit: () => void, onDelete: () => void }) {
-    const triggerTypeMap: { [key: number]: string } = {
-        1: 'Mots-clés personnalisés',
-        3: 'Mots-clés Discord',
-        4: 'Spam de Mentions'
-    };
-    
+function RuleCard({ rule, onEdit, onDelete, onToggle }: { rule: AutoModRule, onEdit: () => void, onDelete: () => void, onToggle: (enabled: boolean) => void }) {
+    const hasTimeout = rule.actions.some(a => a.type === 3);
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle>{rule.name}</CardTitle>
-                    <CardDescription>{triggerTypeMap[rule.trigger_type] || 'Type inconnu'}</CardDescription>
+                    <CardDescription className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary">{triggerTypeMap[rule.trigger_type] || 'Type inconnu'}</Badge>
+                         {hasTimeout && <Badge variant="destructive">Timeout</Badge>}
+                    </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Switch checked={rule.enabled} onCheckedChange={onEdit} />
+                    <Switch checked={rule.enabled} onCheckedChange={onToggle} />
                 </div>
             </CardHeader>
             <CardContent className="flex justify-end gap-2">
@@ -175,33 +138,67 @@ export default function AutoModerationPage() {
 
     const [rules, setRules] = useState<AutoModRule[]>([]);
     const [loading, setLoading] = useState(true);
+    const { serverInfo, loading: serverInfoLoading } = useServerInfo();
 
-    const fetchRules = async () => {
-        // TODO: Implement API endpoint in bot/api.ts
-        // For now, this will be empty.
-        setRules([]); 
-    };
+
+    const fetchRules = useCallback(async () => {
+        if (!serverId) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/automod-rules/${serverId}`);
+            if (!res.ok) throw new Error("Impossible de récupérer les règles.");
+            const data = await res.json();
+            setRules(data);
+        } catch (error: any) {
+            toast({ title: "Erreur", description: error.message, variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    }, [serverId, toast]);
 
     useEffect(() => {
-        setLoading(true);
-        fetchRules().finally(() => setLoading(false));
-    }, [serverId]);
-    
-    const onSave = async (rule: AutoModRule) => {
-        console.log("Saving rule:", rule);
-        // TODO: Implement API logic
-        toast({ title: rule.id ? "Règle mise à jour" : "Règle créée", description: `La règle "${rule.name}" a été sauvegardée.` });
-        await fetchRules();
+        fetchRules();
+    }, [fetchRules]);
+
+    const onSave = async (rule: Partial<AutoModRule>) => {
+        try {
+            const url = rule.id 
+                ? `${API_URL}/automod-rules/${serverId}/${rule.id}`
+                : `${API_URL}/automod-rules/${serverId}`;
+            const method = rule.id ? 'PATCH' : 'POST';
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rule)
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "La sauvegarde a échoué.");
+            }
+
+            toast({ title: rule.id ? "Règle mise à jour" : "Règle créée", description: `La règle "${rule.name}" a été sauvegardée.` });
+            await fetchRules();
+            return true;
+        } catch (error: any) {
+            toast({ title: "Erreur de sauvegarde", description: error.message, variant: "destructive" });
+            return false;
+        }
     };
 
     const onDelete = async (ruleId: string) => {
-        console.log("Deleting rule:", ruleId);
-        // TODO: Implement API logic
-        toast({ title: "Règle supprimée", variant: 'destructive'});
-        await fetchRules();
+        try {
+            const res = await fetch(`${API_URL}/automod-rules/${serverId}/${ruleId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error("La suppression a échoué.");
+            toast({ title: "Règle supprimée", variant: 'destructive'});
+            await fetchRules();
+        } catch (error: any) {
+             toast({ title: "Erreur de suppression", description: error.message, variant: "destructive" });
+        }
     };
 
-    if (loading) {
+    if (loading || serverInfoLoading) {
         return <AutoModerationPageSkeleton />;
     }
 
@@ -214,23 +211,22 @@ export default function AutoModerationPage() {
                     Gérez les règles d'auto-modération natives de Discord pour filtrer le contenu.
                 </p>
             </div>
-             <Button disabled>
-                <PlusCircle className="mr-2"/>
-                Créer une règle
-            </Button>
+             {/* <RuleEditorDialog onSave={onSave} serverInfo={serverInfo}>
+                <Button>
+                    <PlusCircle className="mr-2"/>
+                    Créer une règle
+                </Button>
+            </RuleEditorDialog> */}
         </div>
         
         <Separator />
         
         {rules.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                <Bot className="mx-auto h-12 w-12 text-muted-foreground" />
+                <BotMessageSquare className="mx-auto h-12 w-12 text-muted-foreground" />
                 <h3 className="mt-4 text-lg font-semibold">Aucune règle définie</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    La gestion des règles d'auto-modération natives est en cours de développement.
-                </p>
-                 <p className="mt-1 text-sm text-muted-foreground">
-                    Utilisez l'assistant de modération IA en attendant.
+                    Utilisez le bouton "Créer une règle" pour commencer à protéger votre serveur.
                 </p>
             </div>
         ) : (
@@ -239,8 +235,9 @@ export default function AutoModerationPage() {
                     <RuleCard 
                         key={rule.id} 
                         rule={rule} 
-                        onEdit={() => {/* TODO */}}
+                        onEdit={() => {/* TODO: Implement edit dialog opening */}}
                         onDelete={() => onDelete(rule.id!)}
+                        onToggle={(enabled) => onSave({ id: rule.id, enabled })}
                     />
                 ))}
             </div>

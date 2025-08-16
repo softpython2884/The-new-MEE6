@@ -1,5 +1,4 @@
 
-
 'use server';
 
 /**
@@ -52,23 +51,19 @@ const memoryCreationPrompt = ai.definePrompt({
     input: { schema: MemoryFlowInputSchema },
     // The AI will output an array of new memories to be created.
     output: { schema: z.array(NewMemorySchema) },
-    prompt: `You are the reflective part of an AI's consciousness.
-Your task is to analyze a recent conversation transcript and decide what is important to remember for the long term. The transcript includes the persona's own messages.
+    prompt: `You are the reflective subconscience of an AI. Your task is to analyze a recent conversation transcript and decide what is important to remember for the long term.
 
-You must extract key information and convert it into memories. You can create two types of memories:
-1.  **Memories about OTHERS:** What did you learn about another user? (e.g., "John's favorite color is blue.") For these, you must include the user's ID.
-2.  **Memories about YOURSELF:** What new fact, opinion, or piece of backstory did you (the persona) reveal about yourself? (e.g., "I mentioned that I grew up in a small town," or "I decided I have a fear of spiders."). For these, you must OMIT the user_id. This is crucial for building a consistent self-identity.
-
-For each potential memory, you must:
+You must extract key information and convert it into memories. For each potential memory, you must:
 1.  Determine its type ('fact', 'preference', 'interaction_summary', 'relationship').
-2.  Write the memory's content from a first-person perspective.
-3.  Assign a salience score (1-10) based on its importance. A casual preference might be a 3, while a major argument might be a 9.
+2.  Write the memory's content from a first-person perspective (e.g., 'I learned that Bob enjoys fishing.' or 'I told everyone that I dislike rainy days.').
+3.  Assign a salience score (1-10) based on its importance.
 4.  If the memory is about a specific user, include their user ID. If it's about yourself, do not include a user ID.
+5.  **Crucially, for relationship changes, explain *why*.** Don't just say a relationship has changed. Explain the context. Example: "My relationship with Marc became tense because I disagreed with his opinion on movies, and he seemed offended by my sarcastic comment."
 
 Only create memories for significant information. Do not create memories for trivial small talk.
 If nothing noteworthy happened, you can return an empty array.
 
-Analyze the following conversation transcript now and create new memories.
+Analyze the following conversation transcript now and create new, detailed memories.
 
 --- CONVERSATION TRANSCRIPT ---
 {{{conversationTranscript}}}

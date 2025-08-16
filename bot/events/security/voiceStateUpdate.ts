@@ -38,40 +38,28 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
         return;
     }
     
-    // The 'allowed' mode means we don't interfere with Discord's default permissions.
-    if (webcamConfig.mode === 'allowed') {
-        // We should also clear any existing overwrites by the bot for this user in this channel
-        // in case the mode was previously more restrictive.
-        const existingOverwrite = newState.channel.permissionOverwrites.cache.get(newState.member.id);
-        if (existingOverwrite) {
-            await existingOverwrite.delete().catch(e => console.error(`[Webcam Control] Failed to clear old permissions for ${newState.member?.user.tag}:`, e));
-        }
-        return;
-    }
-
     console.log(`[Webcam Control] Applying policy '${webcamConfig.mode}' for user ${newState.member.user.tag} in channel ${newState.channel.name}`);
 
     try {
         switch (webcamConfig.mode) {
-            case 'webcam_only':
-                // Allow video, deny stream
-                await newState.channel.permissionOverwrites.edit(newState.member.id, {
-                    Stream: false,
-                    Video: true,
-                });
+            case 'allowed':
+                // Clear any existing overwrites by the bot for this user in this channel
+                const existingOverwrite = newState.channel.permissionOverwrites.cache.get(newState.member.id);
+                if (existingOverwrite) {
+                    await existingOverwrite.delete().catch(e => console.error(`[Webcam Control] Failed to clear old permissions for ${newState.member?.user.tag}:`, e));
+                }
                 break;
+            case 'webcam_only':
             case 'stream_only':
-                 // Allow stream, deny video
+                // Allow video/stream
                 await newState.channel.permissionOverwrites.edit(newState.member.id, {
-                    Stream: true,
-                    Video: false,
+                    [PermissionFlagsBits.Stream]: true,
                 });
                 break;
             case 'disallowed':
                 // Deny both
                 await newState.channel.permissionOverwrites.edit(newState.member.id, {
-                    Stream: false,
-                    Video: false,
+                    [PermissionFlagsBits.Stream]: false,
                 });
                 break;
         }

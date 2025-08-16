@@ -35,6 +35,8 @@ interface ServerData {
 
 const testerCommands = [
     { name: '/mp', key: 'mp', description: 'Envoie un message privé à un utilisateur.' },
+    { name: '/webhook', key: 'webhook', description: 'Envoie un message en imitant un utilisateur via un webhook.' },
+    { name: '/tester', key: 'tester', description: 'Gère le statut de Testeur pour les utilisateurs.' },
 ];
 
 export default function TesterCommandsPage() {

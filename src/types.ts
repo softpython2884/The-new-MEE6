@@ -37,14 +37,14 @@ export type Module =
     | 'backup'
     | 'webcam'
     | 'mod-training'
-    | 'tester'
+    | 'tester-commands'
     | 'conversational-agent'
     | 'suggestions'
     | 'ai-personas'
     | 'autoroles'
     | 'server-identity'
     | 'security-alerts'
-    | 'tester-commands';
+    | 'tester';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale

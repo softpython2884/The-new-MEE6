@@ -163,3 +163,5 @@ The conversation has just started. You can be the first one to speak if you want
 The last message in the history is the most recent one. Based on your character, your memories, and the context of the chat, generate the perfect, in-character response NOW. If you feel your character would stay silent, return an empty string.
 `,
 });
+
+```

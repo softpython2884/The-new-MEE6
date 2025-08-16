@@ -1,4 +1,5 @@
 
+
 'use server';
 
 /**
@@ -102,7 +103,9 @@ const flow = ai.defineFlow(
     outputSchema: ModerationAiOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await filterPrompt(input);
     return output!;
   }
 );
+
+```

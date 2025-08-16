@@ -16,5 +16,6 @@ import '@/ai/flows/conversational-agent-flow.ts';
 import '@/ai/flows/keyword-generation-flow.ts';
 import '@/ai/flows/persona-flow.ts';
 import '@/ai/flows/memory-flow.ts';
+import '@/ai/flows/self-reflection-flow.ts';
 
 import '@/ai/tools/discord-structure-tool.ts';

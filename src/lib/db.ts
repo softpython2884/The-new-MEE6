@@ -83,6 +83,20 @@ const upgradeSchema = () => {
             );
         `);
          console.log('[Database] La table "persona_memories" est prête.');
+        
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS persona_relationships (
+                persona_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                status TEXT NOT NULL,
+                level INTEGER NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (persona_id, user_id),
+                FOREIGN KEY (persona_id) REFERENCES ai_personas (id) ON DELETE CASCADE
+            );
+        `);
+        console.log('[Database] La table "persona_relationships" est prête.');
+
 
         db.exec(`
             CREATE TABLE IF NOT EXISTS premium_keys (
@@ -356,7 +370,7 @@ const defaultConfigs: DefaultConfigs = {
         similar_username_sensitivity: 80,
     },
     'moveall': {
-        enabled: false,
+        enabled: true,
         premium: true,
     }
 };
@@ -653,4 +667,3 @@ export function getUserSanctionHistory(guildId: string, userId: string): Sanctio
     `);
     return stmt.all(guildId, userId) as SanctionHistoryEntry[];
 }
-

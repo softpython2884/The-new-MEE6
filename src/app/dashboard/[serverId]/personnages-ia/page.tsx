@@ -371,7 +371,7 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
                                                         <Info className="w-4 h-4 text-muted-foreground" />
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                    <p className="max-w-xs">Fonctionnalité en cours de développement. Lier un token ici préparera votre personnage pour le futur.</p>
+                                                    <p className="max-w-xs">Futur : Permettra de lier un bot dédié à ce personnage pour une présence et un avatar uniques.</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </TooltipProvider>
@@ -379,9 +379,10 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
                                         <Input
                                             id={`token-${persona.id}`}
                                             type="password"
-                                            placeholder="Collez le token du bot ici"
+                                            placeholder="Fonctionnalité en développement"
                                             defaultValue={persona.bot_token || ''}
                                             onBlur={(e) => handleUpdatePersona(persona.id, { bot_token: e.target.value })}
+                                            disabled
                                         />
                                     </div>
                                 </CardContent>

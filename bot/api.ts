@@ -299,17 +299,13 @@ export function startApi(client: Client) {
 
             // Generate an avatar for the persona
             let avatarDataUri = null;
-            // The following block is disabled as Discord's API has limitations on setting bot avatars with data URIs directly.
-            // This would require an intermediate image hosting service, which is beyond the current scope.
-            /*
             try {
                 const avatarResult = await generatePersonaAvatar({ name, persona_prompt });
                 avatarDataUri = avatarResult.avatarDataUri;
             } catch (avatarError) {
                 console.error(`[API] Failed to generate avatar for ${name}, using default.`, avatarError);
             }
-            */
-
+            
             const newPersona = {
                 id: uuidv4(),
                 guild_id,
@@ -318,7 +314,8 @@ export function startApi(client: Client) {
                 creator_id,
                 active_channel_id: null,
                 avatar_url: avatarDataUri, // Store the generated avatar URL
-                role_id: newRole.id
+                role_id: newRole.id,
+                bot_token: null
             };
 
             createPersona(newPersona);

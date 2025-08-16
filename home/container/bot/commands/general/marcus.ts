@@ -8,9 +8,6 @@ import * as path from 'path';
 // Helper function to capitalize first letter
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// This function is inefficient and uses sync I/O. 
-// A better implementation would involve adding a 'category' property to the Command interface 
-// and grouping by that property. For now, this approach works.
 const getCommandCategory = (command: Command, commandsPath: string): string => {
     const commandName = command.data.name.split(' ')[0];
     
@@ -71,15 +68,23 @@ const MarcusCommand: Command = {
             .setTimestamp()
             .setFooter({ text: `Demandé par ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() });
 
-        // Sort categories alphabetically
         const sortedCategories = new Collection(Array.from(commandCategories.entries()).sort());
 
         for (const [category, commandList] of sortedCategories.entries()) {
             if (category !== 'uncategorized' && commandList.length > 0) {
-                 helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: '\u200B' });
-                 commandList.forEach(cmd => {
-                     helpEmbed.addFields({ name: `\`/${cmd.data.name}\``, value: cmd.data.description, inline: true });
-                 });
+                 const commandFields = commandList.map(cmd => ({
+                    name: `\`/${cmd.data.name}\``,
+                    value: cmd.data.description,
+                    inline: true
+                }));
+
+                if (commandFields.length > 0) {
+                    helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: '\u200B' });
+                    // Add each command as a separate field to avoid exceeding field value limits
+                    for (const field of commandFields) {
+                        helpEmbed.addFields(field);
+                    }
+                }
             }
         }
 

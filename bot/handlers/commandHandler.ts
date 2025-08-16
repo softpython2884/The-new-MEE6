@@ -37,6 +37,7 @@ export const loadCommands = (client: Client) => {
             if (command && command.data && command.execute) {
                 if (!client.commands.has(command.data.name)) {
                     client.commands.set(command.data.name, command);
+                    // console.log(`[+] Loaded command: /${command.data.name}`);
                 }
             }
         } catch(e) {
@@ -48,21 +49,28 @@ export const loadCommands = (client: Client) => {
 
 // Helper function to map a command name to its module folder
 const getCommandModule = (commandName: string): Module | 'general' | 'unknown' => {
-    const commandFile = commandFiles.find(file => path.basename(file, '.ts').toLowerCase() === commandName.toLowerCase() || path.basename(file, '.js').toLowerCase() === commandName.toLowerCase());
+    const commandFile = commandFiles.find(file => {
+        const baseName = path.basename(file, '.ts').toLowerCase();
+        const jsBaseName = path.basename(file, '.js').toLowerCase();
+        return baseName === commandName.toLowerCase() || jsBaseName === commandName.toLowerCase();
+    });
+
     if (!commandFile) return 'unknown';
 
     const relativePath = path.relative(commandsPath, commandFile);
     const moduleDir = relativePath.split(path.sep)[0];
     
     // This is a mapping from folder name to module name in the DB
-    const moduleMap: { [key: string]: Module } = {
+    const moduleMap: { [key: string]: Module | 'general' } = {
         'moderation': 'moderation',
         'security': 'security-alerts', // A reasonable default
         'automation': 'private-rooms', // A reasonable default
         'ai': 'content-ai', // A reasonable default
         'premium': 'premium', // A special case for premium commands
+        'general': 'general-commands',
     };
     
+    // Command-specific overrides for multi-module folders
     if (['lock', 'unlock'].includes(commandName)) return 'lock';
     if (['backup'].includes(commandName)) return 'backup';
     if (['iacreateserv', 'iaeditserv', 'iadeleteserv', 'iaresetserv'].includes(commandName)) return 'server-builder';
@@ -71,6 +79,8 @@ const getCommandModule = (commandName: string): Module | 'general' | 'unknown' =
     if (['traduire'].includes(commandName)) return 'auto-translation';
     if (['addprivate', 'privateresum'].includes(commandName)) return 'private-rooms';
     if (['event-create', 'event-list'].includes(commandName)) return 'smart-events';
+    if (['setsuggest', 'suggest'].includes(commandName)) return 'suggestions';
+    if (['moveall'].includes(commandName)) return 'moveall';
 
     return moduleMap[moduleDir] || 'general';
 }
@@ -90,16 +100,26 @@ export const updateGuildCommands = async (guildId: string, client: Client) => {
         }
 
         const module = getCommandModule(commandName);
-
-        if (module === 'general' || module === 'unknown') {
-            // If the command is general, always deploy it.
+        
+        if (module === 'general') {
              commandsToDeploy.push(command.data.toJSON());
-        } else {
-             // If the command belongs to a module, check if that module is enabled.
-            const config = getServerConfig(guildId, module);
-            if (config?.enabled) {
-                commandsToDeploy.push(command.data.toJSON());
+             continue;
+        }
+
+        if (module === 'unknown') {
+            continue;
+        }
+
+        const config = await getServerConfig(guildId, module);
+
+        if (module === 'general-commands' && config) {
+            const generalConfig = await getServerConfig(guildId, 'general-commands');
+            if (generalConfig?.command_enabled?.[commandName]) {
+                 commandsToDeploy.push(command.data.toJSON());
             }
+        }
+        else if (config?.enabled) {
+            commandsToDeploy.push(command.data.toJSON());
         }
     }
 

@@ -8,9 +8,6 @@ import * as path from 'path';
 // Helper function to capitalize first letter
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// This function is inefficient and uses sync I/O. 
-// A better implementation would involve adding a 'category' property to the Command interface 
-// and grouping by that property. For now, this approach works.
 const getCommandCategory = (command: Command, commandsPath: string): string => {
     const commandName = command.data.name.split(' ')[0];
     
@@ -54,8 +51,6 @@ const MarcusCommand: Command = {
         const commands = interaction.client.commands;
         const commandCategories = new Collection<string, Command[]>();
         
-        // This is a simplified approach to getting categories. 
-        // In a more robust system, the category should be a property of the command itself.
         const commandsPath = path.join(__dirname, '..');
         
         for (const command of commands.values()) {
@@ -73,15 +68,17 @@ const MarcusCommand: Command = {
             .setTimestamp()
             .setFooter({ text: `Demandé par ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() });
 
-        // Sort categories alphabetically
         const sortedCategories = new Collection(Array.from(commandCategories.entries()).sort());
 
         for (const [category, commandList] of sortedCategories.entries()) {
             if (category !== 'uncategorized' && commandList.length > 0) {
-                const commandString = commandList
-                    .map(cmd => `\`/${cmd.data.name}\` - ${cmd.data.description}`)
-                    .join('\n');
-                helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: commandString });
+                 const commandFields = commandList.map(cmd => ({
+                    name: `\`/${cmd.data.name}\``,
+                    value: cmd.data.description,
+                    inline: true
+                }));
+                helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: '\u200B' });
+                helpEmbed.addFields(commandFields);
             }
         }
 

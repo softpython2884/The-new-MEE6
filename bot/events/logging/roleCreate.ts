@@ -1,4 +1,3 @@
-
 import { Events, Role, EmbedBuilder, TextChannel, AuditLogEvent, User } from 'discord.js';
 import { getServerConfig } from '../../../src/lib/db';
 

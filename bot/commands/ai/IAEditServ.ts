@@ -41,7 +41,7 @@ const IAEditServCommand: Command = {
                 mode: 'edit', // The key difference: we are in 'edit' mode
             });
 
-            await interaction.editReply({ content: '🏗️ Structure modifiée reçue ! Début de l'application des changements... (Cela peut prendre quelques minutes)' });
+            await interaction.editReply({ content: '🏗️ Structure modifiée reçue ! Début de l\'application des changements... (Cela peut prendre quelques minutes)' });
 
             const guild = interaction.guild;
             const progressUpdates = [];

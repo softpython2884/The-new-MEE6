@@ -1,6 +1,3 @@
-
-'use server';
-
 import { Events, Collection, Message, PartialMessage, EmbedBuilder, TextChannel, Snowflake, AuditLogEvent } from 'discord.js';
 import { getServerConfig } from '../../../src/lib/db';
 

@@ -12,6 +12,7 @@ import { Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import RotatingText from '@/components/ui/rotating-text';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -176,8 +177,14 @@ export default function ModerationPage() {
     <div className="space-y-8 text-white max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Bans & Kicks</h1>
-        <p className="text-muted-foreground mt-2">
-            Gérer les sanctions des utilisateurs (ban, kick, mute).
+        <p className="text-muted-foreground mt-2 flex items-center gap-1.5">
+          <span>Gérez les sanctions.</span>
+          <RotatingText 
+            texts={["Protégez votre communauté.", "Modérez avec précision.", "Gardez le contrôle."]}
+            elementLevelClassName='text-sm'
+            mainClassName='text-sm'
+            staggerDuration={0.02}
+          />
         </p>
       </div>
       

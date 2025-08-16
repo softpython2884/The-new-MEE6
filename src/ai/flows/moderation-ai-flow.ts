@@ -1,5 +1,4 @@
 
-
 'use server';
 
 /**
@@ -92,8 +91,7 @@ Analysis Process:
 7.  If toxic, determine a severity level ('low', 'medium', 'high', 'critical').
 8.  If toxic, suggest a proportionate action ('warn', 'delete', 'mute', 'kick', 'ban').
 9.  If action is 'mute', suggest a reasonable duration (e.g., '5m', '1h', '24h').
-10. If the message is NOT toxic, set 'isToxic' to false and 'suggestedAction' to 'none'.
-`,
+10. If the message is NOT toxic, set 'isToxic' to false and 'suggestedAction' to 'none'.`,
 });
 
 const flow = ai.defineFlow(
@@ -107,5 +105,3 @@ const flow = ai.defineFlow(
     return output!;
   }
 );
-
-```

@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -12,6 +13,7 @@ const ActionDecisionInputSchema = z.object({
     lastConversation: z.object({
         user: z.string().describe("The user from the last significant conversation."),
         topic: z.string().describe("The topic of that conversation."),
+        relationshipStatus: z.string().describe("The current status of the relationship with this user (e.g., 'Amical', 'Tendu', 'Nouveau')."),
     }).optional().describe("Information about the last relevant conversation."),
     channelIdleTimeMinutes: z.number().describe("How many minutes the channel has been quiet."),
 });
@@ -35,5 +37,19 @@ const actionDecisionPrompt = ai.definePrompt({
   name: 'actionDecisionPrompt',
   input: { schema: ActionDecisionInputSchema },
   output: { schema: ActionDecisionOutputSchema },
-  prompt: `Tu es {personaName}. Le salon est calme depuis {channelIdleTimeMinutes} minutes. Tes derniers souvenirs indiquent que tu as eu une bonne conversation avec {lastConversation.user} à propos de {lastConversation.topic}. Décide d'une action : 1. start_conversation: Initier une nouvelle conversation sur un sujet lié. 2. follow_up: Relancer {lastConversation.user} sur votre discussion précédente. 3. share_content: Générer une image ou partager un fait intéressant lié à tes passions. 4. do_nothing: Rester silencieux. Fournis l'action et le contenu associé (le message à envoyer, ou le prompt de l'image).`,
+  prompt: `Tu es {personaName}. Le salon est calme depuis {channelIdleTimeMinutes} minutes.
+{{#if lastConversation}}
+Ta dernière conversation était avec {lastConversation.user} sur {lastConversation.topic}, et ta relation avec lui/elle est actuellement : {lastConversation.relationshipStatus}.
+{{/if}}
+
+Décide d'une action parmi les suivantes :
+1.  **start_conversation**: Initier une nouvelle conversation sur un sujet lié à tes passions ou à l'actualité.
+2.  **follow_up**: Relancer {lastConversation.user} sur votre discussion précédente. Ne choisis cette option que si la relation est bonne ou neutre.
+3.  **share_content**: Partager un fait intéressant, une blague, ou générer une image liée à tes centres d'intérêt.
+4.  **do_nothing**: Rester silencieux. C'est l'option par défaut si aucune autre action ne semble pertinente ou appropriée.
+
+Si la relation avec le dernier interlocuteur est tendue, il est plus sage de ne pas le relancer directement.
+Fournis l'action et le contenu associé (le message à envoyer, ou le prompt de l'image).`,
 });
+
+    

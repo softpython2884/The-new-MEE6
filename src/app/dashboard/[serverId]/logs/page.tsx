@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { ChevronDown, MessageSquare, User, Hash, Tag, Hammer } from 'lucide-react';
+import { ChevronDown, MessageSquare, User, Hash, Tag, Hammer, Voicemail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 
@@ -34,6 +34,7 @@ interface LogsConfig {
       channels: LogSetting;
       roles: LogSetting;
       moderation: LogSetting;
+      voice: LogSetting;
   }
 }
 
@@ -53,6 +54,7 @@ const logOptions = [
     { id: "channels", label: "Logs des salons", description: "Création, modification, suppression.", icon: Hash },
     { id: "roles", label: "Logs des rôles", description: "Création, modification, suppression.", icon: Tag },
     { id: "moderation", label: "Logs de modération", description: "Bans, kicks, mutes, etc.", icon: Hammer },
+    { id: "voice", label: "Logs vocaux", description: "Connexions, déconnexions, etc.", icon: Voicemail },
 ];
 
 
@@ -344,7 +346,7 @@ function PageSkeleton() {
                 </CardContent>
             </Card>
             <div className="grid md:grid-cols-2 gap-4">
-                {[...Array(4)].map((_, i) => (
+                {[...Array(6)].map((_, i) => (
                     <Card key={i}>
                         <CardHeader>
                              <div className="flex items-center justify-between">

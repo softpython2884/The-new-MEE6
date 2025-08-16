@@ -13,7 +13,7 @@ export default function DashboardRootPage() {
         const storedGuildIds = JSON.parse(localStorage.getItem('authed_guilds') || '[]');
         if (storedGuildIds.length > 0) {
             // Navigate to the first available server's page
-            router.push(`/dashboard/${storedGuildIds[0]}/moderation`);
+            router.push(`/dashboard/${storedGuildIds[0]}`);
         } else {
             // If no servers, stop loading and show the message
             setLoading(false);

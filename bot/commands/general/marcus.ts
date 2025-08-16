@@ -77,8 +77,14 @@ const MarcusCommand: Command = {
                     value: cmd.data.description,
                     inline: true
                 }));
-                helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: '\u200B' });
-                helpEmbed.addFields(commandFields);
+
+                if (commandFields.length > 0) {
+                    helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: '\u200B' });
+                    // Add each command as a separate field to avoid exceeding field value limits
+                    for (const field of commandFields) {
+                        helpEmbed.addFields(field);
+                    }
+                }
             }
         }
 
@@ -87,3 +93,5 @@ const MarcusCommand: Command = {
 };
 
 export default MarcusCommand;
+
+    

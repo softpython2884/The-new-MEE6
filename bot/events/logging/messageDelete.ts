@@ -26,7 +26,7 @@ export async function execute(message: Message | PartialMessage) {
         .setTitle('Message Supprimé')
         .setDescription(`Un message de **${message.author?.tag || 'Auteur inconnu'}** a été supprimé dans <#${message.channel.id}>.`)
         .addFields(
-            { name: 'Contenu', value: message.content ? `\`\`\`${message.content.substring(0, 1020)}\`\`\`` : 'Impossible de récupérer le contenu (message partiel ou embed).', inline: false },
+            { name: 'Contenu', value: message.content ? `\`\`\`${message.content.substring(0, 1020)}\`\`\`` : 'Impossible de récupérer le contenu (embed ou message partiel).', inline: false },
         )
         .setTimestamp()
         .setFooter({ text: `Auteur ID: ${message.author?.id ?? 'Inconnu'} | Message ID: ${message.id}` });
@@ -62,3 +62,5 @@ export async function execute(message: Message | PartialMessage) {
         console.error(`[Log] Erreur lors de l'envoi du log de suppression de message pour le serveur ${message.guild.id}:`, error);
     }
 }
+
+    

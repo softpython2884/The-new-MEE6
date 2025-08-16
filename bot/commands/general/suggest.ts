@@ -55,7 +55,7 @@ const SuggestCommand: Command = {
                 .setCustomId('suggestion_bot_idea')
                 .setLabel("Votre idée pour améliorer le bot")
                 .setStyle(TextInputStyle.Paragraph)
-                .setPlaceholder("Décrivez votre idée en détail. Qu'est-ce que cette nouvelle fonctionnalité ferait ? Pourquoi serait-elle utile ?")
+                .setPlaceholder("Décrivez en détail votre idée d'amélioration pour le bot.")
                 .setRequired(true);
 
             modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(ideaInput));
@@ -66,3 +66,5 @@ const SuggestCommand: Command = {
 };
 
 export default SuggestCommand;
+
+    

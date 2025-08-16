@@ -65,8 +65,8 @@ const IAContentCommand: Command = {
 
                     const embed = new EmbedBuilder()
                         .setColor(subcommand === 'rule' ? 0x00BFFF : 0x9932CC)
-                        .setTitle(result.title)
-                        .setDescription(result.generatedText);
+                        .setTitle(result.title.substring(0, 256))
+                        .setDescription(result.generatedText.substring(0, 4096));
 
                     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
                         new ButtonBuilder()
@@ -98,7 +98,7 @@ const IAContentCommand: Command = {
                         const imageBuffer = Buffer.from(result.imageDataUri.split(',')[1], 'base64');
                         const embed = new EmbedBuilder()
                             .setColor(0xFFD700)
-                            .setTitle(`Image générée pour : "${prompt}"`)
+                            .setTitle(`Image générée pour : "${prompt.substring(0, 250)}"`)
                             .setImage(`attachment://generated_image.png`);
                         await interaction.editReply({ embeds: [embed], files: [{ attachment: imageBuffer, name: 'generated_image.png' }] });
                     } else {
@@ -115,3 +115,5 @@ const IAContentCommand: Command = {
 };
 
 export default IAContentCommand;
+
+    

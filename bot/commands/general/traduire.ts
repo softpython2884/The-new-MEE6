@@ -41,7 +41,7 @@ const TraduireCommand: Command = {
         await interaction.deferReply({ ephemeral: true });
 
         const targetLanguage = interaction.options.getString('langue', true);
-        const textToTranslate = interaction.options.getString('texte', true);
+        let textToTranslate = interaction.options.getString('texte', true);
 
         try {
             const result = await autoTranslateFlow({
@@ -54,8 +54,8 @@ const TraduireCommand: Command = {
                     .setColor(0x3498DB)
                     .setTitle(`Traduction en ${targetLanguage}`)
                     .addFields(
-                        { name: 'Texte Original', value: `\`\`\`${textToTranslate}\`\`\`` },
-                        { name: 'Traduction', value: `\`\`\`${result.translatedText}\`\`\`` }
+                        { name: 'Texte Original', value: `\`\`\`${textToTranslate.substring(0, 1020)}\`\`\`` },
+                        { name: 'Traduction', value: `\`\`\`${result.translatedText.substring(0, 1020)}\`\`\`` }
                     )
                     .setFooter({ text: `Traduit par ${interaction.user.tag}` });
 
@@ -72,3 +72,5 @@ const TraduireCommand: Command = {
 };
 
 export default TraduireCommand;
+
+    

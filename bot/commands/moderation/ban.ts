@@ -41,7 +41,7 @@ const BanCommand: Command = {
         }
 
         const targetUser = interaction.options.getUser('user', true);
-        const reason = interaction.options.getString('reason', true);
+        const reason = interaction.options.getString('reason', true).substring(0, 512); // Discord API limit for reason
         const deleteMessageDays = interaction.options.getInteger('delete_message_days') || 0;
         const moderator = interaction.user;
 
@@ -121,7 +121,7 @@ const BanCommand: Command = {
                             { name: 'Suppression des messages', value: `${deleteMessageDays} jour(s)`, inline: false }
                         )
                         .setTimestamp()
-                        .setFooter({ text: 'ID de l\'utilisateur: ' + targetUser.id });
+                        .setFooter({ text: 'ID de l'utilisateur: ' + targetUser.id });
                     
                     await logChannel.send({ embeds: [logEmbed] });
                 }
@@ -139,3 +139,5 @@ const BanCommand: Command = {
 };
 
 export default BanCommand;
+
+    

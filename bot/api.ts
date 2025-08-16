@@ -5,7 +5,7 @@ import cors from 'cors';
 import { Client, CategoryChannel, ChannelType } from 'discord.js';
 import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGuild, updatePersona, deletePersona, createPersona } from '@/lib/db';
 import { verifyAndConsumeAuthToken } from './auth';
-import { generatePersonaPrompt } from '@/ai/flows/persona-flow';
+import { generatePersonaPrompt, generatePersonaAvatar } from '@/ai/flows/persona-flow';
 import { v4 as uuidv4 } from 'uuid';
 
 const API_PORT = process.env.BOT_API_PORT || 25875;

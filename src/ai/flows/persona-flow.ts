@@ -186,3 +186,17 @@ export async function generatePersonaImage(input: PersonaImageInput): Promise<Pe
 
     return { imageDataUri: undefined };
 }
+
+// Persona Avatar Input and Output Schema
+const PersonaAvatarInputSchema = z.object({
+    name: z.string().describe("The name of the character."),
+    persona_prompt: z.string().describe("The detailed persona description."),
+});
+
+type PersonaAvatarInputSchema = z.infer<typeof PersonaAvatarInputSchema>;
+
+const PersonaAvatarOutputSchema = z.object({
+    avatarDataUri: z.string().describe("The generated avatar image as a data URI."),
+});
+
+type PersonaAvatarOutputSchema = z.infer<typeof PersonaAvatarOutputSchema>;

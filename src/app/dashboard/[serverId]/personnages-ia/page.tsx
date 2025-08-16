@@ -320,7 +320,7 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
                                     <div className="flex justify-between items-start">
                                         <div className='flex items-center gap-3'>
                                             <Avatar className="h-10 w-10">
-                                                <AvatarImage src={persona.avatar_url || ''} />
+                                                <AvatarImage src={persona.avatar_url || undefined} />
                                                 <AvatarFallback>{persona.name.charAt(0)}</AvatarFallback>
                                             </Avatar>
                                             <CardTitle className="flex items-center gap-2">

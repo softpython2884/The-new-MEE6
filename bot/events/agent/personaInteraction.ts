@@ -104,7 +104,7 @@ export async function execute(message: Message) {
         // --- End of History Handling ---
 
         // --- Memory Retrieval ---
-        const relevantMemories = getMemoriesForPersona(triggeredPersona.id, [message.author.id]);
+        const relevantMemories = getMemoriesForPersona(triggeredPersona.id, [message.author.id, null]); // Also fetch self-memories
         console.log(`[Persona] Retrieved ${relevantMemories.length} relevant memories for "${triggeredPersona.name}".`);
         // --- End of Memory Retrieval ---
 

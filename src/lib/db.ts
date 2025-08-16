@@ -549,12 +549,14 @@ export function deletePersona(id: string): void {
     stmt.run(id);
 }
 
-export function getMemoriesForPersona(personaId: string, userIds: (string | null)[] = []): PersonaMemory[] {
+export function getMemoriesForPersona(personaId: string, userIds: (string | null)[]): PersonaMemory[] {
     const placeholders = userIds.map(() => '?').join(',');
-    
+    // Ensure that even if userIds is empty, we have a valid query for persona's self-memories.
+    const userInClause = userIds.length > 0 ? `user_id IN (${placeholders}) OR` : '';
+
     const query = `
         SELECT * FROM persona_memories 
-        WHERE persona_id = ? AND (user_id IN (${placeholders}) OR user_id IS NULL)
+        WHERE persona_id = ? AND (${userInClause} user_id IS NULL)
         ORDER BY salience_score DESC, last_accessed_at DESC 
         LIMIT 20
     `;
@@ -564,6 +566,7 @@ export function getMemoriesForPersona(personaId: string, userIds: (string | null
     const stmt = db.prepare(query);
     const memories = stmt.all(...params) as PersonaMemory[];
     
+    // Touch memories to update last_accessed_at
     if (memories.length > 0) {
         const touchStmt = db.prepare(`UPDATE persona_memories SET last_accessed_at = CURRENT_TIMESTAMP WHERE id = ?`);
         const touchTransaction = db.transaction((mems) => {

@@ -110,7 +110,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     loadCommands(client);
     
     // Deploy global commands (owner-only)
-    await deployGlobalCommands();
+    await deployGlobalCommands(client);
 
     // Sync guilds with the database and deploy guild-specific commands
     await syncGuilds(readyClient);
@@ -334,5 +334,3 @@ async function startBot() {
 }
 
 startBot();
-
-    

@@ -135,7 +135,7 @@ const createConfigTable = () => {
 // --- Configurations par défaut pour les nouveaux serveurs ---
 const defaultConfigs: DefaultConfigs = {
     'moderation': { 
-        enabled: false, 
+        enabled: true, 
         log_channel_id: null, 
         dm_user_on_action: true, 
         presets: [],
@@ -200,7 +200,7 @@ const defaultConfigs: DefaultConfigs = {
         channels: [],
     },
      'lock': {
-        enabled: false,
+        enabled: true,
         exempt_roles: [],
         command_permissions: {
             lock: null,
@@ -261,7 +261,7 @@ const defaultConfigs: DefaultConfigs = {
         alert_channel_id: null
     },
     'private-rooms': { 
-        enabled: false, 
+        enabled: true, 
         creation_channel: null, 
         category_id: null, 
         embed_message: 'Cliquez sur le bouton ci-dessous pour créer un salon privé.', 
@@ -272,7 +272,7 @@ const defaultConfigs: DefaultConfigs = {
         }
     },
     'smart-events': { 
-        enabled: false, 
+        enabled: true, 
         suggest_time: true, 
         templates: 'quiz', 
         rsvp_tracking: true, 
@@ -359,7 +359,7 @@ const defaultConfigs: DefaultConfigs = {
         avatar_url: null,
     },
     'autoroles': {
-        enabled: false,
+        enabled: true,
         on_join_roles: [],
         on_voice_join_roles: [],
     },
@@ -386,13 +386,13 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
     try {
         const stmt = db.prepare('SELECT config, premium FROM server_configs WHERE guild_id = ? AND module = ?');
         const result = stmt.get(guildId, module) as { config: string, premium: number } | undefined;
+        const defaultConfig = defaultConfigs[module] || {};
 
         if (result && result.config) {
             const config = JSON.parse(result.config);
-            const defaultConfig = defaultConfigs[module] || {};
-            // Deep merge for nested objects like command_permissions and log_settings
             const finalConfig = { ...defaultConfig, ...config };
 
+            // Deep merge for nested objects to prevent overwriting with partial data
             if (defaultConfig.command_permissions && config.command_permissions) {
                 finalConfig.command_permissions = { ...defaultConfig.command_permissions, ...config.command_permissions };
             }
@@ -403,26 +403,23 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
                 finalConfig.actions = { ...defaultConfig.actions, ...config.actions };
             }
              if (defaultConfig.log_settings && config.log_settings) {
-                finalConfig.log_settings = { ...defaultConfig.log_settings };
+                finalConfig.log_settings = { ...defaultConfig.log_settings, ...config.log_settings };
                 for (const key of Object.keys(defaultConfig.log_settings)) {
-                    finalConfig.log_settings[key] = { ...defaultConfig.log_settings[key], ...config.log_settings[key] };
+                    if(config.log_settings[key]) {
+                        finalConfig.log_settings[key] = { ...defaultConfig.log_settings[key], ...config.log_settings[key] };
+                    }
                 }
             }
-
-
             finalConfig.premium = !!result.premium;
             return finalConfig;
         } else {
-            const defaultConfig = defaultConfigs[module];
-            if (defaultConfig) {
-                console.log(`[Database] Aucune config trouvée pour ${guildId} et le module ${module}. Création de la config par défaut.`);
-                updateServerConfig(guildId, module, defaultConfig);
-                const premiumStatusStmt = db.prepare('SELECT premium FROM server_configs WHERE guild_id = ? LIMIT 1');
-                const premiumResult = premiumStatusStmt.get(guildId) as { premium: number } | undefined;
-                defaultConfig.premium = premiumResult ? !!premiumResult.premium : false;
-                return defaultConfig;
-            }
-            return null;
+             // If no config exists for this module, create the default one and return it.
+            console.log(`[Database] Aucune config trouvée pour ${guildId} et le module ${module}. Création de la config par défaut.`);
+            updateServerConfig(guildId, module, defaultConfig);
+            const premiumStatusStmt = db.prepare('SELECT premium FROM server_configs WHERE guild_id = ? LIMIT 1');
+            const premiumResult = premiumStatusStmt.get(guildId) as { premium: number } | undefined;
+            defaultConfig.premium = premiumResult ? !!premiumResult.premium : false;
+            return defaultConfig;
         }
     } catch (error) {
         console.error(`[Database] Erreur lors de la récupération de la config pour ${guildId} (module: ${module}):`, error);

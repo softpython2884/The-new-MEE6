@@ -43,22 +43,35 @@ export const loadCommands = (client: Client) => {
     console.log(`[+] Loaded ${client.commands.size} command modules into the client.`);
 };
 
-// Fonction pour déterminer à quel module appartient une commande
-const getCommandModule = (command: Command): Module | 'unknown' => {
-    const commandName = command.data.name;
-    const commandFile = commandFiles.find(file => {
-        const fileName = path.basename(file, '.ts').toLowerCase();
-        const cmdName = commandName.split(' ')[0].toLowerCase();
-        return fileName === cmdName;
-    });
-
+// Helper function to map a command name to its module folder
+const getCommandModule = (commandName: string): Module | 'unknown' => {
+    const commandFile = commandFiles.find(file => path.basename(file, '.ts').toLowerCase() === commandName.toLowerCase());
     if (commandFile) {
         const relativePath = path.relative(commandsPath, commandFile);
-        const moduleName = relativePath.split(path.sep)[0];
-        return moduleName as Module;
+        const moduleDir = relativePath.split(path.sep)[0];
+        
+        // This mapping ensures that directory names match the Module type
+        const moduleMap: { [key: string]: Module } = {
+            'ai': 'content-ai', // Example, adjust as needed
+            'automation': 'private-rooms', // Example
+            'config': 'general-commands',
+            'general': 'general-commands',
+            'moderation': 'moderation',
+            'premium': 'premium',
+            'security': 'security-alerts'
+        };
+
+        // A more robust mapping based on command properties would be better
+        if (['iacreateserv', 'iaeditserv', 'iadeleteserv', 'iaresetserv'].includes(commandName)) return 'server-builder';
+        if (['faq'].includes(commandName)) return 'community-assistant';
+        if (['personnage'].includes(commandName)) return 'ai-personas';
+        if (['lock', 'unlock'].includes(commandName)) return 'lock';
+        
+        return moduleMap[moduleDir] || 'unknown';
     }
     return 'unknown';
 }
+
 
 // Fonction pour mettre à jour les commandes pour UN serveur spécifique
 export const updateGuildCommands = async (guildId: string, client: Client) => {
@@ -66,12 +79,14 @@ export const updateGuildCommands = async (guildId: string, client: Client) => {
     const commandsToDeploy = [];
 
     for (const command of client.commands.values()) {
-        const module = getCommandModule(command);
-        
-        // Commandes spéciales (owner only) qui ne doivent pas être déployées sur les serveurs
-        if (['genpremium', 'givepremium'].includes(command.data.name)) {
+        const commandName = command.data.name;
+
+        // Owner-only commands are global and should not be deployed to guilds
+        if (['genpremium', 'givepremium'].includes(commandName)) {
             continue;
         }
+
+        const module = getCommandModule(commandName);
 
         if (module !== 'unknown') {
             const config = getServerConfig(guildId, module);
@@ -79,8 +94,12 @@ export const updateGuildCommands = async (guildId: string, client: Client) => {
                 commandsToDeploy.push(command.data.toJSON());
             }
         } else {
-            // Si le module est inconnu, on déploie par défaut (cas des commandes générales)
-            commandsToDeploy.push(command.data.toJSON());
+             // Fallback for general commands or those without a specific module toggle
+             // This assumes 'general-commands' module enables most basic commands
+             const generalConfig = getServerConfig(guildId, 'general-commands');
+             if(generalConfig?.enabled) {
+                 commandsToDeploy.push(command.data.toJSON());
+             }
         }
     }
 
@@ -102,15 +121,14 @@ export const updateGuildCommands = async (guildId: string, client: Client) => {
 
 
 // Déploie les commandes globales (commandes "owner" uniquement)
-export const deployGlobalCommands = async () => {
+export const deployGlobalCommands = async (client: Client) => {
      const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
      const globalCommands = [];
      
      const ownerCommands = ['genpremium', 'givepremium'];
      for(const cmdName of ownerCommands) {
-        const command: Command = require(path.join(commandsPath, 'premium', `${cmdName}.ts`)).default;
+        const command = client.commands.get(cmdName);
         if (command) {
-            // S'assure que la commande n'a pas de permissions par défaut restrictives
              command.data.setDefaultMemberPermissions(undefined);
              globalCommands.push(command.data.toJSON());
         }

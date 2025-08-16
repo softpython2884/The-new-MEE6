@@ -86,15 +86,16 @@ export function startApi(client: Client) {
             await updateServerConfig(guildId, module as any, configData);
 
             // Trigger command update for the guild
-            await updateGuildCommands(guildId, client);
+            // This needs to be asynchronous and not block the response
+            updateGuildCommands(guildId, client).catch(error => {
+                console.error(`[API] Erreur asynchrone lors de la mise à jour des commandes pour ${guildId}:`, error);
+            });
 
             // Handle specific side-effects for modules
             if (module === 'server-identity' && configData.enabled) {
                 const guild = await client.guilds.fetch(guildId);
                 if (guild.members.me) {
                     await guild.members.me.setNickname(configData.nickname || null);
-                    // The bot's avatar is global, but can be changed.
-                    await client.user?.setAvatar(configData.avatar_url || null);
                 }
             }
             

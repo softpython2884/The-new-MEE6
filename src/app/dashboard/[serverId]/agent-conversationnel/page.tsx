@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircleQuestion, Trash2, PlusCircle } from 'lucide-react';
+import { MessageCircleQuestion, Trash2, PlusCircle, Gamepad2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { KnowledgeBaseItem } from '@/types';
@@ -30,6 +30,7 @@ interface AgentConfig {
     custom_prompt: string;
     knowledge_base: KnowledgeBaseItem[];
     dedicated_channel_id: string | null;
+    engagement_module_enabled: boolean; // New field
 }
 
 interface DiscordChannel {
@@ -205,6 +206,27 @@ function AgentPageContent({ isPremium, serverId }: { isPremium: boolean, serverI
                             defaultValue={config.custom_prompt}
                             onBlur={(e) => handleValueChange('custom_prompt', e.target.value)}
                         />
+                    </CardContent>
+                </Card>
+
+                {/* Section Engagement Module */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Gamepad2 /> Module d'Engagement</CardTitle>
+                        <CardDescription>
+                           Rendez votre agent plus proactif en l'autorisant à proposer des activités.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="enable-engagement" className="font-bold">Proposer des activités</Label>
+                                <p className="text-sm text-muted-foreground/80">
+                                    Si le salon est calme, l'agent pourra suggérer des jeux ou des sujets de discussion.
+                                </p>
+                            </div>
+                            <Switch id="enable-engagement" checked={config.engagement_module_enabled ?? false} onCheckedChange={(val) => handleValueChange('engagement_module_enabled', val)} />
+                        </div>
                     </CardContent>
                 </Card>
 

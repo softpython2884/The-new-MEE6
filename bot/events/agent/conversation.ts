@@ -150,8 +150,23 @@ async function handleConversationalAgent(message: Message) {
             }
         }
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('[Agent] Error during conversational agent flow:', error);
+
+        // Notify owners on critical quota error
+        if (error.status === 429) {
+            const ownerIds = ['556529963877138442', '760977578839506985', '800041004400902145'];
+            const errorMessage = `🚨 **Erreur de Quota API Gemini** 🚨\n\nLe bot a atteint sa limite de requêtes gratuites pour aujourd'hui sur le serveur **${message.guild.name}**. L'agent conversationnel et les autres fonctions IA seront indisponibles jusqu'au renouvellement du quota.\n\n**Détails de l'erreur :**\n\`\`\`json\n${JSON.stringify(error.errorDetails || { message: error.message }, null, 2)}\n\`\`\``;
+            for (const id of ownerIds) {
+                try {
+                    const user = await message.client.users.fetch(id);
+                    await user.send(errorMessage);
+                } catch (dmError) {
+                    console.error(`[Agent Error] Impossible d'envoyer un DM d'erreur à l'utilisateur ${id}`, dmError);
+                }
+            }
+        }
+
         // Also wrap the error message reply in a try-catch
         try {
             await message.reply("Désolé, une erreur est survenue pendant que je réfléchissais. Veuillez réessayer.");

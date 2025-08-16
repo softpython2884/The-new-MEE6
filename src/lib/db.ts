@@ -177,7 +177,6 @@ const defaultConfigs: DefaultConfigs = {
     'auto-moderation': {
         enabled: false,
         rules: [],
-        scanned_channels: [],
     },
     'logs': {
         enabled: true,

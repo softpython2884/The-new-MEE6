@@ -46,17 +46,17 @@ export async function execute(message: Message) {
 
     const personas = getPersonasForGuild(message.guild.id);
     const activePersona = personas.find(p => p.active_channel_id === message.channel.id);
+    const mentionedPersona = personas.find(p => p.role_id && message.mentions.roles.has(p.role_id));
 
-    // If no persona is active in this channel, do nothing.
-    if (!activePersona) {
+    // A persona is triggered if it's active in the channel OR if its role is mentioned.
+    const triggeredPersona = activePersona || mentionedPersona;
+
+    if (!triggeredPersona) {
         return;
     }
     
-    // Check if the message is a mention to the persona's role
-    const wasMentioned = message.mentions.roles.has(activePersona.role_id || '');
-
-    // The persona should not respond to itself if it was somehow triggered by its own message.
-    if (message.author.username.toLowerCase() === activePersona.name.toLowerCase()) {
+    // The persona should not respond to itself if it was somehow triggered by its own message via webhook.
+    if (message.webhookId && message.author.username.toLowerCase() === triggeredPersona.name.toLowerCase()) {
         return;
     }
     
@@ -64,11 +64,11 @@ export async function execute(message: Message) {
     const imageAttachment = message.attachments.find(att => imageMimeTypes.some(mime => att.contentType?.startsWith(mime)));
     
     // The persona should only be triggered if there is text content, an image, or it was mentioned.
-    if (!message.content && !imageAttachment && !wasMentioned) {
+    if (!message.content && !imageAttachment && !mentionedPersona) {
         return;
     }
 
-    console.log(`[Persona] Persona "${activePersona.name}" is processing a message from ${message.author.tag} in #${(message.channel as TextChannel).name}.`);
+    console.log(`[Persona] Persona "${triggeredPersona.name}" is processing a message from ${message.author.tag} in #${(message.channel as TextChannel).name}.`);
     
     try {
         await message.channel.sendTyping();
@@ -87,7 +87,14 @@ export async function execute(message: Message) {
         const historyKey = message.channel.id;
         const currentHistory = conversationHistory.get(historyKey) || [];
         
-        currentHistory.push({ user: message.member.displayName, content: message.content });
+        // Add the current message to the history for context
+        let messageTextForHistory = message.content;
+        if (mentionedPersona) {
+            // Remove the role mention from the text to make the history cleaner
+            messageTextForHistory = message.content.replace(`<@&${mentionedPersona.role_id}>`, '').trim();
+        }
+        currentHistory.push({ user: message.member.displayName, content: messageTextForHistory });
+
         if (currentHistory.length > HISTORY_LIMIT) {
             currentHistory.shift();
         }
@@ -96,11 +103,11 @@ export async function execute(message: Message) {
 
         // --- Memory Retrieval ---
         // Get memories about the specific user interacting, and also general memories (about the persona itself).
-        const relevantMemories = getMemoriesForPersona(activePersona.id, [message.author.id]);
+        const relevantMemories = getMemoriesForPersona(triggeredPersona.id, [message.author.id]);
         // --- End of Memory Retrieval ---
 
         const result = await personaInteractionFlow({
-            personaPrompt: activePersona.persona_prompt,
+            personaPrompt: triggeredPersona.persona_prompt,
             conversationHistory: currentHistory, 
             memories: relevantMemories.map(m => ({ content: m.content, salience_score: m.salience_score })),
             photoDataUri: photoDataUri,
@@ -119,14 +126,14 @@ export async function execute(message: Message) {
                 });
             }
             
-            const responseMessage = await webhook.send({
+            await webhook.send({
                 content: result.response,
-                username: activePersona.name,
-                avatarURL: activePersona.avatar_url || message.client.user?.displayAvatarURL()
+                username: triggeredPersona.name,
+                avatarURL: triggeredPersona.avatar_url || message.client.user?.displayAvatarURL()
             });
             
             const updatedHistory = conversationHistory.get(historyKey) || [];
-            updatedHistory.push({ user: activePersona.name, content: result.response });
+            updatedHistory.push({ user: triggeredPersona.name, content: result.response });
             if (updatedHistory.length > HISTORY_LIMIT) {
                 updatedHistory.shift();
             }
@@ -135,11 +142,11 @@ export async function execute(message: Message) {
             // After responding, trigger the memory creation flow asynchronously
             // We don't need to wait for this to finish.
             memoryFlow({
-                persona_id: activePersona.id,
+                persona_id: triggeredPersona.id,
                 conversationTranscript: updatedHistory.map(h => `${h.user}: ${h.content}`).join('\n')
             }).then(newMemories => {
                 if (newMemories && newMemories.length > 0) {
-                     console.log(`[Persona Memory] Creating ${newMemories.length} new memories for ${activePersona.name}.`);
+                     console.log(`[Persona Memory] Creating ${newMemories.length} new memories for ${triggeredPersona.name}.`);
                      createMultipleMemories(newMemories);
                 }
             }).catch(err => console.error(`[Persona Memory] Error creating memories:`, err));
@@ -147,7 +154,7 @@ export async function execute(message: Message) {
         }
 
     } catch (error) {
-        console.error(`[Persona] Error during interaction flow for "${activePersona.name}":`, error);
+        console.error(`[Persona] Error during interaction flow for "${triggeredPersona.name}":`, error);
         // Don't send an error message in the channel to avoid breaking immersion.
     }
 }

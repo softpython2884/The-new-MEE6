@@ -1,6 +1,6 @@
 
 
-import { Events, Message, Collection, TextChannel, EmbedBuilder, AttachmentBuilder } from 'discord.js';
+import { Events, Message, Collection, TextChannel, EmbedBuilder, AttachmentBuilder, DMChannel } from 'discord.js';
 import { getServerConfig, getPersonasForGuild, getMemoriesForPersona, createMultipleMemories } from '../../../src/lib/db';
 import { personaInteractionFlow, generatePersonaImage } from '../../../src/ai/flows/persona-flow';
 import { memoryFlow } from '../../../src/ai/flows/memory-flow';
@@ -36,13 +36,40 @@ export const name = Events.MessageCreate;
 export const once = false;
 
 export async function execute(message: Message) {
-    if (message.author.bot || !message.member) {
-         if (!message.guild) {
-            // TODO: Implement DM logic
-            console.log(`[Persona] Received DM from ${message.author.tag}, but DM logic is not yet fully implemented.`);
-         }
+    if (message.author.bot) return;
+
+    // --- DM Handling ---
+    if (!message.guild) {
+        // Find if this user is interacting with any persona across all guilds the bot is in.
+        // This is a simplified approach. A real implementation might need a way for the user
+        // to specify which persona they want to talk to. For now, we'll find the first one.
+        const allGuilds = Array.from(message.client.guilds.cache.keys());
+        let personaToTalkTo: Persona | undefined;
+        let guildId: string | undefined;
+
+        for (const id of allGuilds) {
+            const personas = getPersonasForGuild(id);
+            if (personas.length > 0) {
+                // Heuristic: maybe the user shares a server with one of the personas.
+                // A better approach would be to let the user select a persona to DM.
+                personaToTalkTo = personas[0];
+                guildId = id;
+                break;
+            }
+        }
+        
+        if (personaToTalkTo && guildId) {
+            console.log(`[Persona DM] Triggered: Persona "${personaToTalkTo.name}" is processing a DM from ${message.author.tag}.`);
+            await handlePersonaInteraction(message, personaToTalkTo, guildId, 'Message Privé');
+        } else {
+             console.log(`[Persona DM] Received DM from ${message.author.tag}, but no persona could be assigned.`);
+        }
         return;
     }
+
+
+    // --- Guild Message Handling ---
+    if (!message.member) return;
 
     const config = await getServerConfig(message.guild.id, 'ai-personas');
     if (!config?.enabled || !config.premium) {
@@ -55,7 +82,6 @@ export async function execute(message: Message) {
     const activePersona = personas.find(p => p.active_channel_id === message.channel.id);
     const mentionedPersona = personas.find(p => p.role_id && message.mentions.roles.has(p.role_id));
 
-    // A persona is triggered if it's active in the channel OR if its role is mentioned.
     const triggeredPersona = activePersona || mentionedPersona;
 
     if (!triggeredPersona) {
@@ -76,72 +102,61 @@ export async function execute(message: Message) {
     // Check for image attachments in the user's message
     const imageAttachment = message.attachments.find(att => imageMimeTypes.some(mime => att.contentType?.startsWith(mime)));
     
-    // The persona should only be triggered if there is text content, an image, or it was mentioned.
     if (!message.content && !imageAttachment && !mentionedPersona) {
         return;
     }
-
-    console.log(`[Persona] Triggered: Persona "${triggeredPersona.name}" is processing a message from ${message.author.tag} in #${(message.channel as TextChannel).name}.`);
     
-    try {
-        await message.channel.sendTyping();
+    const interactionContext = activePersona ? 'Salon dédié actif' : 'Mention dans un groupe';
+    console.log(`[Persona] Triggered: Persona "${triggeredPersona.name}" is processing a message from ${message.author.tag} in #${(message.channel as TextChannel).name}. Context: ${interactionContext}`);
+    await handlePersonaInteraction(message, triggeredPersona, message.guild.id, interactionContext);
+}
+
+
+async function handlePersonaInteraction(message: Message, persona: Persona, guildId: string, interactionContext: string) {
+     try {
+        if (message.channel.isTextBased()) {
+             await message.channel.sendTyping();
+        }
         
+        const imageAttachment = message.attachments.find(att => imageMimeTypes.some(mime => att.contentType?.startsWith(mime)));
         let photoDataUri: string | undefined = undefined;
         if (imageAttachment) {
             try {
                 photoDataUri = await imageUrlToDataUri(imageAttachment.url);
             } catch (error) {
                 console.error(`[Persona] Failed to process image for persona:`, error);
-                // Do not stop the flow, just proceed without the image
             }
         }
 
-        // --- Conversation History Handling ---
         const historyKey = message.channel.id;
         const currentHistory = conversationHistory.get(historyKey) || [];
         
-        // Add the current message to the history for context
         let messageTextForHistory = message.content;
-        if (mentionedPersona) {
-            // Remove the role mention from the text to make the history cleaner
-            messageTextForHistory = message.content.replace(`<@&${mentionedPersona.role_id}>`, '').trim();
+        if (persona.role_id && message.mentions.roles.has(persona.role_id)) {
+            messageTextForHistory = message.content.replace(`<@&${persona.role_id}>`, '').trim();
         }
-        currentHistory.push({ user: message.member.displayName, content: messageTextForHistory });
+        currentHistory.push({ user: message.author.username, content: messageTextForHistory });
 
         if (currentHistory.length > HISTORY_LIMIT) {
             currentHistory.shift();
         }
         conversationHistory.set(historyKey, currentHistory);
-        // --- End of History Handling ---
 
-        // --- Memory Retrieval ---
-        const relevantMemories = getMemoriesForPersona(triggeredPersona.id, [message.author.id]);
-        console.log(`[Persona] Retrieved ${relevantMemories.length} relevant memories for "${triggeredPersona.name}".`);
-        // --- End of Memory Retrieval ---
+        const relevantMemories = getMemoriesForPersona(persona.id, [message.author.id]);
+        console.log(`[Persona] Retrieved ${relevantMemories.length} relevant memories for "${persona.name}".`);
 
         const result = await personaInteractionFlow({
-            personaPrompt: triggeredPersona.persona_prompt,
+            personaPrompt: persona.persona_prompt,
             conversationHistory: currentHistory, 
             memories: relevantMemories.map(m => ({ content: m.content, salience_score: m.salience_score })),
             photoDataUri: photoDataUri,
+            interactionContext: interactionContext,
         });
 
-        // --- Handle Response and Memory Creation ---
         if (result.response || result.image_prompt) {
-            const targetChannel = message.channel as TextChannel;
-            const webhooks = await targetChannel.fetchWebhooks();
-            let webhook = webhooks.find(wh => wh.name === PERSONA_WEBHOOK_NAME && wh.token !== null);
-
-            if (!webhook) {
-                webhook = await targetChannel.createWebhook({
-                    name: PERSONA_WEBHOOK_NAME,
-                    reason: 'Webhook for AI Personas'
-                });
-            }
-            
             let files: AttachmentBuilder[] = [];
             if (result.image_prompt) {
-                console.log(`[Persona] Persona "${triggeredPersona.name}" wants to generate an image with prompt: "${result.image_prompt}"`);
+                console.log(`[Persona] Persona "${persona.name}" wants to generate an image with prompt: "${result.image_prompt}"`);
                 try {
                     const imageResult = await generatePersonaImage({ prompt: result.image_prompt });
                     if (imageResult.imageDataUri) {
@@ -149,49 +164,59 @@ export async function execute(message: Message) {
                         files.push(new AttachmentBuilder(imageBuffer, { name: 'persona_image.png' }));
                     }
                 } catch (imgError) {
-                    console.error(`[Persona] Image generation failed for "${triggeredPersona.name}":`, imgError);
+                    console.error(`[Persona] Image generation failed for "${persona.name}":`, imgError);
                 }
             }
 
             if (result.response || files.length > 0) {
-                 await webhook.send({
-                    content: result.response || undefined,
-                    username: triggeredPersona.name,
-                    avatarURL: triggeredPersona.avatar_url || message.client.user?.displayAvatarURL(),
-                    files: files
-                });
+                 if (message.channel instanceof DMChannel) {
+                     await message.channel.send({ content: result.response || undefined, files: files });
+                 } else if (message.channel instanceof TextChannel) {
+                    const webhooks = await message.channel.fetchWebhooks();
+                    let webhook = webhooks.find(wh => wh.name === PERSONA_WEBHOOK_NAME && wh.token !== null);
+
+                    if (!webhook) {
+                        webhook = await message.channel.createWebhook({
+                            name: PERSONA_WEBHOOK_NAME,
+                            reason: 'Webhook for AI Personas'
+                        });
+                    }
+                    await webhook.send({
+                        content: result.response || undefined,
+                        username: persona.name,
+                        avatarURL: persona.avatar_url || message.client.user?.displayAvatarURL(),
+                        files: files
+                    });
+                 }
             }
-           
             
             const updatedHistory = conversationHistory.get(historyKey) || [];
             if (result.response) {
-                 updatedHistory.push({ user: triggeredPersona.name, content: result.response });
+                 updatedHistory.push({ user: persona.name, content: result.response });
             }
             if (updatedHistory.length > HISTORY_LIMIT) {
                 updatedHistory.shift();
             }
             conversationHistory.set(historyKey, updatedHistory);
 
-            // After responding, trigger the memory creation flow asynchronously
-            console.log(`[Persona Memory] Triggering memory creation for "${triggeredPersona.name}".`);
+            console.log(`[Persona Memory] Triggering memory creation for "${persona.name}".`);
             memoryFlow({
-                persona_id: triggeredPersona.id,
+                persona_id: persona.id,
                 conversationTranscript: updatedHistory.map(h => `${h.user}: ${h.content}`).join('\n')
             }).then(newMemories => {
                 if (newMemories && newMemories.length > 0) {
-                     console.log(`[Persona Memory] Creating ${newMemories.length} new memories for ${triggeredPersona.name}.`);
+                     console.log(`[Persona Memory] Creating ${newMemories.length} new memories for ${persona.name}.`);
                      createMultipleMemories(newMemories);
                 } else {
-                    console.log(`[Persona Memory] No new significant memories to create for "${triggeredPersona.name}".`);
+                    console.log(`[Persona Memory] No new significant memories to create for "${persona.name}".`);
                 }
-            }).catch(err => console.error(`[Persona Memory] Error creating memories for "${triggeredPersona.name}":`, err));
+            }).catch(err => console.error(`[Persona Memory] Error creating memories for "${persona.name}":`, err));
 
         } else {
-             console.log(`[Persona] Persona "${triggeredPersona.name}" chose not to respond.`);
+             console.log(`[Persona] Persona "${persona.name}" chose not to respond.`);
         }
 
     } catch (error) {
-        console.error(`[Persona] Error during interaction flow for "${triggeredPersona.name}":`, error);
-        // Don't send an error message in the channel to avoid breaking immersion.
+        console.error(`[Persona] Error during interaction flow for "${persona.name}":`, error);
     }
 }

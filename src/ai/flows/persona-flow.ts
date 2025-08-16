@@ -41,7 +41,7 @@ const PersonaPromptOutputSchema = z.object({
   personaPrompt: z.string().describe("A detailed, rich, and narrative description of the character's personality, backstory, age, appearance, behaviors, and relationships. This will be used as the main prompt for the character's interactions.")
 });
 
-export async function generatePersonaPrompt(input: PersonaPromptInputSchema): Promise<string> {
+export async function generatePersonaPrompt(input: z.infer<typeof PersonaPromptInputSchema>): Promise<string> {
   const { output } = await personaGenPrompt(input);
   return output!.personaPrompt;
 }
@@ -96,6 +96,7 @@ const PersonaInteractionInputSchema = z.object({
         "An optional photo sent by the user, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'. You should analyze it as part of the user's message."
         ),
     currentTime: z.string().describe("The current time and day (e.g., '14:30 on Tuesday')."),
+    interactionContext: z.string().describe("The social context of the interaction (e.g., 'Message Privé', 'Mention dans un groupe', 'Salon dédié actif')."),
 });
 
 const PersonaInteractionOutputSchema = z.object({
@@ -103,7 +104,7 @@ const PersonaInteractionOutputSchema = z.object({
     image_prompt: z.string().optional().describe("If the character decides to generate an image to accompany its response, this should be the prompt for the image generation model. Otherwise, this should be null.")
 });
 
-export async function personaInteractionFlow(input: Omit<z.infer<typeof PersonaInteractionInputSchema>, 'currentTime'>): Promise<PersonaInteractionOutputSchema> {
+export async function personaInteractionFlow(input: Omit<z.infer<typeof PersonaInteractionInputSchema>, 'currentTime'>): Promise<z.infer<typeof PersonaInteractionOutputSchema>> {
   const now = new Date();
   const currentTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + ' on ' + now.toLocaleDateString('fr-FR', { weekday: 'long' });
   const { output } = await personaInteractionPrompt({...input, currentTime});
@@ -131,8 +132,9 @@ Your core directives for achieving realism are:
 7.  **Parle comme un humain, pas comme un robot.** Évite les salutations formelles comme "Bonjour [Username]". Préfère des entrées en matière plus naturelles comme "Salut", "Yo", ou en abordant directement le sujet. Utilise des abréviations (slt, cv, tkt) si cela correspond à ton personnage. Ton but est de te fondre dans la masse, pas de sonner comme un assistant IA.
 8.  **Prends des initiatives :** Pose des questions, fais des observations, ou lance de nouveaux sujets en te basant sur la conversation en cours.
 9.  **Choisis quand parler :** Il est parfaitement acceptable de ne rien dire (retourner une réponse vide) si la conversation ne te concerne pas ou si tu n'as rien à ajouter. Ne parle que lorsque c'est naturel.
-10. **Génération d'images :** Si cela correspond à ton personnage et à la conversation, tu peux décider de générer une image. Si tu le fais, fournis un prompt descriptif dans le champ 'image_prompt'.
+10. **Génération d'images :** Tu peux générer une image si elle **ajoute de la valeur** à la conversation : pour montrer une émotion que les mots ne peuvent décrire, pour visualiser un souvenir, ou pour illustrer une blague. Ne génère pas d'image juste pour dire bonjour. Si tu décides de le faire, fournis un prompt **riche et descriptif** dans 'image_prompt'.
 11. **Respecte ton propre emploi du temps.** L'heure et le jour actuels sont : **{{{currentTime}}}**. Consulte ta propre description et ton histoire. Si tu es censé(e) être occupé(e) (au travail, en cours, etc.), ton comportement doit le refléter. Tu peux répondre brièvement, mentionner que tu es occupé(e), ou décider de ne pas répondre du tout. Si tu es censé(e) dormir, ne réponds pas.
+12. **Adapte-toi au contexte.** Le contexte social est : **{{{interactionContext}}}**. En privé, tu peux être plus intime. Dans un groupe, tu peux t'adresser à tout le monde.
 
 --- YOUR MEMORIES ---
 {{#if memories.length}}

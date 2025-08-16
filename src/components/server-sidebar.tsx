@@ -32,9 +32,8 @@ function ServerSidebarSkeleton() {
 export function ServerSidebar({ serverId }: { serverId: string }) {
   const pathname = usePathname();
   const pathSegments = pathname.split('/');
-  // If the path is just /dashboard/[serverId], default to 'moderation'.
-  // Otherwise, take the last part of the URL.
-  const featurePath = pathSegments.length > 3 && pathSegments[3] ? pathSegments[3] : 'moderation';
+  // If the path is just /dashboard/[serverId], default to a base page or first module.
+  const featurePath = pathSegments.length > 3 && pathSegments[3] ? pathSegments[3] : '';
   const [servers, setServers] = useState<ServerInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteUrl, setInviteUrl] = useState<string>('#');
@@ -79,17 +78,18 @@ export function ServerSidebar({ serverId }: { serverId: string }) {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className="flex h-full w-20 flex-col items-center gap-3 bg-card py-4">
+      <aside className="flex h-full w-20 flex-col items-center gap-3 bg-transparent py-4">
         {loading ? (
             <ServerSidebarSkeleton />
         ) : (
             <div className="flex flex-1 flex-col items-center gap-3">
               {servers.map((server) => {
                 const isActive = server.id === serverId;
+                const destination = featurePath ? `/dashboard/${server.id}/${featurePath}` : `/dashboard/${server.id}`;
                 return (
                   <Tooltip key={server.id}>
                     <TooltipTrigger asChild>
-                      <Link href={`/dashboard/${server.id}/${featurePath}`} className="relative group">
+                      <Link href={destination} className="relative group">
                         <div className={cn(
                           "absolute -left-1 top-1/2 -translate-y-1/2 h-0 w-1 bg-white rounded-r-full transition-all",
                           isActive ? "h-10" : "group-hover:h-5"

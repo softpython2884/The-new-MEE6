@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -128,27 +127,29 @@ export function ModuleSidebar({ serverId: serverIdProp }: { serverId: string }) 
 
 
   return (
-    <aside className="flex h-full w-72 flex-col bg-card p-4">
-      {loading ? (
-        <SidebarHeaderSkeleton />
-      ) : serverInfo ? (
-        <div className="mb-6 flex items-center gap-3 px-2">
-            <Avatar className="h-12 w-12 rounded-lg">
-            {serverInfo.icon ? (
-                <AvatarImage src={serverInfo.icon} />
-            ) : (
-                <AvatarFallback>{serverInfo.name.charAt(0)}</AvatarFallback>
-            )}
-            </Avatar>
-            <div>
-            <GradientText className="text-lg font-semibold">{serverInfo.name}</GradientText>
-            {serverInfo.isPremium && <Badge className="mt-1 border-0 bg-yellow-500 text-black">Premium</Badge>}
-            </div>
-        </div>
-      ) : (
-         <SidebarHeaderSkeleton /> // Show skeleton on error or if no details
-      )}
-      <nav className="flex-1 space-y-2 overflow-y-auto pr-2">
+    <aside className="flex h-full w-72 flex-col bg-card/50 backdrop-blur-sm p-4 border-r border-border/10">
+      <div className="mb-6 flex items-center gap-3 px-2 bg-black/50 p-3 rounded-lg">
+        {loading ? (
+          <SidebarHeaderSkeleton />
+        ) : serverInfo ? (
+          <>
+              <Avatar className="h-12 w-12 rounded-lg">
+              {serverInfo.icon ? (
+                  <AvatarImage src={serverInfo.icon} />
+              ) : (
+                  <AvatarFallback>{serverInfo.name.charAt(0)}</AvatarFallback>
+              )}
+              </Avatar>
+              <div>
+              <GradientText className="text-lg font-semibold">{serverInfo.name}</GradientText>
+              {serverInfo.isPremium && <Badge className="mt-1 border-0 bg-yellow-500 text-black">Premium</Badge>}
+              </div>
+          </>
+        ) : (
+           <SidebarHeaderSkeleton /> // Show skeleton on error or if no details
+        )}
+      </div>
+      <nav className="flex-1 space-y-2 overflow-y-auto pr-2 no-scrollbar">
         {navCategories.map((category) => (
             <div key={category.name}>
                 <h3 className="px-3 py-2 text-xs font-bold uppercase text-muted-foreground">{category.name}</h3>

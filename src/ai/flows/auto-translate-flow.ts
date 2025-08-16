@@ -29,6 +29,7 @@ const translatePrompt = ai.definePrompt({
   name: 'translatePrompt',
   input: { schema: AutoTranslateInputSchema },
   output: { schema: AutoTranslateOutputSchema },
+  model: 'googleai/gemini-2.0-flash',
   prompt: `You are a translation expert. Your task is to translate a given text into a target language.
 
 First, detect the language of the source text.

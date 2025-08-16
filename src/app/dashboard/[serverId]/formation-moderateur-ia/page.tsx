@@ -20,6 +20,7 @@ import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -82,6 +83,8 @@ function ModTrainingPageContent({ isPremium }: { isPremium: boolean }) {
 
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
+            <div className="space-y-4">
+            <GlobalAiStatusAlert />
             <Card>
                 <CardHeader>
                 <h2 className="text-xl font-bold">Options de Formation</h2>
@@ -157,6 +160,7 @@ function ModTrainingPageContent({ isPremium }: { isPremium: boolean }) {
                 </div>
                 </CardContent>
             </Card>
+            </div>
         </PremiumFeatureWrapper>
     )
 }

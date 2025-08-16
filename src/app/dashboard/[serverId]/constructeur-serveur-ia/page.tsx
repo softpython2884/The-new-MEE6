@@ -27,6 +27,7 @@ import { useServerInfo } from '@/hooks/use-server-info';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -129,6 +130,7 @@ function ServerBuilderPageContent({ isPremium }: { isPremium: boolean }) {
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <div className="space-y-8">
+            <GlobalAiStatusAlert />
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">

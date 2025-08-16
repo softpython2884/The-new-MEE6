@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
+import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -99,6 +100,8 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
 
     return (
       <PremiumFeatureWrapper isPremium={isPremium}>
+        <div className="space-y-4">
+        <GlobalAiStatusAlert />
         <Card>
             <CardHeader>
             <h2 className="text-xl font-bold">Options</h2>
@@ -175,6 +178,7 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
                 </div>
             </CardContent>
         </Card>
+        </div>
       </PremiumFeatureWrapper>
     )
 }

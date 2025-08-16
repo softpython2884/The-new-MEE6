@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -44,7 +43,8 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
+import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -66,7 +66,7 @@ function PersonaPageSkeleton() {
             <div className="flex justify-end">
                 <Skeleton className="h-10 w-40" />
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(3)].map((_, i) => (
                     <Card key={i}>
                         <CardHeader><Skeleton className="h-6 w-32" /></CardHeader>
@@ -238,6 +238,7 @@ function PersonaPageContent({ isPremium, serverId }: { isPremium: boolean, serve
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <div className="space-y-4">
+                <GlobalAiStatusAlert />
                 <Card>
                     <CardHeader>
                         <div className="flex items-center justify-between">

@@ -24,6 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
+import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -143,138 +144,141 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
 
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Configuration de l'Assistant Modération</CardTitle>
-                    <CardDescription>
-                        Configurez comment l'IA doit intervenir sur les messages des membres.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <Label htmlFor="enable-module" className="font-bold">Activer le module</Label>
-                             <p className="text-sm text-muted-foreground/80">Active ou désactive l'analyse des messages par l'IA.</p>
+            <div className="space-y-4">
+                <GlobalAiStatusAlert />
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Configuration de l'Assistant Modération</CardTitle>
+                        <CardDescription>
+                            Configurez comment l'IA doit intervenir sur les messages des membres.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="enable-module" className="font-bold">Activer le module</Label>
+                                 <p className="text-sm text-muted-foreground/80">Active ou désactive l'analyse des messages par l'IA.</p>
+                            </div>
+                            <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
                         </div>
-                        <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
-                    </div>
-                    <Separator/>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                         <div>
-                            <Label htmlFor="sensitivity" className="font-bold text-sm uppercase text-muted-foreground">Sensibilité de Détection</Label>
-                            <p className="text-sm text-muted-foreground/80">
-                                Un niveau élevé peut entraîner plus de faux positifs.
-                            </p>
-                        </div>
-                        <Select value={config.sensitivity || 'medium'} onValueChange={(val: 'low' | 'medium' | 'high') => handleValueChange('sensitivity', val)}>
-                            <SelectTrigger id="sensitivity" className="w-full md:w-[280px]">
-                                <SelectValue placeholder="Sélectionner un niveau" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="low">Basse (Moins de détections)</SelectItem>
-                                <SelectItem value="medium">Moyenne (Recommandé)</SelectItem>
-                                <SelectItem value="high">Haute (Plus de détections)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <Separator/>
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">Notifications & Exceptions</h3>
+                        <Separator/>
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
                              <div>
-                                <Label htmlFor="alert-channel" className="font-bold text-sm uppercase text-muted-foreground">Salon d'alertes</Label>
+                                <Label htmlFor="sensitivity" className="font-bold text-sm uppercase text-muted-foreground">Sensibilité de Détection</Label>
                                 <p className="text-sm text-muted-foreground/80">
-                                   Le salon où l'IA enverra ses rapports et recommandations.
+                                    Un niveau élevé peut entraîner plus de faux positifs.
                                 </p>
                             </div>
-                            <Select value={config.alert_channel_id || 'none'} onValueChange={(val) => handleValueChange('alert_channel_id', val === 'none' ? null : val)}>
-                                <SelectTrigger id="alert-channel" className="w-full md:w-[280px]">
-                                    <SelectValue placeholder="Sélectionner un salon" />
+                            <Select value={config.sensitivity || 'medium'} onValueChange={(val: 'low' | 'medium' | 'high') => handleValueChange('sensitivity', val)}>
+                                <SelectTrigger id="sensitivity" className="w-full md:w-[280px]">
+                                    <SelectValue placeholder="Sélectionner un niveau" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectGroup>
-                                        <SelectLabel>Salons Textuels</SelectLabel>
-                                        <SelectItem value="none">Aucun</SelectItem>
-                                        {channels.map(channel => <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>)}
-                                    </SelectGroup>
+                                    <SelectItem value="low">Basse (Moins de détections)</SelectItem>
+                                    <SelectItem value="medium">Moyenne (Recommandé)</SelectItem>
+                                    <SelectItem value="high">Haute (Plus de détections)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                             <div>
-                                <Label htmlFor="alert-role" className="font-bold text-sm uppercase text-muted-foreground">Rôle à mentionner</Label>
-                                <p className="text-sm text-muted-foreground/80">
-                                   Ce rôle sera mentionné dans les alertes.
-                                </p>
-                            </div>
-                            <Select value={config.alert_role_id || 'none'} onValueChange={(val) => handleValueChange('alert_role_id', val === 'none' ? null : val)}>
-                                <SelectTrigger id="alert-role" className="w-full md:w-[280px]">
-                                    <SelectValue placeholder="Sélectionner un rôle" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectLabel>Rôles</SelectLabel>
-                                        <SelectItem value="none">Aucun</SelectItem>
-                                        {roles.map(role => <SelectItem key={role.id} value={role.id}>@ {role.name}</SelectItem>)}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div className="space-y-2 pt-2">
-                            <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés</Label>
-                             <p className="text-sm text-muted-foreground/80">
-                                Les messages des utilisateurs avec ces rôles ne seront pas analysés.
-                            </p>
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between">
-                                        <div className="flex-1 text-left truncate">
-                                            {config.exempt_roles.length > 0 
-                                                ? config.exempt_roles.map(id => (
-                                                    <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
-                                                ))
-                                                : "Sélectionner des rôles..."}
-                                        </div>
-                                        <ChevronDown className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                    <DropdownMenuLabel>Choisir les rôles à exempter</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {roles.map(role => (
-                                        <DropdownMenuCheckboxItem
-                                            key={role.id}
-                                            checked={config.exempt_roles.includes(role.id)}
-                                            onCheckedChange={() => handleRoleToggle(role.id)}
-                                            onSelect={(e) => e.preventDefault()}
-                                        >
-                                            {role.name}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
-                     <Separator/>
-                     <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">Sanctions Automatiques</h3>
-                        <p className="text-sm text-muted-foreground">Définissez l'action à entreprendre pour chaque niveau de sévérité. Le message problématique est toujours supprimé.</p>
-                        {severityLevels.map(({ key, label }) => (
-                            <div key={key} className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                                <Label className="font-medium">{label}</Label>
-                                 <Select value={config.actions[key as keyof typeof config.actions]} onValueChange={(val) => handleActionChange(key as any, val)}>
-                                    <SelectTrigger className="w-full md:w-[280px]">
-                                        <SelectValue placeholder="Choisir une action" />
+                        <Separator/>
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">Notifications & Exceptions</h3>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+                                 <div>
+                                    <Label htmlFor="alert-channel" className="font-bold text-sm uppercase text-muted-foreground">Salon d'alertes</Label>
+                                    <p className="text-sm text-muted-foreground/80">
+                                       Le salon où l'IA enverra ses rapports et recommandations.
+                                    </p>
+                                </div>
+                                <Select value={config.alert_channel_id || 'none'} onValueChange={(val) => handleValueChange('alert_channel_id', val === 'none' ? null : val)}>
+                                    <SelectTrigger id="alert-channel" className="w-full md:w-[280px]">
+                                        <SelectValue placeholder="Sélectionner un salon" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {actionOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                                        <SelectGroup>
+                                            <SelectLabel>Salons Textuels</SelectLabel>
+                                            <SelectItem value="none">Aucun</SelectItem>
+                                            {channels.map(channel => <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>)}
+                                        </SelectGroup>
                                     </SelectContent>
                                 </Select>
                             </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+                                 <div>
+                                    <Label htmlFor="alert-role" className="font-bold text-sm uppercase text-muted-foreground">Rôle à mentionner</Label>
+                                    <p className="text-sm text-muted-foreground/80">
+                                       Ce rôle sera mentionné dans les alertes.
+                                    </p>
+                                </div>
+                                <Select value={config.alert_role_id || 'none'} onValueChange={(val) => handleValueChange('alert_role_id', val === 'none' ? null : val)}>
+                                    <SelectTrigger id="alert-role" className="w-full md:w-[280px]">
+                                        <SelectValue placeholder="Sélectionner un rôle" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectLabel>Rôles</SelectLabel>
+                                            <SelectItem value="none">Aucun</SelectItem>
+                                            {roles.map(role => <SelectItem key={role.id} value={role.id}>@ {role.name}</SelectItem>)}
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="space-y-2 pt-2">
+                                <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés</Label>
+                                 <p className="text-sm text-muted-foreground/80">
+                                    Les messages des utilisateurs avec ces rôles ne seront pas analysés.
+                                </p>
+                                 <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-between">
+                                            <div className="flex-1 text-left truncate">
+                                                {config.exempt_roles.length > 0 
+                                                    ? config.exempt_roles.map(id => (
+                                                        <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
+                                                    ))
+                                                    : "Sélectionner des rôles..."}
+                                            </div>
+                                            <ChevronDown className="ml-2 h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                        <DropdownMenuLabel>Choisir les rôles à exempter</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {roles.map(role => (
+                                            <DropdownMenuCheckboxItem
+                                                key={role.id}
+                                                checked={config.exempt_roles.includes(role.id)}
+                                                onCheckedChange={() => handleRoleToggle(role.id)}
+                                                onSelect={(e) => e.preventDefault()}
+                                            >
+                                                {role.name}
+                                            </DropdownMenuCheckboxItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                         <Separator/>
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">Sanctions Automatiques</h3>
+                            <p className="text-sm text-muted-foreground">Définissez l'action à entreprendre pour chaque niveau de sévérité. Le message problématique est toujours supprimé.</p>
+                            {severityLevels.map(({ key, label }) => (
+                                <div key={key} className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+                                    <Label className="font-medium">{label}</Label>
+                                     <Select value={config.actions[key as keyof typeof config.actions]} onValueChange={(val) => handleActionChange(key as any, val)}>
+                                        <SelectTrigger className="w-full md:w-[280px]">
+                                            <SelectValue placeholder="Choisir une action" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {actionOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         </PremiumFeatureWrapper>
     )
 }

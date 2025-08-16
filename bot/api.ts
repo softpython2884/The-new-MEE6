@@ -1,9 +1,8 @@
 
-
 import express from 'express';
 import cors from 'cors';
 import { Client, CategoryChannel, ChannelType, REST, Routes } from 'discord.js';
-import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGuild, updatePersona, deletePersona, createPersona } from '@/lib/db';
+import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGuild, updatePersona, deletePersona, createPersona, getGlobalAiStatus } from '@/lib/db';
 import { verifyAndConsumeAuthToken, getBotAccessToken } from './auth';
 import { generatePersonaPrompt, generatePersonaAvatar } from '@/ai/flows/persona-flow';
 import { v4 as uuidv4 } from 'uuid';
@@ -120,6 +119,15 @@ export function startApi(client: Client) {
         } catch (error) {
             console.error(`[Bot API] Erreur lors de la récupération de la config pour ${guildId}:`, error);
             res.status(500).json({ error: 'Erreur interne du serveur.' });
+        }
+    });
+
+    app.get('/api/global-ai-status', (req, res) => {
+        try {
+            const status = getGlobalAiStatus();
+            res.json(status);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to fetch global AI status.' });
         }
     });
 
@@ -404,5 +412,3 @@ export function startApi(client: Client) {
         console.log(`[Bot API] Le serveur API interne écoute sur le port ${API_PORT}`);
     });
 }
-
-    

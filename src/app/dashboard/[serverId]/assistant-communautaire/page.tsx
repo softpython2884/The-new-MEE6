@@ -20,6 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { Badge } from '@/components/ui/badge';
+import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -130,6 +131,7 @@ function CommunityAssistantPageContent({ isPremium, serverId }: { isPremium: boo
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <div className="space-y-8">
+                <GlobalAiStatusAlert />
                 {/* Section Options */}
                 <Card>
                     <CardHeader>

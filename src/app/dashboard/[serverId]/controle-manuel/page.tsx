@@ -50,6 +50,11 @@ const manualVoiceCommands = [
     key: 'leave',
     description: 'Fait quitter le bot de son salon vocal.',
   },
+  {
+      name: '/parle',
+      key: 'parle',
+      description: 'Fait parler le bot dans le salon vocal actuel.'
+  }
 ];
 
 function ManualControlPageSkeleton() {

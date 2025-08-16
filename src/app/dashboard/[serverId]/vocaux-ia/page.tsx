@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { InteractiveChannel } from '@/types';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -111,6 +112,7 @@ function SmartVoicePageContent({ isPremium }: { isPremium: boolean }) {
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <div className="space-y-8">
+            <GlobalAiStatusAlert />
             <Card>
                 <CardHeader>
                     <h2 className="text-xl font-bold">Options Générales</h2>

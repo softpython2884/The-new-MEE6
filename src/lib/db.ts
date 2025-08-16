@@ -1,5 +1,4 @@
 
-
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -23,6 +22,17 @@ const upgradeSchema = () => {
     try {
         db.pragma('journal_mode = WAL');
         
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS global_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                reason TEXT
+            );
+        `);
+        db.exec(`INSERT OR IGNORE INTO global_settings (key, value) VALUES ('ai_disabled', '0');`);
+        console.log('[Database] La table "global_settings" est prête.');
+
+
         db.exec(`
             CREATE TABLE IF NOT EXISTS sanction_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -379,6 +389,7 @@ const defaultConfigs: DefaultConfigs = {
         command_permissions: {
             join: null,
             leave: null,
+            parle: null
         }
     }
 };
@@ -386,6 +397,30 @@ const defaultConfigs: DefaultConfigs = {
 export function initializeDatabase() {
     createConfigTable();
     console.log('[Database] Initialisation de la base de données terminée.');
+}
+
+export function getGlobalAiStatus(): { disabled: boolean; reason: string | null } {
+    try {
+        const stmt = db.prepare("SELECT value, reason FROM global_settings WHERE key = 'ai_disabled'");
+        const row = stmt.get() as { value: string; reason: string | null } | undefined;
+        return {
+            disabled: row?.value === '1',
+            reason: row?.reason || null
+        };
+    } catch (error) {
+        console.error('[Database] Failed to get global AI status:', error);
+        return { disabled: false, reason: null };
+    }
+}
+
+export function setGlobalAiStatus(disabled: boolean, reason: string | null) {
+    try {
+        const stmt = db.prepare("UPDATE global_settings SET value = ?, reason = ? WHERE key = 'ai_disabled'");
+        stmt.run(disabled ? '1' : '0', reason);
+        console.log(`[Database] Global AI status set to: ${disabled ? 'DISABLED' : 'ENABLED'}. Reason: ${reason || 'N/A'}`);
+    } catch (error) {
+        console.error('[Database] Failed to set global AI status:', error);
+    }
 }
 
 export function getServerConfig(guildId: string, module: Module): ModuleConfig | null {

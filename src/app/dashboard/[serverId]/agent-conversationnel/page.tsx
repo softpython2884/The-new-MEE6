@@ -19,6 +19,7 @@ import { useServerInfo } from '@/hooks/use-server-info';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
+import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -132,6 +133,7 @@ function AgentPageContent({ isPremium, serverId }: { isPremium: boolean, serverI
     return (
         <PremiumFeatureWrapper isPremium={isPremium}>
             <div className="space-y-8">
+                 <GlobalAiStatusAlert />
                 {/* Section Activation */}
                 <Card>
                     <CardHeader>

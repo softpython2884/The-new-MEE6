@@ -5,9 +5,11 @@ import path from 'path';
 import fs from 'fs';
 import { loadCommands, updateGuildCommands, deployGlobalCommands } from './handlers/commandHandler';
 import type { Command } from '@/types';
-import { initializeDatabase, syncGuilds, getServerConfig } from '@/lib/db';
+import { initializeDatabase, syncGuilds, getServerConfig, setupDefaultConfigs } from '@/lib/db';
 import { startApi } from './api';
 import { initializeBotAuth } from './auth';
+import { v4 as uuidv4 } from 'uuid';
+
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
@@ -84,7 +86,7 @@ const loadEvents = (client: Client) => {
                         }
                         console.log(`[+] Loaded event: ${event.name} from ${path.relative(eventsPath, fullPath)}`);
                     } else {
-                        console.log(`[-] Failed to load event at ${fullPath}. Missing "name" or "execute" property.`);
+                        // console.log(`[-] Failed to load event at ${fullPath}. Missing "name" or "execute" property.`);
                     }
                 }
             }

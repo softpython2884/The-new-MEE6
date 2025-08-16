@@ -90,8 +90,8 @@ export async function execute(message: Message) {
         // --- End of History Handling ---
 
         // --- Memory Retrieval ---
-        const uniqueUserIdsInHistory = [...new Set(currentHistory.map(h => message.guild?.members.cache.find(m => m.displayName === h.user)?.id).filter(Boolean) as string[])];
-        const relevantMemories = getMemoriesForPersona(activePersona.id, uniqueUserIdsInHistory);
+        // Get memories about the specific user interacting, and also general memories (about the persona itself).
+        const relevantMemories = getMemoriesForPersona(activePersona.id, [message.author.id]);
         // --- End of Memory Retrieval ---
 
         const result = await personaInteractionFlow({

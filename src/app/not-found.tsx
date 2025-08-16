@@ -1,4 +1,3 @@
-
 'use client';
 
 import FuzzyText from "@/components/fuzzy-text";
@@ -10,7 +9,7 @@ export default function NotFound() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground text-center">
       <FuzzyText
         fontSize="clamp(8rem, 20vw, 20rem)"
-        color="hsl(var(--primary))"
+        color="#FFFFFF"
         baseIntensity={0.1}
         hoverIntensity={0.3}
       >

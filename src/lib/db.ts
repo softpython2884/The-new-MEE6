@@ -576,32 +576,30 @@ export function deletePersona(id: string): void {
 
 // --- Fonctions de gestion de la Mémoire des Personnages IA ---
 
-export function getMemoriesForPersona(personaId: string, userIds?: string[]): PersonaMemory[] {
-    let query = `
-        SELECT * FROM persona_memories 
-        WHERE persona_id = ? 
-    `;
-    const params: (string | number)[] = [personaId];
-
-    if (userIds && userIds.length > 0) {
-        query += ` AND user_id IN (${userIds.map(() => '?').join(',')})`;
-        params.push(...userIds);
-    }
+export function getMemoriesForPersona(personaId: string, userIds: (string | null)[] = []): PersonaMemory[] {
+    const placeholders = userIds.map(() => '?').join(',');
     
-    query += `
+    // The query now fetches memories about specific users OR memories about the persona itself (where user_id IS NULL)
+    const query = `
+        SELECT * FROM persona_memories 
+        WHERE persona_id = ? AND (user_id IN (${placeholders}) OR user_id IS NULL)
         ORDER BY salience_score DESC, last_accessed_at DESC 
         LIMIT 20
     `;
+    
+    const params: (string | number | null)[] = [personaId, ...userIds];
     
     const stmt = db.prepare(query);
     const memories = stmt.all(...params) as PersonaMemory[];
     
     // Touch (update last_accessed_at) for retrieved memories
-    const touchStmt = db.prepare(`UPDATE persona_memories SET last_accessed_at = CURRENT_TIMESTAMP WHERE id = ?`);
-    const touchTransaction = db.transaction((mems) => {
-        for (const mem of mems) touchStmt.run(mem.id);
-    });
-    touchTransaction(memories);
+    if (memories.length > 0) {
+        const touchStmt = db.prepare(`UPDATE persona_memories SET last_accessed_at = CURRENT_TIMESTAMP WHERE id = ?`);
+        const touchTransaction = db.transaction((mems) => {
+            for (const mem of mems) touchStmt.run(mem.id);
+        });
+        touchTransaction(memories);
+    }
 
     return memories;
 }

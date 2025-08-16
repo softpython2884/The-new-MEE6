@@ -8,22 +8,29 @@ import * as path from 'path';
 // Helper function to capitalize first letter
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// Helper function to recursively find all command files
-const getAllCommandFiles = (dirPath: string, arrayOfFiles: string[] = []) => {
-    const files = fs.readdirSync(dirPath);
-
-    files.forEach(file => {
-        if (fs.statSync(path.join(dirPath, file)).isDirectory()) {
-            arrayOfFiles = getAllCommandFiles(path.join(dirPath, file), arrayOfFiles);
-        } else {
-            if (file.endsWith('.ts') || file.endsWith('.js')) {
-                arrayOfFiles.push(path.join(dirPath, file));
+// This function is inefficient and uses sync I/O. 
+// A better implementation would involve adding a 'category' property to the Command interface 
+// and grouping by that property. For now, this approach works.
+const getCommandCategory = (command: Command, commandsPath: string): string => {
+    const commandName = command.data.name.split(' ')[0];
+    
+    const findInCategory = (dir: string): string | null => {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            const stat = fs.statSync(fullPath);
+            if (stat.isDirectory()) {
+                const found = findInCategory(fullPath);
+                if (found) return path.basename(dir);
+            } else if (path.basename(file, '.ts') === commandName || path.basename(file, '.js') === commandName) {
+                 return path.basename(dir);
             }
         }
-    });
-
-    return arrayOfFiles;
-};
+        return null;
+    }
+    
+    return findInCategory(commandsPath) || 'uncategorized';
+}
 
 
 const MarcusCommand: Command = {
@@ -47,23 +54,16 @@ const MarcusCommand: Command = {
         const commands = interaction.client.commands;
         const commandCategories = new Collection<string, Command[]>();
         
+        // This is a simplified approach to getting categories. 
+        // In a more robust system, the category should be a property of the command itself.
         const commandsPath = path.join(__dirname, '..');
         
-        // Get all command file paths recursively
-        const allCommandFiles = getAllCommandFiles(commandsPath);
-
-        // Group commands by category (subfolder name)
         for (const command of commands.values()) {
-            const commandName = command.data.name.split(' ')[0];
-            const commandFile = allCommandFiles.find(file => path.basename(file, '.ts') === commandName || path.basename(file, '.js') === commandName);
-
-            if (commandFile) {
-                const category = path.basename(path.dirname(commandFile));
-                if (!commandCategories.has(category)) {
-                    commandCategories.set(category, []);
-                }
-                commandCategories.get(category)?.push(command);
+            const category = getCommandCategory(command, commandsPath);
+            if (!commandCategories.has(category)) {
+                commandCategories.set(category, []);
             }
+            commandCategories.get(category)?.push(command);
         }
 
         const helpEmbed = new EmbedBuilder()
@@ -77,7 +77,7 @@ const MarcusCommand: Command = {
         const sortedCategories = new Collection(Array.from(commandCategories.entries()).sort());
 
         for (const [category, commandList] of sortedCategories.entries()) {
-            if (commandList.length > 0) {
+            if (category !== 'uncategorized' && commandList.length > 0) {
                 const commandString = commandList
                     .map(cmd => `\`/${cmd.data.name}\` - ${cmd.data.description}`)
                     .join('\n');

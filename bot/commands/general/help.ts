@@ -28,7 +28,7 @@ const HelpCommand: Command = {
             .addFields(
                 {
                     name: '🚀 Panel de Configuration',
-                    value: 'La plus grande partie de ma configuration se passe sur une interface web. Pour y accéder, utilisez la commande `/login`. Vous recevrez un lien de connexion unique et sécurisé.',
+                    value: 'La plus grande partie de ma configuration se passe sur une interface web. Pour y accéder, un administrateur doit utiliser la commande `/login`. Vous recevrez un lien de connexion unique et sécurisé.',
                 },
                 {
                     name: '📜 Liste des Commandes',

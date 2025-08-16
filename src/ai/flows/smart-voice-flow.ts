@@ -12,7 +12,7 @@ const SmartVoiceInputSchema = z.object({
   currentName: z.string().describe('The current name of the voice channel.'),
   theme: z.string().describe('The general theme of the channel, provided by the user (e.g., "Gaming", "Soirée Film", "QG des développeurs").'),
   memberCount: z.number().describe('The number of members currently in the channel.'),
-  activities: z.array(z.string()).describe('A list of activities (e.g., game names) users are currently engaged in.'),
+  activities: z.array(z.string()).describe('A list of activities (e.g., game names, "Streaming", "Webcam on") users are currently engaged in.'),
   customInstructions: z.string().optional().describe('Optional custom instructions from the server admin to guide the naming. These instructions are absolute priorities.'),
 });
 
@@ -25,6 +25,13 @@ export type SmartVoiceInput = z.infer<typeof SmartVoiceInputSchema>;
 export type SmartVoiceOutput = z.infer<typeof SmartVoiceOutputSchema>;
 
 export async function smartVoiceFlow(input: SmartVoiceInput): Promise<SmartVoiceOutput> {
+  // If the channel is empty, return the default name immediately.
+  if (input.memberCount === 0) {
+    return {
+      channelName: "Vocal intéractif",
+      channelBio: "En attente de membres pour commencer une activité."
+    };
+  }
   return flow(input);
 }
 
@@ -55,20 +62,18 @@ PRIORITY INSTRUCTIONS FROM ADMIN: You must follow these guidelines strictly: "{{
 {{/if}}
 
 
-Please generate a new channel name and a short bio based on one of the two scenarios below, always respecting the admin's custom instructions if provided.
-
-Scenario 1: The channel is empty (memberCount is 0).
-- Generate a default, welcoming name that encourages people to join, based on the channel's custom theme.
-- For a "Gaming" theme: "🎤 • En attente de joueurs", "🎮 • Choisissez un jeu".
-- For a "Social" theme: "☕ • Salon de discussion", "👋 • Envie de papoter ?".
-- For a custom theme like "Soirée Cinéma", you could suggest: "🎬 • Préparez le popcorn !".
-
-Scenario 2: There are members in the channel (memberCount > 0).
-- Generate a dynamic name based on the most popular activity. If activities are varied, find a common theme or be creative.
+Please generate a dynamic name based on the activities.
+- If there are games, focus on the most popular one.
+- If people are streaming or on webcam, incorporate that.
 - If there are no specific activities, generate a name for general conversation that fits the channel's theme.
 - The name should feel alive and reflect what's happening RIGHT NOW.
 
+Example for a "Gaming" theme:
+- Activities: "Streaming", "League of Legends" -> Name: "🔴 Stream de LoL", Bio: "En direct sur la Faille de l'Invocateur."
+- Activities: "Webcam on", "Just chatting" -> Name: "💬 Session blabla", Bio: "Discussions en face à face."
+
 IMPORTANT: Do not just return the current name. Always generate a new, relevant name based on the situation.
+If the member count is 0, the channel should be named "Vocal intéractif". This logic is handled outside this prompt, but keep it in mind.
 `,
 });
 

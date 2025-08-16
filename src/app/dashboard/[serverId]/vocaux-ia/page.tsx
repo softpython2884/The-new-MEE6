@@ -25,7 +25,6 @@ const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/ap
 interface SmartVoiceConfig {
     enabled: boolean;
     interactive_channels: InteractiveChannel[];
-    creation_threshold: number;
     custom_instructions: string;
 }
 interface DiscordChannel {
@@ -123,14 +122,6 @@ function SmartVoicePageContent({ isPremium }: { isPremium: boolean }) {
                         </div>
                         <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
                     </div>
-                     <Separator />
-                    <div className="space-y-2">
-                        <Label htmlFor="creation-threshold" className="font-bold text-sm uppercase text-muted-foreground">Seuil de création automatique (Bientôt)</Label>
-                        <p className="text-sm text-muted-foreground/80">
-                            Nombre d'utilisateurs dans un salon pour créer automatiquement un nouveau salon vocal thématique.
-                        </p>
-                        <Input id="creation-threshold" type="number" defaultValue={config.creation_threshold} onBlur={(e) => handleValueChange('creation_threshold', parseInt(e.target.value, 10))} className="w-full md:w-[120px]" disabled />
-                    </div>
                     <Separator />
                     <div className="space-y-2">
                         <Label htmlFor="custom-instructions" className="font-bold text-sm uppercase text-muted-foreground">Instructions Personnalisées</Label>
@@ -213,7 +204,7 @@ export default function SmartVoicePage() {
             <Badge variant="secondary">1 salon gratuit</Badge>
         </h1>
         <p className="text-muted-foreground mt-2">
-            L'IA gère les salons vocaux : elle génère un nom et une bio de salon en fonction de l'activité des membres.
+            L'IA gère les salons vocaux : elle génère un nom en fonction de l'activité des membres. Si le salon est vide, il est renommé "Vocal intéractif".
         </p>
       </div>
 

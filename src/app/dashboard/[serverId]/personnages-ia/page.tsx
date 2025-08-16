@@ -34,6 +34,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useServerInfo } from '@/hooks/use-server-info';
 import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { Badge } from '@/components/ui/badge';
+import ShinyText from '@/components/ui/shiny-text';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -326,10 +327,12 @@ export default function PersonasPage() {
   return (
     <div className="space-y-8 text-white max-w-7xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            Personnages IA
+        <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">
+                 <ShinyText text="Personnages IA" disabled={!serverInfo?.isPremium} />
+            </h1>
             <Badge className="bg-yellow-400 text-yellow-900">Premium</Badge>
-        </h1>
+        </div>
         <p className="text-muted-foreground mt-2">
           Créez une population d'IA pour votre serveur, chacune avec sa propre personnalité, son histoire et ses relations.
         </p>

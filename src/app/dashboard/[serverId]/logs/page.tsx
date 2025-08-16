@@ -12,19 +12,29 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, MessageSquare, User, Hash, Tag, Hammer } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
 // Types
+interface LogSetting {
+    enabled: boolean;
+    channel_id: string | null;
+}
 interface LogsConfig {
   enabled: boolean;
-  log_channel_id: string | null;
+  main_channel_id: string | null;
   exempt_roles: string[];
   exempt_channels: string[];
-  [key: string]: any; // for dynamic log options
+  log_settings: {
+      messages: LogSetting;
+      members: LogSetting;
+      channels: LogSetting;
+      roles: LogSetting;
+      moderation: LogSetting;
+  }
 }
 
 interface DiscordChannel {
@@ -38,11 +48,11 @@ interface DiscordRole {
 }
 
 const logOptions = [
-    { id: "log-messages", label: "Logs des messages", description: "Journaliser les messages modifiés et supprimés." },
-    { id: "log-members", label: "Logs des membres", description: "Journaliser les arrivées, départs et mises à jour des membres." },
-    { id: "log-channels", label: "Logs des salons", description: "Journaliser la création, modification et suppression des salons." },
-    { id: "log-roles", label: "Logs des rôles", description: "Journaliser la création, modification et suppression des rôles." },
-    { id: "log-moderation", label: "Logs de modération", description: "Journaliser les actions de modération (bans, kicks, mutes)." },
+    { id: "messages", label: "Logs des messages", description: "Messages modifiés et supprimés.", icon: MessageSquare },
+    { id: "members", label: "Logs des membres", description: "Arrivées, départs et mises à jour.", icon: User },
+    { id: "channels", label: "Logs des salons", description: "Création, modification, suppression.", icon: Hash },
+    { id: "roles", label: "Logs des rôles", description: "Création, modification, suppression.", icon: Tag },
+    { id: "moderation", label: "Logs de modération", description: "Bans, kicks, mutes, etc.", icon: Hammer },
 ];
 
 
@@ -113,6 +123,13 @@ export default function LogsPage() {
         saveConfig({ ...config, [key]: value });
     };
 
+    const handleLogSettingChange = (logType: keyof LogsConfig['log_settings'], field: keyof LogSetting, value: any) => {
+        if (!config) return;
+        const newLogSettings = { ...config.log_settings };
+        newLogSettings[logType] = { ...newLogSettings[logType], [field]: value };
+        saveConfig({ ...config, log_settings: newLogSettings });
+    };
+
     const handleMultiSelectToggle = (key: 'exempt_roles' | 'exempt_channels', id: string) => {
         if (!config) return;
         const currentList = config[key] || [];
@@ -139,131 +156,160 @@ export default function LogsPage() {
 
       <Card>
           <CardHeader>
-              <CardTitle>Configuration des Logs</CardTitle>
+              <CardTitle>Configuration Générale des Logs</CardTitle>
               <CardDescription>
-                  Personnalisez les événements à journaliser, leur destination et les exceptions.
+                  Activez les logs, choisissez un canal principal par défaut et définissez les exceptions.
               </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
-                <div>
-                  <Label htmlFor="log-channel" className="font-bold text-sm uppercase text-muted-foreground">Salon de logs principal</Label>
-                  <p className="text-sm text-muted-foreground/80">
-                    Le salon où envoyer tous les logs par défaut.
-                  </p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Label htmlFor="enable-module" className="font-bold">Activer le module de logs</Label>
+                    </div>
+                    <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
                 </div>
-                 <Select 
-                    value={config.log_channel_id || 'none'}
-                    onValueChange={(value) => handleValueChange('log_channel_id', value === 'none' ? null : value)}
-                 >
-                    <SelectTrigger className="w-full md:w-[280px]">
-                        <SelectValue placeholder="Sélectionner un salon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            <SelectLabel>Salons textuels</SelectLabel>
-                            <SelectItem value="none">Désactivé</SelectItem>
+                <Separator />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+                    <div>
+                        <Label htmlFor="log-channel" className="font-bold text-sm uppercase text-muted-foreground">Salon de logs principal</Label>
+                        <p className="text-sm text-muted-foreground/80">
+                            Canal par défaut si aucun canal dédié n'est spécifié ci-dessous.
+                        </p>
+                    </div>
+                    <Select 
+                        value={config.main_channel_id || 'none'}
+                        onValueChange={(value) => handleValueChange('main_channel_id', value === 'none' ? null : value)}
+                    >
+                        <SelectTrigger className="w-full md:w-[280px]">
+                            <SelectValue placeholder="Sélectionner un salon" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectLabel>Salons textuels</SelectLabel>
+                                <SelectItem value="none">Aucun</SelectItem>
+                                {channels.filter(c => c.type === 0).map(channel => (
+                                    <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <Separator />
+
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Exceptions Globales</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label>Salons à ignorer</Label>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between">
+                                        <div className="flex-1 text-left truncate">
+                                            {config.exempt_channels?.length > 0
+                                                ? config.exempt_channels.map((id: string) => (
+                                                    <Badge key={id} variant="secondary" className="mr-1 mb-1">{channels.find(c => c.id === id)?.name || id}</Badge>
+                                                ))
+                                                : "Sélectionner des salons..."}
+                                        </div>
+                                        <ChevronDown className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                    <DropdownMenuLabel>Choisir les salons</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {channels.map(channel => (
+                                        <DropdownMenuCheckboxItem
+                                            key={channel.id}
+                                            checked={config.exempt_channels?.includes(channel.id)}
+                                            onCheckedChange={() => handleMultiSelectToggle('exempt_channels', channel.id)}
+                                            onSelect={(e) => e.preventDefault()}
+                                        >
+                                            # {channel.name}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Rôles à ignorer</Label>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between">
+                                        <div className="flex-1 text-left truncate">
+                                            {config.exempt_roles?.length > 0
+                                                ? config.exempt_roles.map((id: string) => (
+                                                    <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
+                                                ))
+                                                : "Sélectionner des rôles..."}
+                                        </div>
+                                        <ChevronDown className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                    <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {roles.filter(r => r.name !== '@everyone').map(role => (
+                                        <DropdownMenuCheckboxItem
+                                            key={role.id}
+                                            checked={config.exempt_roles?.includes(role.id)}
+                                            onCheckedChange={() => handleMultiSelectToggle('exempt_roles', role.id)}
+                                            onSelect={(e) => e.preventDefault()}
+                                        >
+                                            {role.name}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+      </Card>
+      
+      <Separator />
+
+      <div>
+        <h2 className="text-2xl font-bold">Journaux d'Événements</h2>
+        <p className="text-muted-foreground mt-1">
+          Activez les types de logs que vous souhaitez et assignez-leur un canal dédié si nécessaire.
+        </p>
+      </div>
+      <div className="grid md:grid-cols-2 gap-4">
+        {logOptions.map(option => (
+            <Card key={option.id}>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                         <CardTitle className="flex items-center gap-2">
+                            <option.icon className="w-5 h-5 text-primary"/>
+                            {option.label}
+                        </CardTitle>
+                        <Switch 
+                            checked={config.log_settings[option.id as keyof typeof config.log_settings].enabled}
+                            onCheckedChange={(val) => handleLogSettingChange(option.id as keyof typeof config.log_settings, 'enabled', val)}
+                        />
+                    </div>
+                    <CardDescription>{option.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Label className="text-xs uppercase text-muted-foreground">Salon dédié</Label>
+                    <Select
+                        value={config.log_settings[option.id as keyof typeof config.log_settings].channel_id || 'main'}
+                        onValueChange={(val) => handleLogSettingChange(option.id as keyof typeof config.log_settings, 'channel_id', val === 'main' ? null : val)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue/>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="main">Utiliser le salon principal</SelectItem>
                             {channels.filter(c => c.type === 0).map(channel => (
                                 <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
                             ))}
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
-              </div>
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Exceptions</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label>Salons à ignorer</Label>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between">
-                                    <div className="flex-1 text-left truncate">
-                                        {config.exempt_channels?.length > 0
-                                            ? config.exempt_channels.map((id: string) => (
-                                                <Badge key={id} variant="secondary" className="mr-1 mb-1">{channels.find(c => c.id === id)?.name || id}</Badge>
-                                            ))
-                                            : "Sélectionner des salons..."}
-                                    </div>
-                                    <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                <DropdownMenuLabel>Choisir les salons</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {channels.map(channel => (
-                                    <DropdownMenuCheckboxItem
-                                        key={channel.id}
-                                        checked={config.exempt_channels?.includes(channel.id)}
-                                        onCheckedChange={() => handleMultiSelectToggle('exempt_channels', channel.id)}
-                                        onSelect={(e) => e.preventDefault()}
-                                    >
-                                        # {channel.name}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                     <div className="space-y-2">
-                        <Label>Rôles à ignorer</Label>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between">
-                                    <div className="flex-1 text-left truncate">
-                                        {config.exempt_roles?.length > 0
-                                            ? config.exempt_roles.map((id: string) => (
-                                                <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
-                                            ))
-                                            : "Sélectionner des rôles..."}
-                                    </div>
-                                    <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {roles.filter(r => r.name !== '@everyone').map(role => (
-                                    <DropdownMenuCheckboxItem
-                                        key={role.id}
-                                        checked={config.exempt_roles?.includes(role.id)}
-                                        onCheckedChange={() => handleMultiSelectToggle('exempt_roles', role.id)}
-                                        onSelect={(e) => e.preventDefault()}
-                                    >
-                                        {role.name}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                </div>
-              </div>
-
-              <Separator />
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold">Événements à Journaliser</h3>
-                {logOptions.map((option, index) => (
-                    <React.Fragment key={option.id}>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <Label htmlFor={option.id} className="font-bold">{option.label}</Label>
-                                <p className="text-sm text-muted-foreground/80">
-                                    {option.description}
-                                </p>
-                            </div>
-                            <Switch 
-                                id={option.id} 
-                                checked={config[option.id] ?? false}
-                                onCheckedChange={(checked) => handleValueChange(option.id, checked)}
-                            />
-                        </div>
-                        {index < logOptions.length - 1 && <Separator />}
-                    </React.Fragment>
-                ))}
-              </div>
-          </CardContent>
-      </Card>
+                        </SelectContent>
+                    </Select>
+                </CardContent>
+            </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -291,19 +337,28 @@ function PageSkeleton() {
                         <Skeleton className="h-10 w-64" />
                     </div>
                     <Separator />
-                     <div className="space-y-6">
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="flex items-center justify-between">
-                                <div className="space-y-2">
-                                    <Skeleton className="h-5 w-32" />
-                                    <Skeleton className="h-4 w-72" />
-                                </div>
-                                <Skeleton className="h-6 w-11 rounded-full" />
-                            </div>
-                        ))}
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
                     </div>
                 </CardContent>
             </Card>
+            <div className="grid md:grid-cols-2 gap-4">
+                {[...Array(4)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader>
+                             <div className="flex items-center justify-between">
+                                <Skeleton className="h-6 w-32" />
+                                <Skeleton className="h-6 w-11 rounded-full" />
+                            </div>
+                            <Skeleton className="h-4 w-48 mt-2"/>
+                        </CardHeader>
+                        <CardContent>
+                            <Skeleton className="h-10 w-full" />
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
         </div>
     );
 }

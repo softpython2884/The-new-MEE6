@@ -1,4 +1,5 @@
 
+
 import { Events, GuildChannel, EmbedBuilder, TextChannel } from 'discord.js';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -8,13 +9,16 @@ export async function execute(oldChannel: GuildChannel, newChannel: GuildChannel
     if (!newChannel.guild) return;
 
     const config = await getServerConfig(newChannel.guild.id, 'logs');
-    if (!config?.enabled || !config['log-channels'] || !config.log_channel_id) return;
+    if (!config?.enabled || !config.log_settings?.channels?.enabled) return;
     
     // Check for exemptions
-    if (config.exempt_channels.includes(newChannel.id)) return;
-    if (newChannel.parentId && config.exempt_channels.includes(newChannel.parentId)) return;
+    if (config.exempt_channels?.includes(newChannel.id)) return;
+    if (newChannel.parentId && config.exempt_channels?.includes(newChannel.parentId)) return;
 
-    const logChannel = await newChannel.guild.channels.fetch(config.log_channel_id).catch(() => null) as TextChannel;
+    const targetChannelId = config.log_settings.channels.channel_id || config.main_channel_id;
+    if (!targetChannelId) return;
+
+    const logChannel = await newChannel.guild.channels.fetch(targetChannelId).catch(() => null) as TextChannel;
     if (!logChannel) return;
 
     const embed = new EmbedBuilder()

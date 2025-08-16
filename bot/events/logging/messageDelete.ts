@@ -1,4 +1,5 @@
 
+
 import { Events, Message, PartialMessage, EmbedBuilder, TextChannel, AuditLogEvent, User } from 'discord.js';
 import { getServerConfig } from '../../../src/lib/db';
 
@@ -8,16 +9,16 @@ export async function execute(message: Message | PartialMessage) {
     if (!message.guild) return;
 
     const config = await getServerConfig(message.guild.id, 'logs');
-    if (!config?.enabled || !config['log-messages'] || !config.log_channel_id) return;
+    if (!config?.enabled || !config.log_settings?.messages?.enabled) return;
     
     // Check for exemptions
-    if (message.author?.id && (message.member?.roles.cache.some(r => config.exempt_roles.includes(r.id)))) return;
-    if (config.exempt_channels.includes(message.channel.id)) return;
+    if (message.author?.id && (message.member?.roles.cache.some(r => config.exempt_roles?.includes(r.id)))) return;
+    if (config.exempt_channels?.includes(message.channel.id)) return;
 
-    // We can still log deletions by bots, but we might want to check who deleted it.
-    // The original author might be a bot, that's okay.
+    const targetChannelId = config.log_settings.messages.channel_id || config.main_channel_id;
+    if (!targetChannelId) return;
 
-    const logChannel = await message.guild.channels.fetch(config.log_channel_id).catch(() => null) as TextChannel;
+    const logChannel = await message.guild.channels.fetch(targetChannelId).catch(() => null) as TextChannel;
     if (!logChannel || logChannel.id === message.channel.id) return;
 
     const embed = new EmbedBuilder()

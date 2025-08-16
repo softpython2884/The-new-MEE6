@@ -66,16 +66,6 @@ const upgradeSchema = () => {
                 role_id TEXT
             );
         `);
-        // Check for persona columns and add them if they don't exist
-        const personaColumns = db.pragma('table_info(ai_personas)') as any[];
-        if (!personaColumns.some(col => col.name === 'avatar_url')) {
-            console.log('[Database] Mise à jour du schéma : Ajout de la colonne "avatar_url" à ai_personas.');
-            db.exec('ALTER TABLE ai_personas ADD COLUMN avatar_url TEXT');
-        }
-        if (!personaColumns.some(col => col.name === 'role_id')) {
-             console.log('[Database] Mise à jour du schéma : Ajout de la colonne "role_id" à ai_personas.');
-            db.exec('ALTER TABLE ai_personas ADD COLUMN role_id TEXT');
-        }
         console.log('[Database] La table "ai_personas" est prête.');
 
 
@@ -175,16 +165,18 @@ const defaultConfigs: DefaultConfigs = {
         rules: [],
         scanned_channels: [],
     },
-    'logs': { 
-        enabled: false, 
-        log_channel_id: null,
+    'logs': {
+        enabled: true,
+        main_channel_id: null,
         exempt_roles: [],
         exempt_channels: [],
-        'log-messages': true,
-        'log-members': true,
-        'log-channels': false,
-        'log-roles': false,
-        'log-moderation': true,
+        log_settings: {
+            messages: { enabled: true, channel_id: null },
+            members: { enabled: true, channel_id: null },
+            channels: { enabled: false, channel_id: null },
+            roles: { enabled: false, channel_id: null },
+            moderation: { enabled: true, channel_id: null },
+        }
     },
     'auto-translation': {
         enabled: false,
@@ -377,6 +369,7 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
         if (result && result.config) {
             const config = JSON.parse(result.config);
             const defaultConfig = defaultConfigs[module] || {};
+            // Deep merge for nested objects like command_permissions and log_settings
             const finalConfig = { ...defaultConfig, ...config };
 
             if (defaultConfig.command_permissions && config.command_permissions) {
@@ -388,6 +381,13 @@ export function getServerConfig(guildId: string, module: Module): ModuleConfig |
             if (defaultConfig.actions && config.actions) {
                 finalConfig.actions = { ...defaultConfig.actions, ...config.actions };
             }
+             if (defaultConfig.log_settings && config.log_settings) {
+                finalConfig.log_settings = { ...defaultConfig.log_settings };
+                for (const key of Object.keys(defaultConfig.log_settings)) {
+                    finalConfig.log_settings[key] = { ...defaultConfig.log_settings[key], ...config.log_settings[key] };
+                }
+            }
+
 
             finalConfig.premium = !!result.premium;
             return finalConfig;

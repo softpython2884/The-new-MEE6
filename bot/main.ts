@@ -157,6 +157,34 @@ async function handleSuggestionModal(interaction: ModalSubmitInteraction) {
     }
 }
 
+async function handleBotSuggestionModal(interaction: ModalSubmitInteraction) {
+    if (!interaction.guild) return;
+    await interaction.deferReply({ ephemeral: true });
+    
+    const developerId = '556529963877138442';
+    const idea = interaction.fields.getTextInputValue('suggestion_bot_idea');
+
+    try {
+        const developer = await client.users.fetch(developerId);
+        const embed = new EmbedBuilder()
+            .setColor(0xFFD700)
+            .setTitle('💡 Nouvelle suggestion pour Marcus !')
+            .setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() || undefined })
+            .addFields(
+                { name: 'Suggestion', value: idea },
+                { name: 'Serveur d\'origine', value: `${interaction.guild.name} (\`${interaction.guild.id}\`)` }
+            )
+            .setTimestamp();
+        
+        await developer.send({ embeds: [embed] });
+        await interaction.editReply({ content: '✅ Votre idée a bien été envoyée au développeur. Merci pour votre contribution !' });
+
+    } catch (error) {
+        console.error("Failed to send bot suggestion DM:", error);
+        await interaction.editReply({ content: '❌ Une erreur est survenue lors de l\'envoi de votre idée. Le développeur a peut-être fermé ses messages privés.' });
+    }
+}
+
 
 client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     if (interaction.isAutocomplete()) {
@@ -172,8 +200,10 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     
     // Handle Modals
     if (interaction.isModalSubmit()) {
-        if (interaction.customId === 'suggestion_modal') {
+        if (interaction.customId === 'suggestion_modal_server') {
             await handleSuggestionModal(interaction);
+        } else if (interaction.customId === 'suggestion_modal_bot') {
+            await handleBotSuggestionModal(interaction);
         }
         return;
     }
@@ -186,7 +216,7 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
         if (customId === 'create_suggestion') {
              const command = client.commands.get('suggest');
              if (command) {
-                 await command.execute(interaction as any);
+                 await (command.execute as any)(interaction, { subcommand: 'serveur' });
              }
              return;
         }

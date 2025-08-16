@@ -1,34 +1,12 @@
 
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, Collection } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import type { Command } from '../../../src/types';
 import { getServerConfig } from '../../../src/lib/db';
-import * as fs from 'fs';
-import * as path from 'path';
-
-// Helper function to capitalize first letter
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-// Helper function to recursively find all command files
-const getAllCommandFiles = (dirPath: string, arrayOfFiles: string[] = []) => {
-    const files = fs.readdirSync(dirPath);
-
-    files.forEach(file => {
-        if (fs.statSync(path.join(dirPath, file)).isDirectory()) {
-            arrayOfFiles = getAllCommandFiles(path.join(dirPath, file), arrayOfFiles);
-        } else {
-            if (file.endsWith('.ts') || file.endsWith('.js')) {
-                arrayOfFiles.push(path.join(dirPath, file));
-            }
-        }
-    });
-
-    return arrayOfFiles;
-};
 
 const HelpCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('help')
-        .setDescription('Affiche la liste de toutes les commandes disponibles.'),
+        .setDescription('Affiche des informations utiles sur le fonctionnement de Marcus.'),
     async execute(interaction: ChatInputCommandInteraction) {
         await interaction.deferReply({ ephemeral: true });
 
@@ -42,49 +20,28 @@ const HelpCommand: Command = {
             await interaction.editReply({ content: "Cette commande est désactivée sur ce serveur." });
             return;
         }
-        
-        const commands = interaction.client.commands;
-        const commandCategories = new Collection<string, Command[]>();
-        
-        const commandsPath = path.join(__dirname, '..');
-        
-        // Get all command file paths recursively
-        const allCommandFiles = getAllCommandFiles(commandsPath);
-
-        // Group commands by category (subfolder name)
-        for (const command of commands.values()) {
-            const commandName = command.data.name.split(' ')[0];
-            const commandFile = allCommandFiles.find(file => path.basename(file, '.ts') === commandName || path.basename(file, '.js') === commandName);
-
-            if (commandFile) {
-                const category = path.basename(path.dirname(commandFile));
-                if (!commandCategories.has(category)) {
-                    commandCategories.set(category, []);
-                }
-                commandCategories.get(category)?.push(command);
-            }
-        }
 
         const helpEmbed = new EmbedBuilder()
             .setColor(0x00BFFF)
-            .setTitle('📜 Liste des Commandes de Marcus')
-            .setDescription('Voici toutes les commandes que vous pouvez utiliser.')
+            .setTitle('👋 Bonjour, je suis Marcus !')
+            .setDescription('Votre assistant de gestion et d\'animation pour ce serveur Discord.')
+            .addFields(
+                {
+                    name: '🚀 Panel de Configuration',
+                    value: 'La plus grande partie de ma configuration se passe sur une interface web. Pour y accéder, utilisez la commande `/login`. Vous recevrez un lien de connexion unique et sécurisé.',
+                },
+                {
+                    name: '📜 Liste des Commandes',
+                    value: 'Pour voir la liste complète de toutes les commandes que je peux exécuter, utilisez la commande `/marcus`.',
+                },
+                 {
+                    name: '💡 Suggestions',
+                    value: 'Vous avez une idée pour améliorer ce serveur ? Utilisez `/suggest serveur`.\nVous avez une idée pour m\'améliorer ? Utilisez `/suggest bot` pour l\'envoyer directement à mon créateur !',
+                }
+            )
             .setTimestamp()
             .setFooter({ text: `Demandé par ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() });
         
-        // Sort categories alphabetically
-        const sortedCategories = new Collection(Array.from(commandCategories.entries()).sort());
-
-
-        for (const [category, commandList] of sortedCategories.entries()) {
-            if (commandList.length > 0) {
-                const commandString = commandList
-                    .map(cmd => `\`/${cmd.data.name}\` - ${cmd.data.description}`)
-                    .join('\n');
-                helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: commandString });
-            }
-        }
-
         await interaction.editReply({ embeds: [helpEmbed] });
     },
 };

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,7 +20,7 @@ const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/ap
 // Types
 interface WebcamConfig {
     enabled: boolean;
-    mode: 'allowed' | 'webcam_only' | 'stream_only' | 'disallowed';
+    mode: 'allowed' | 'video_allowed' | 'disallowed';
     exempt_roles: string[];
 }
 
@@ -70,6 +69,12 @@ export default function WebcamControlPage() {
 
                 const configData = await configRes.json();
                 const serverDetailsData = await serverDetailsRes.json();
+                
+                // --- Migration de l'ancienne configuration ---
+                if (['webcam_only', 'stream_only'].includes(configData.mode)) {
+                    configData.mode = 'video_allowed';
+                }
+                // -----------------------------------------
 
                 setConfig(configData);
                 setRoles(serverDetailsData.roles.filter((r: DiscordRole) => r.name !== '@everyone'));
@@ -116,7 +121,7 @@ export default function WebcamControlPage() {
   return (
     <div className="space-y-8 text-white max-w-4xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Contrôle Webcam</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Contrôle Vidéo</h1>
         <p className="text-muted-foreground mt-2">
           Contrôlez l'utilisation de la webcam et du partage d'écran dans les salons vocaux.
         </p>
@@ -135,7 +140,7 @@ export default function WebcamControlPage() {
             <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="enable-module" className="font-bold">Activer le module</Label>
-                  <p className="text-sm text-muted-foreground/80">Active ou désactive la gestion des webcams.</p>
+                  <p className="text-sm text-muted-foreground/80">Active ou désactive la gestion de la vidéo.</p>
                 </div>
                 <Switch
                     id="enable-module"
@@ -146,9 +151,9 @@ export default function WebcamControlPage() {
             <Separator />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
                 <div>
-                  <Label htmlFor="webcam-mode" className="font-bold text-sm uppercase text-muted-foreground">Politique d'utilisation de la caméra</Label>
+                  <Label htmlFor="webcam-mode" className="font-bold text-sm uppercase text-muted-foreground">Politique d'utilisation de la vidéo</Label>
                   <p className="text-sm text-muted-foreground/80">
-                    Choisissez une politique globale qui s'appliquera à tous les membres (non exemptés) dans les salons vocaux. Ce réglage contrôle s'ils peuvent activer leur caméra et/ou partager leur écran.
+                    Choisissez une politique globale qui s'appliquera à tous les membres (non exemptés).
                   </p>
                 </div>
                  <Select value={config.mode} onValueChange={(value) => handleValueChange('mode', value)}>
@@ -157,9 +162,8 @@ export default function WebcamControlPage() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="allowed">Tout autoriser</SelectItem>
-                        <SelectItem value="webcam_only">Webcam seulement</SelectItem>
-                        <SelectItem value="stream_only">Stream seulement</SelectItem>
-                        <SelectItem value="disallowed">Tout désactiver</SelectItem>
+                        <SelectItem value="video_allowed">Vidéo autorisée</SelectItem>
+                        <SelectItem value="disallowed">Vidéo interdite</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -203,5 +207,3 @@ export default function WebcamControlPage() {
     </div>
   );
 }
-
-    

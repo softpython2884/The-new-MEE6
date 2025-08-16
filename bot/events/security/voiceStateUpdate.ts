@@ -49,8 +49,7 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
                     await existingOverwrite.delete().catch(e => console.error(`[Webcam Control] Failed to clear old permissions for ${newState.member?.user.tag}:`, e));
                 }
                 break;
-            case 'webcam_only':
-            case 'stream_only':
+            case 'video_allowed':
                 // Allow video/stream
                 await newState.channel.permissionOverwrites.edit(newState.member.id, {
                     [PermissionFlagsBits.Stream]: true,

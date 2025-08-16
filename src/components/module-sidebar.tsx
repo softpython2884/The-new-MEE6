@@ -40,6 +40,7 @@ import { Badge } from './ui/badge';
 import { useEffect, useState } from 'react';
 import { Skeleton } from './ui/skeleton';
 import { useServerInfo } from '@/hooks/use-server-info';
+import GradientText from './ui/gradient-text';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -140,7 +141,7 @@ export function ModuleSidebar({ serverId: serverIdProp }: { serverId: string }) 
             )}
             </Avatar>
             <div>
-            <h2 className="font-semibold text-white">{serverInfo.name}</h2>
+            <GradientText className="text-lg font-semibold">{serverInfo.name}</GradientText>
             {serverInfo.isPremium && <Badge className="mt-1 border-0 bg-yellow-500 text-black">Premium</Badge>}
             </div>
         </div>

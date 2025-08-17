@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { Client } from 'discord.js';
-import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory, SanctionHistoryEntry } from '../types';
+import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory, SanctionHistoryEntry, KnowledgeBaseItem } from '../types';
 import { randomBytes } from 'crypto';
 
 // Assurez-vous que le répertoire de la base de données existe
@@ -342,7 +342,8 @@ const defaultConfigs: DefaultConfigs = {
         custom_prompt: '',
         knowledge_base: [],
         dedicated_channel_id: null,
-        engagement_module_enabled: false
+        engagement_module_enabled: false,
+        allow_imagination: false,
     },
     'suggestions': {
         enabled: true,
@@ -482,6 +483,22 @@ export function updateServerConfig(guildId: string, module: Module, configData: 
         console.error(`[Database] Erreur lors de la mise à jour de la config pour ${guildId} (module: ${module}):`, error);
     }
 }
+
+export function addKnowledgeBaseItem(guildId: string, newItem: KnowledgeBaseItem): void {
+    try {
+        const currentConfig = getServerConfig(guildId, 'conversational-agent');
+        if (!currentConfig) throw new Error('Config not found for conversational-agent');
+
+        const newKnowledgeBase = [...(currentConfig.knowledge_base || []), newItem];
+        const newConfig = { ...currentConfig, knowledge_base: newKnowledgeBase };
+
+        updateServerConfig(guildId, 'conversational-agent', newConfig);
+        console.log(`[Database] Added new knowledge item for guild ${guildId}`);
+    } catch (error) {
+        console.error(`[Database] Error adding knowledge item for guild ${guildId}:`, error);
+    }
+}
+
 
 export function setupDefaultConfigs(guildId: string) {
     const stmt = db.prepare('SELECT 1 FROM server_configs WHERE guild_id = ? AND module = ?');

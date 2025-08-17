@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircleQuestion, Trash2, PlusCircle, Gamepad2 } from 'lucide-react';
+import { MessageCircleQuestion, Trash2, PlusCircle, Gamepad2, BrainCircuit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { KnowledgeBaseItem } from '@/types';
@@ -31,7 +32,8 @@ interface AgentConfig {
     custom_prompt: string;
     knowledge_base: KnowledgeBaseItem[];
     dedicated_channel_id: string | null;
-    engagement_module_enabled: boolean; // New field
+    engagement_module_enabled: boolean;
+    allow_imagination: boolean;
 }
 
 interface DiscordChannel {
@@ -211,23 +213,33 @@ function AgentPageContent({ isPremium, serverId }: { isPremium: boolean, serverI
                     </CardContent>
                 </Card>
 
-                {/* Section Engagement Module */}
+                {/* Section Modules Comportementaux */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Gamepad2 /> Module d'Engagement</CardTitle>
+                        <CardTitle className="flex items-center gap-2"><BrainCircuit /> Modules Comportementaux</CardTitle>
                         <CardDescription>
-                           Rendez votre agent plus proactif en l'autorisant à proposer des activités.
+                           Rendez votre agent plus proactif et intelligent.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <Label htmlFor="enable-engagement" className="font-bold">Proposer des activités</Label>
+                                <Label htmlFor="enable-engagement" className="font-bold">Engagement proactif</Label>
                                 <p className="text-sm text-muted-foreground/80">
                                     Si le salon est calme, l'agent pourra suggérer des jeux ou des sujets de discussion.
                                 </p>
                             </div>
                             <Switch id="enable-engagement" checked={config.engagement_module_enabled ?? false} onCheckedChange={(val) => handleValueChange('engagement_module_enabled', val)} />
+                        </div>
+                        <Separator />
+                         <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="enable-imagination" className="font-bold">Autoriser l'imagination</Label>
+                                <p className="text-sm text-muted-foreground/80">
+                                    Permet à l'agent d'inventer des réponses s'il ne les trouve pas dans sa base de connaissances.
+                                </p>
+                            </div>
+                            <Switch id="enable-imagination" checked={config.allow_imagination ?? false} onCheckedChange={(val) => handleValueChange('allow_imagination', val)} />
                         </div>
                     </CardContent>
                 </Card>

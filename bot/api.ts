@@ -2,12 +2,13 @@
 import express from 'express';
 import cors from 'cors';
 import { Client, CategoryChannel, ChannelType, REST, Routes } from 'discord.js';
-import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGuild, updatePersona, deletePersona, createPersona, getGlobalAiStatus } from '@/lib/db';
+import { updateServerConfig, getServerConfig, getAllBotServers, getPersonasForGuild, updatePersona, deletePersona, createPersona, getGlobalAiStatus, addKnowledgeBaseItem } from '@/lib/db';
 import { verifyAndConsumeAuthToken, getBotAccessToken } from './auth';
 import { generatePersonaPrompt, generatePersonaAvatar } from '@/ai/flows/persona-flow';
 import { v4 as uuidv4 } from 'uuid';
 import { updateGuildCommands } from './handlers/commandHandler';
 import { generateKeywords } from '@/ai/flows/keyword-generation-flow';
+import { knowledgeCreationFlow } from '@/ai/flows/knowledge-creation-flow';
 
 const API_PORT = process.env.BOT_API_PORT || 25875;
 
@@ -374,6 +375,24 @@ export function startApi(client: Client) {
         } catch (error) {
             console.error("[Keyword Gen API] Error:", error);
             res.status(500).json({ error: "Failed to generate keywords." });
+        }
+    });
+
+    app.post('/api/add-knowledge-item/:guildId', async (req, res) => {
+        const { guildId } = req.params;
+        const { userQuestion, agentResponse } = req.body;
+
+        if (!userQuestion || !agentResponse) {
+            return res.status(400).json({ error: 'Question and response are required.' });
+        }
+
+        try {
+            const newKnowledgeItem = await knowledgeCreationFlow({ userQuestion, agentResponse });
+            addKnowledgeBaseItem(guildId, newKnowledgeItem);
+            res.status(200).json({ success: true, item: newKnowledgeItem });
+        } catch (error) {
+            console.error('[API] Error creating knowledge item:', error);
+            res.status(500).json({ error: 'Failed to create knowledge item.' });
         }
     });
 

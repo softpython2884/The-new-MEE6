@@ -1,4 +1,5 @@
 
+
 'use server';
 
 /**
@@ -29,6 +30,7 @@ export const ConversationalAgentInputSchema = z.object({
   customPrompt: z.string().optional().describe("Additional custom instructions for the agent."),
   knowledgeBase: z.array(KnowledgeBaseItemSchema).optional().describe('A list of Q&A pairs to provide context.'),
   conversationHistory: z.array(ConversationHistoryItemSchema).optional().describe('The last few messages in the conversation for context.'),
+  allow_imagination: z.boolean().optional().describe("If true, the agent can create new information if it doesn't know the answer."),
   photoDataUri: z
     .string()
     .optional()
@@ -39,6 +41,7 @@ export const ConversationalAgentInputSchema = z.object({
 
 export const ConversationalAgentOutputSchema = z.object({
   response: z.string().describe("The agent's generated response to the user's message."),
+  imagined_answer: z.boolean().describe("True if the answer was imagined because it was not in the knowledge base."),
 });
 
 export type ConversationalAgentInput = z.infer<typeof ConversationalAgentInputSchema>;
@@ -48,7 +51,7 @@ export type ConversationalAgentOutput = z.infer<typeof ConversationalAgentOutput
 const agentPrompt = ai.definePrompt({
   name: 'conversationalAgentPrompt',
   input: { schema: ConversationalAgentInputSchema },
-  output: { schema: z.object({ response: z.string() }) },
+  output: { schema: z.object({ response: z.string(), imagined_answer: z.boolean() }) },
   prompt: `You are a conversational AI agent on a Discord server. You must fully embody the persona defined below.
 
 Your Identity:
@@ -57,17 +60,15 @@ Your Identity:
 - Your personality is: {{{agentPersonality}}}.
 
 Your Instructions:
-- You must integrate your instructions (personality, role, knowledge) fluently and naturally into your response. Do NOT recite them. For example, if your knowledge base says "Rule 1: Be respectful", you should say "One of our rules here is to be respectful!" not "My knowledge base says Rule 1: Be respectful".
+- You must integrate your instructions (personality, role, knowledge) fluently and naturally into your response. Do NOT recite them.
 - You are speaking to a user named {{{userName}}}. Address them by their nickname when it feels natural.
-- You must adhere to your defined role and personality in your response.
-- Do not break character.
-- Do not mention that you are an AI model.
+- You must adhere to your defined role and personality in your response. Do not break character. Do not mention that you are an AI model.
 {{#if customPrompt}}
 - You have been given the following special instructions: {{{customPrompt}}}
 {{/if}}
 
-Knowledge Base:
-You have access to the following information. Use it to answer questions accurately. If the user's question cannot be answered from this knowledge, say that you don't have the information.
+Knowledge Base & Imagination:
+You have access to the following information.
 {{#if knowledgeBase.length}}
   {{#each knowledgeBase}}
   - Q: {{this.question}}
@@ -76,6 +77,13 @@ You have access to the following information. Use it to answer questions accurat
 {{else}}
 - No knowledge base provided.
 {{/if}}
+
+{{#if allow_imagination}}
+- **Imagination is enabled.** If you cannot find the answer in your knowledge base, you are authorized to CREATE a plausible, detailed, and creative answer that is consistent with your persona. Your imagined answer should be a new piece of lore or information. Set 'imagined_answer' to true.
+{{else}}
+- **Imagination is disabled.** If the user's question cannot be answered from your knowledge base, you MUST state that you don't know the answer. Do not invent information. Set 'imagined_answer' to false.
+{{/if}}
+
 
 Conversation History:
 {{#if conversationHistory}}
@@ -112,7 +120,7 @@ export const conversationalAgentFlow = ai.defineFlow(
         console.log(`[Agent] Trying model ${model}...`);
         const { output } = await agentPrompt(input, { model });
         console.log(`[Agent] Model ${model} succeeded.`);
-        return { response: output!.response };
+        return { response: output!.response, imagined_answer: output!.imagined_answer };
       } catch (error: any) {
         lastError = error;
         console.warn(`[Agent] Model ${model} failed with error:`, error.message);

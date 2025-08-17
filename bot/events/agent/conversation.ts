@@ -1,8 +1,9 @@
 
 
 import { Events, Message, Collection, EmbedBuilder } from 'discord.js';
-import { getServerConfig } from '../../../src/lib/db';
+import { getServerConfig, addKnowledgeBaseItem } from '../../../src/lib/db';
 import { conversationalAgentFlow } from '../../../src/ai/flows/conversational-agent-flow';
+import { knowledgeCreationFlow } from '../../../src/ai/flows/knowledge-creation-flow';
 import { faqFlow } from '../../../src/ai/flows/faq-flow';
 import fetch from 'node-fetch';
 
@@ -124,6 +125,7 @@ async function handleConversationalAgent(message: Message) {
             knowledgeBase: config.knowledge_base,
             conversationHistory: historyForPrompt,
             photoDataUri: photoDataUri,
+            allow_imagination: config.allow_imagination,
         });
 
         if (result.response) {
@@ -138,6 +140,22 @@ async function handleConversationalAgent(message: Message) {
                     }
                     conversationHistory.set(message.channel.id, currentHistory);
                 }
+
+                // If the answer was imagined, save it to the knowledge base
+                if (result.imagined_answer) {
+                    console.log('[Agent] Imagined answer detected. Creating new knowledge item...');
+                     // No need to await this, it can run in the background
+                    knowledgeCreationFlow({ userQuestion: userMessage, agentResponse: result.response })
+                        .then(newItem => {
+                            addKnowledgeBaseItem(message.guild!.id, newItem);
+                             console.log(`[Agent] New knowledge item created and saved for guild ${message.guild!.id}.`);
+                        })
+                        .catch(err => {
+                             console.error('[Agent] Failed to create or save new knowledge item:', err);
+                        });
+                }
+
+
             } catch (replyError: any) {
                  if (replyError.code === 10008) { // Unknown Message
                     console.warn(`[Agent] Could not reply to message ${message.id} because it was deleted.`);

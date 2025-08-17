@@ -18,5 +18,6 @@ import '@/ai/flows/memory-flow.ts';
 import '@/ai/flows/self-reflection-flow.ts';
 import '@/ai/flows/action-decision-flow.ts';
 import '@/ai/flows/tts-flow.ts';
+import '@/ai/flows/knowledge-creation-flow.ts';
 
 import '@/ai/tools/discord-structure-tool.ts';

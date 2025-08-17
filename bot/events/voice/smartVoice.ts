@@ -51,21 +51,36 @@ async function updateChannelName(channel: NonThreadGuildBasedChannel) {
         const members = channel.members.filter(m => !m.user.bot);
         const memberCount = members.size;
         
-        const activities = members
-            .map(member => {
-                if (member.voice.streaming) return 'Streaming';
-                if (member.voice.selfVideo) return 'Webcam on';
-                return member.presence?.activities.find(activity => activity.type === ActivityType.Playing)?.name;
-            })
-            .filter((game): game is string => !!game);
+        // --- Enhanced Activity Gathering ---
+        const activityCounts: Record<string, number> = {};
+        let streamingCount = 0;
+        let webcamCount = 0;
 
-        console.log(`[Smart-Voice] Updating channel "${channel.name}" (${channel.id}). Members: ${memberCount}, Theme: ${interactiveChannelInfo.theme}, Activities: ${activities.join(', ') || 'N/A'}`);
+        members.forEach(member => {
+            if (member.voice.streaming) streamingCount++;
+            if (member.voice.selfVideo) webcamCount++;
+            const game = member.presence?.activities.find(activity => activity.type === ActivityType.Playing)?.name;
+            if (game) {
+                activityCounts[game] = (activityCounts[game] || 0) + 1;
+            }
+        });
+        
+        const activitiesSummary: string[] = [];
+        for (const [game, count] of Object.entries(activityCounts)) {
+            activitiesSummary.push(`${count} playing ${game}`);
+        }
+        if (streamingCount > 0) activitiesSummary.push(`${streamingCount} streaming`);
+        if (webcamCount > 0) activitiesSummary.push(`${webcamCount} with webcam on`);
+        
+        const activitiesString = activitiesSummary.length > 0 ? activitiesSummary.join(', ') : 'Just chatting';
+        
+        console.log(`[Smart-Voice] Updating channel "${channel.name}" (${channel.id}). Members: ${memberCount}, Theme: ${interactiveChannelInfo.theme}, Activities: ${activitiesString}`);
 
         const result = await smartVoiceFlow({
             currentName: channel.name,
             theme: interactiveChannelInfo.theme,
             memberCount: memberCount,
-            activities: activities,
+            activities: activitiesString,
             customInstructions: smartVoiceConfig.custom_instructions
         });
 
@@ -109,5 +124,3 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
         await updateChannelName(oldChannel);
     }
 }
-
-    

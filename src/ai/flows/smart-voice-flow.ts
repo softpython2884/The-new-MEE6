@@ -12,7 +12,7 @@ const SmartVoiceInputSchema = z.object({
   currentName: z.string().describe('The current name of the voice channel.'),
   theme: z.string().describe('The general theme of the channel, provided by the user (e.g., "Gaming", "Soirée Film", "QG des développeurs").'),
   memberCount: z.number().describe('The number of members currently in the channel.'),
-  activities: z.array(z.string()).describe('A list of activities (e.g., game names, "Streaming", "Webcam on") users are currently engaged in.'),
+  activities: z.string().describe('A summary of activities (e.g., "3 playing Valorant, 1 streaming", "Just chatting") users are currently engaged in.'),
   customInstructions: z.string().optional().describe('Optional custom instructions from the server admin to guide the naming. These instructions are absolute priorities.'),
 });
 
@@ -39,6 +39,7 @@ const prompt = ai.definePrompt({
   name: 'smartVoicePrompt',
   input: { schema: SmartVoiceInputSchema },
   output: { schema: SmartVoiceOutputSchema },
+  model: 'googleai/gemini-2.0-flash',
   prompt: `You are a fun and creative community manager for a Discord server.
 Your task is to generate a new, engaging name and a short bio for a voice channel based on its theme and the members inside. The bio will be used as the channel's topic.
 
@@ -48,32 +49,24 @@ The bio is a fun, short sentence related to the name.
 Current Channel Name: "{{currentName}}"
 Channel Theme: {{{theme}}}
 Number of members: {{{memberCount}}}
-Current activities in the channel:
-{{#if activities.length}}
-  {{#each activities}}
-  - {{this}}
-  {{/each}}
-{{else}}
-- Just chatting
-{{/if}}
+Current activities summary: {{{activities}}}
 
 {{#if customInstructions}}
 PRIORITY INSTRUCTIONS FROM ADMIN: You must follow these guidelines strictly: "{{{customInstructions}}}"
 {{/if}}
 
 
-Please generate a dynamic name based on the activities.
+Please generate a dynamic name based on the activities summary.
 - If there are games, focus on the most popular one.
 - If people are streaming or on webcam, incorporate that.
-- If there are no specific activities, generate a name for general conversation that fits the channel's theme.
+- If there are no specific activities ("Just chatting"), generate a name for general conversation that fits the channel's theme.
 - The name should feel alive and reflect what's happening RIGHT NOW.
 
 Example for a "Gaming" theme:
-- Activities: "Streaming", "League of Legends" -> Name: "🔴 Stream de LoL", Bio: "En direct sur la Faille de l'Invocateur."
-- Activities: "Webcam on", "Just chatting" -> Name: "💬 Session blabla", Bio: "Discussions en face à face."
+- Activities: "3 playing League of Legends, 1 streaming" -> Name: "🔴 Faille de l'invocateur", Bio: "En direct sur LoL !"
+- Activities: "2 with webcam on, Just chatting" -> Name: "💬 Session blabla", Bio: "Discussions en face à face."
 
 IMPORTANT: Do not just return the current name. Always generate a new, relevant name based on the situation.
-If the member count is 0, the AI flow should suggest "Vocal intéractif". This logic is also handled outside this prompt, but your response should be consistent with it.
 If you cannot come up with a good name, return the default name "Vocal intéractif" and an appropriate bio.
 `,
 });
@@ -97,5 +90,3 @@ const flow = ai.defineFlow(
     return output;
   }
 );
-
-    

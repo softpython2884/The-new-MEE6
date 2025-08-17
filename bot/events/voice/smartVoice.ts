@@ -1,5 +1,5 @@
 
-import { Events, VoiceState, ActivityType, Collection, ChannelType, GuildChannel, NonThreadGuildBasedChannel } from 'discord.js';
+import { Events, VoiceState, ActivityType, Collection, ChannelType, GuildChannel, NonThreadGuildBasedChannel, VoiceChannel } from 'discord.js';
 import { smartVoiceFlow } from '../../../src/ai/flows/smart-voice-flow';
 import { getServerConfig } from '../../../src/lib/db';
 import type { InteractiveChannel } from '../../../src/types';
@@ -39,6 +39,9 @@ async function updateChannelName(channel: NonThreadGuildBasedChannel) {
         if (channel.name !== DEFAULT_CHANNEL_NAME) {
             console.log(`[Smart-Voice] Channel "${channel.name}" is empty. Resetting.`);
             await channel.setName(DEFAULT_CHANNEL_NAME);
+            if (channel instanceof VoiceChannel) {
+                await channel.setTopic('');
+            }
             channelUpdateCache.delete(channel.id); // Clear cache on reset
         }
         return;
@@ -69,6 +72,9 @@ async function updateChannelName(channel: NonThreadGuildBasedChannel) {
         // Only rename if the new name is different and not empty
         if (result.channelName && result.channelName !== channel.name) {
             await (channel as GuildChannel).setName(result.channelName);
+            if (channel instanceof VoiceChannel && result.channelBio) {
+                await channel.setTopic(result.channelBio);
+            }
             console.log(`[Smart-Voice] Renamed channel ${channel.id} to "${result.channelName}". Bio: "${result.channelBio}"`);
             
             // Update cache timestamp after a successful rename
@@ -103,3 +109,5 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
         await updateChannelName(oldChannel);
     }
 }
+
+    

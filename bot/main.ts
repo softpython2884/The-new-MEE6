@@ -285,12 +285,14 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                 await interaction.deferReply({ ephemeral: true });
 
                 const channelNameFormat = config.channel_name_format || 'ticket-{user}';
-                // Sanitize username to be channel-name-safe (lowercase, no special chars except -, limit length)
-                const sanitizedUsername = interaction.user.username
-                    .toLowerCase()
-                    .replace(/[^a-z0-9-]/g, '')
-                    .slice(0, 20) || 'user';
-                const channelName = channelNameFormat.replace('{user}', sanitizedUsername);
+                const sanitizedUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 20) || 'user';
+                
+                const channelName = channelNameFormat
+                    .replace('{user}', sanitizedUsername)
+                    .replace('{mention}', interaction.user.toString())
+                    .replace('{id}', interaction.user.id)
+                    .replace('{random}', Math.random().toString(36).substring(2, 8));
+
 
                 const existingChannel = interaction.guild.channels.cache.find(c => c.name === channelName && c.parentId === config.category_id);
                 if(existingChannel) {
@@ -375,3 +377,5 @@ async function startBot() {
 }
 
 startBot();
+
+    

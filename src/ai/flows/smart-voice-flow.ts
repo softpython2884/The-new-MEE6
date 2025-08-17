@@ -18,7 +18,7 @@ const SmartVoiceInputSchema = z.object({
 
 const SmartVoiceOutputSchema = z.object({
   channelName: z.string().describe("A short, creative, and engaging channel name (max 100 chars, ideally less than 30). Should be in French."),
-  channelBio: z.string().describe("A very short, descriptive, and fun bio for the channel, related to the activities (max 100 chars). Should be in French. This will be used for logging and to help the AI conceptualize the name."),
+  channelBio: z.string().describe("A very short, descriptive, and fun bio for the channel, related to the activities (max 100 chars). Should be in French. This will be used for the channel topic."),
 });
 
 export type SmartVoiceInput = z.infer<typeof SmartVoiceInputSchema>;
@@ -40,10 +40,10 @@ const prompt = ai.definePrompt({
   input: { schema: SmartVoiceInputSchema },
   output: { schema: SmartVoiceOutputSchema },
   prompt: `You are a fun and creative community manager for a Discord server.
-Your task is to generate a new, engaging name and a short bio for a voice channel based on its theme and the members inside.
+Your task is to generate a new, engaging name and a short bio for a voice channel based on its theme and the members inside. The bio will be used as the channel's topic.
 
 The response must be in French. The channel name should be short, catchy, and include a relevant emoji.
-The bio is a conceptual tool to help you create a better name; it should be a fun, short sentence related to the name.
+The bio is a fun, short sentence related to the name.
 
 Current Channel Name: "{{currentName}}"
 Channel Theme: {{{theme}}}
@@ -74,7 +74,7 @@ Example for a "Gaming" theme:
 
 IMPORTANT: Do not just return the current name. Always generate a new, relevant name based on the situation.
 If the member count is 0, the AI flow should suggest "Vocal intéractif". This logic is also handled outside this prompt, but your response should be consistent with it.
-If you cannot come up with a good name, return the default name "Vocal intéractif".
+If you cannot come up with a good name, return the default name "Vocal intéractif" and an appropriate bio.
 `,
 });
 
@@ -97,3 +97,5 @@ const flow = ai.defineFlow(
     return output;
   }
 );
+
+    

@@ -260,7 +260,7 @@ export default function PrivateRoomsPage() {
               Format du nom du salon
             </Label>
             <p className="text-sm text-muted-foreground/80">
-              Personnalisez le nom des salons créés. Utilisez {"{user}"} pour insérer le nom de l'utilisateur.
+              Variables disponibles: {'{user}'} (nom), {'{mention}'}, {'{id}'}, {'{random}'}.
             </p>
             <Input
               id="channel-name-format"
@@ -363,3 +363,5 @@ export default function PrivateRoomsPage() {
     </div>
   );
 }
+
+    

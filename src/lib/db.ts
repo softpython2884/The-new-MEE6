@@ -320,13 +320,10 @@ const defaultConfigs: DefaultConfigs = {
             iaresetserv: null,
         }
     },
-    'mod-training': {
+    'welcome-message': {
         enabled: false,
-        premium: true,
-        onboarding_flow_enabled: true,
-        dm_delay: 'immediate',
-        mentor_messages: 'Bienvenue sur le serveur, {user} ! Voici quelques règles à connaître...',
-        auto_role_assignment: false,
+        welcome_channel_id: null,
+        welcome_message: 'Bienvenue sur le serveur, {user} ! 🎉',
     },
     'tester-commands': {
         enabled: true,

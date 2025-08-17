@@ -32,6 +32,7 @@ import {
   ShieldAlert,
   TestTubeDiagonal,
   X,
+  UserPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ const navCategories = [
             { href: 'salons-prives', label: 'Salons Privés', icon: Ticket },
             { href: 'evenements', label: 'Événements & Calendrier', icon: Calendar, isPremium: true },
             { href: 'autoroles', label: 'Autoroles', icon: BadgePlus },
+            { href: 'accueil-integration', label: 'Accueil & Intégration', icon: UserPlus },
         ]
     },
     {
@@ -97,7 +99,6 @@ const navCategories = [
         items: [
             { href: 'constructeur-serveur-ia', label: 'Server Builder IA', icon: ToyBrick, isPremium: true },
             { href: 'assistant-moderation-ia', label: 'Assistant Modération IA', icon: Sparkles, isPremium: true },
-            { href: 'formation-moderateur-ia', label: 'Formation Modérateur IA', icon: GraduationCap, isPremium: true },
             { href: 'createur-contenu-ia', label: 'Créateur de Contenu IA', icon: Palette, isPremium: true },
             { href: 'agent-conversationnel', label: 'Agent Conversationnel', icon: MessageCircleQuestion, isPremium: true },
             { href: 'personnages-ia', label: 'Personnages IA', icon: Users, isPremium: true },

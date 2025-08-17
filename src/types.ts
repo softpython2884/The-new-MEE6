@@ -37,7 +37,7 @@ export type Module =
     | 'lock'
     | 'backup'
     | 'webcam'
-    | 'mod-training'
+    | 'welcome-message'
     | 'tester-commands'
     | 'conversational-agent'
     | 'suggestions'

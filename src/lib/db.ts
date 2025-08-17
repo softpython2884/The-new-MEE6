@@ -180,6 +180,7 @@ const defaultConfigs: DefaultConfigs = {
         premium: true,
         confidence_threshold: 75,
         knowledge_base: [],
+        faq_scan_enabled: false,
         command_permissions: {
             faq: null
         }

@@ -28,40 +28,37 @@ async function imageUrlToDataUri(url: string): Promise<string> {
 }
 
 
-async function handleFaqTrigger(message: Message) {
+async function handleFaqScan(message: Message) {
     if (!message.guild || message.author.bot || !message.content) return;
 
     const config = await getServerConfig(message.guild.id, 'community-assistant');
-    if (!config?.enabled || !config.premium) {
+    if (!config?.enabled || !config.premium || !config.faq_scan_enabled) {
         return;
     }
 
     const knowledgeBase = config.knowledge_base || [];
     if (knowledgeBase.length === 0) return;
 
-    const matchedQuestion = knowledgeBase.find((item: { question: string, answer: string }) => 
-        message.content.toLowerCase().includes(item.question.toLowerCase())
-    );
+    // A simple trigger: check if the message is a question
+    if (!message.content.endsWith('?')) return;
 
-    if (matchedQuestion) {
-        try {
-             const result = await faqFlow({
-                userQuestion: message.content,
-                knowledgeBase: knowledgeBase,
-                confidenceThreshold: config.confidence_threshold || 75,
-            });
+    try {
+         const result = await faqFlow({
+            userQuestion: message.content,
+            knowledgeBase: knowledgeBase,
+            confidenceThreshold: config.confidence_threshold || 75,
+        });
 
-            if (result.isConfident && result.answer) {
-                 const embed = new EmbedBuilder()
-                    .setColor(0x3498DB)
-                    .setTitle(`Réponse à votre question`)
-                    .setDescription(result.answer)
-                    .setFooter({ text: `Basé sur la question : "${result.matchedQuestion}"`});
-                await message.reply({ embeds: [embed] });
-            }
-        } catch (error) {
-            console.error('[FaqTrigger] Error executing faqFlow:', error);
+        if (result.isConfident && result.answer) {
+             const embed = new EmbedBuilder()
+                .setColor(0x3498DB)
+                .setTitle(`Réponse possible à votre question`)
+                .setDescription(result.answer)
+                .setFooter({ text: `Basé sur la question : "${result.matchedQuestion}"`});
+            await message.reply({ embeds: [embed] });
         }
+    } catch (error) {
+        console.error('[FaqScan] Error executing faqFlow:', error);
     }
 }
 
@@ -184,21 +181,20 @@ async function handleConversationalAgent(message: Message) {
 export const name = Events.MessageCreate;
 export const once = false;
 export async function execute(message: Message) {
-    if (message.author.bot || !message.guild) return; // Important: Check for guild right away
+    if (message.author.bot || !message.guild) return;
 
-    // To prevent both from firing, we can add a check.
-    // Let's assume the dedicated agent channel should not trigger the FAQ.
+    // Determine if the message is for the conversational agent
     const agentConfig = await getServerConfig(message.guild.id, 'conversational-agent');
-    if (!agentConfig) return;
-
-    if (message.channel.id === agentConfig.dedicated_channel_id) {
+    const isForAgent =
+        agentConfig?.enabled &&
+        (message.channel.id === agentConfig.dedicated_channel_id || message.mentions.has(message.client.user.id));
+    
+    // If it's for the agent, let it handle it exclusively.
+    if (isForAgent) {
         await handleConversationalAgent(message);
-    } else {
-        // Run both handlers. If the user mentions the bot, the conversational agent will take priority.
-        // Otherwise, the FAQ trigger can run.
-        await Promise.all([
-            handleConversationalAgent(message),
-            handleFaqTrigger(message)
-        ]);
+        return; // Stop further processing
     }
+
+    // Otherwise, run other message-based scans like the FAQ scan.
+    await handleFaqScan(message);
 }

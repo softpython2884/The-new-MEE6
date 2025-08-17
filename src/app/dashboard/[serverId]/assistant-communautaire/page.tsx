@@ -30,6 +30,7 @@ interface CommunityAssistantConfig {
     confidence_threshold: number;
     knowledge_base: KnowledgeBaseItem[];
     command_permissions: { [key: string]: string | null };
+    faq_scan_enabled: boolean;
 }
 
 interface DiscordRole {
@@ -143,12 +144,22 @@ function CommunityAssistantPageContent({ isPremium, serverId }: { isPremium: boo
                     <CardContent className="space-y-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <Label htmlFor="enable-assistant" className="font-bold text-sm uppercase text-muted-foreground">Activer l'assistant</Label>
+                                <Label htmlFor="enable-assistant" className="font-bold text-sm uppercase text-muted-foreground">Activer le module</Label>
                                 <p className="text-sm text-muted-foreground/80">
-                                    Active ou désactive complètement le module.
+                                    Active ou désactive complètement la commande /faq et le scan.
                                 </p>
                             </div>
                             <Switch id="enable-assistant" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                        </div>
+                        <Separator />
+                         <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="faq-scan" className="font-bold text-sm uppercase text-muted-foreground">Activer le scan des questions fréquentes (FAQ)</Label>
+                                <p className="text-sm text-muted-foreground/80">
+                                    Si activé, le bot scannera les messages et répondra automatiquement aux questions de votre base de connaissances.
+                                </p>
+                            </div>
+                            <Switch id="faq-scan" checked={config.faq_scan_enabled} onCheckedChange={(val) => handleValueChange('faq_scan_enabled', val)} />
                         </div>
                         <Separator />
                         <div className="space-y-4">

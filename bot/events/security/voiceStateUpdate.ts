@@ -39,14 +39,7 @@ async function handleVoiceState(newState: VoiceState) {
     if (needsCorrection) {
         console.log(`[Webcam Control] Correction attempt for ${newState.member.user.tag}: ${reason}`);
         try {
-            // Attempt to turn off video by setting their stream to null.
-            // This is an indirect way and might not always work depending on Discord client behavior.
-            await newState.member.voice.setSelfVideo(false);
-
-            // A more direct approach would be to manage permissions, but that's less reactive.
             // The most reliable action is disconnecting them if they don't comply.
-            
-            // For now, the most reliable action is disconnecting.
             await newState.member.voice.disconnect(reason);
 
             // You could also try to send a DM to the user

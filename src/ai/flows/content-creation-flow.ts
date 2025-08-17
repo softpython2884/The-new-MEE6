@@ -81,7 +81,7 @@ export async function generateImage(input: ImageGenInput): Promise<ImageGenOutpu
         },
     });
 
-    if (media.url) {
+    if (media?.url) {
         return { imageDataUri: media.url };
     }
 

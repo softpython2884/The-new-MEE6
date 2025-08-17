@@ -91,7 +91,7 @@ const IAContentCommand: Command = {
 
                     const result = await generateImage({
                         prompt: prompt,
-                        allow_nsfw: config.allow_nsfw_images || true,
+                        allow_nsfw: config.allow_nsfw_images || false,
                     });
 
                     if (result.imageDataUri) {
@@ -102,7 +102,7 @@ const IAContentCommand: Command = {
                             .setImage(`attachment://generated_image.png`);
                         await interaction.editReply({ embeds: [embed], files: [{ attachment: imageBuffer, name: 'generated_image.png' }] });
                     } else {
-                        throw new Error('La génération d\'image a échoué.');
+                        await interaction.editReply({ content: '❌ La génération d\'image a échoué. Votre demande a peut-être été bloquée par les filtres de sécurité.' });
                     }
                     break;
                 }
@@ -115,5 +115,3 @@ const IAContentCommand: Command = {
 };
 
 export default IAContentCommand;
-
-    

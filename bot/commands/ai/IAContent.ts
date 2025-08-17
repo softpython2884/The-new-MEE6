@@ -91,7 +91,7 @@ const IAContentCommand: Command = {
 
                     const result = await generateImage({
                         prompt: prompt,
-                        allow_nsfw: config.allow_nsfw_images || false,
+                        allow_nsfw: config.allow_nsfw_images || true,
                     });
 
                     if (result.imageDataUri) {

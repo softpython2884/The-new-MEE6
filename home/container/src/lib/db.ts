@@ -1,10 +1,11 @@
 
 
+
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { Client } from 'discord.js';
-import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory, SanctionHistoryEntry } from '../types';
+import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory, SanctionHistoryEntry, KnowledgeBaseItem } from '../types';
 import { randomBytes } from 'crypto';
 
 // Assurez-vous que le répertoire de la base de données existe
@@ -23,6 +24,25 @@ const upgradeSchema = () => {
     try {
         db.pragma('journal_mode = WAL');
         
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS global_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                reason TEXT
+            );
+        `);
+        db.exec(`INSERT OR IGNORE INTO global_settings (key, value) VALUES ('ai_disabled', '0');`);
+        console.log('[Database] La table "global_settings" est prête.');
+
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS locked_channels (
+                channel_id TEXT PRIMARY KEY,
+                original_permissions TEXT NOT NULL
+            );
+        `);
+        console.log('[Database] La table "locked_channels" est prête.');
+
+
         db.exec(`
             CREATE TABLE IF NOT EXISTS sanction_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,7 +174,6 @@ const defaultConfigs: DefaultConfigs = {
             help: null,
             marcus: null,
             traduire: null,
-            say: null,
         },
         command_enabled: {
             invite: true,
@@ -162,7 +181,6 @@ const defaultConfigs: DefaultConfigs = {
             help: true,
             marcus: true,
             traduire: true,
-            say: true,
         }
     },
     'community-assistant': {
@@ -170,12 +188,13 @@ const defaultConfigs: DefaultConfigs = {
         premium: true,
         confidence_threshold: 75,
         knowledge_base: [],
+        faq_scan_enabled: false,
         command_permissions: {
             faq: null
         }
     },
     'auto-moderation': {
-        enabled: true,
+        enabled: false,
         rules: [],
     },
     'logs': {
@@ -220,7 +239,8 @@ const defaultConfigs: DefaultConfigs = {
     },
     'webcam': {
         enabled: true,
-        mode: 'video_allowed',
+        webcam_allowed: true,
+        stream_allowed: true,
         exempt_roles: [],
     },
     'captcha': { 
@@ -263,7 +283,8 @@ const defaultConfigs: DefaultConfigs = {
         enabled: true, 
         creation_channel: null, 
         category_id: null, 
-        embed_message: 'Cliquez sur le bouton ci-dessous pour créer un salon privé.', 
+        embed_message: 'Cliquez sur le bouton ci-dessous pour créer un salon privé.',
+        channel_name_format: 'ticket-{user}',
         archive_summary: true,
         command_permissions: {
             addprivate: null,
@@ -308,13 +329,10 @@ const defaultConfigs: DefaultConfigs = {
             iaresetserv: null,
         }
     },
-    'mod-training': {
+    'welcome-message': {
         enabled: false,
-        premium: true,
-        onboarding_flow_enabled: true,
-        dm_delay: 'immediate',
-        mentor_messages: 'Bienvenue sur le serveur, {user} ! Voici quelques règles à connaître...',
-        auto_role_assignment: false,
+        welcome_channel_id: null,
+        welcome_message: 'Bienvenue sur le serveur, {user} ! 🎉',
     },
     'tester-commands': {
         enabled: true,
@@ -322,6 +340,11 @@ const defaultConfigs: DefaultConfigs = {
             mp: null,
             webhook: null,
             tester: null,
+            givepremium: null,
+            genpremium: null,
+            giverole: null,
+            disableia: null,
+            enableia: null,
         },
     },
     'conversational-agent': {
@@ -333,7 +356,9 @@ const defaultConfigs: DefaultConfigs = {
         custom_prompt: '',
         knowledge_base: [],
         dedicated_channel_id: null,
-        engagement_module_enabled: false
+        engagement_module_enabled: false,
+        allow_imagination: false,
+        allow_freewheeling: false,
     },
     'suggestions': {
         enabled: true,
@@ -373,12 +398,44 @@ const defaultConfigs: DefaultConfigs = {
     'moveall': {
         enabled: true,
         premium: true,
+    },
+    'manual-voice-control': {
+        enabled: true,
+        command_permissions: {
+            join: null,
+            leave: null,
+            parle: null
+        }
     }
 };
 
 export function initializeDatabase() {
     createConfigTable();
     console.log('[Database] Initialisation de la base de données terminée.');
+}
+
+export function getGlobalAiStatus(): { disabled: boolean; reason: string | null } {
+    try {
+        const stmt = db.prepare("SELECT value, reason FROM global_settings WHERE key = 'ai_disabled'");
+        const row = stmt.get() as { value: string; reason: string | null } | undefined;
+        return {
+            disabled: row?.value === '1',
+            reason: row?.reason || null
+        };
+    } catch (error) {
+        console.error('[Database] Failed to get global AI status:', error);
+        return { disabled: false, reason: null };
+    }
+}
+
+export function setGlobalAiStatus(disabled: boolean, reason: string | null) {
+    try {
+        const stmt = db.prepare("UPDATE global_settings SET value = ?, reason = ? WHERE key = 'ai_disabled'");
+        stmt.run(disabled ? '1' : '0', reason);
+        console.log(`[Database] Global AI status set to: ${disabled ? 'DISABLED' : 'ENABLED'}. Reason: ${reason || 'N/A'}`);
+    } catch (error) {
+        console.error('[Database] Failed to set global AI status:', error);
+    }
 }
 
 export function getServerConfig(guildId: string, module: Module): ModuleConfig | null {
@@ -439,6 +496,34 @@ export function updateServerConfig(guildId: string, module: Module, configData: 
         stmt.run(guildId, module, configString);
     } catch (error) {
         console.error(`[Database] Erreur lors de la mise à jour de la config pour ${guildId} (module: ${module}):`, error);
+    }
+}
+
+export function addKnowledgeBaseItem(guildId: string, newItem: KnowledgeBaseItem): void {
+    try {
+        const currentConfig = getServerConfig(guildId, 'conversational-agent');
+        if (!currentConfig) throw new Error('Config not found for conversational-agent');
+
+        const newKnowledgeBase = [...(currentConfig.knowledge_base || []), newItem];
+        const newConfig = { ...currentConfig, knowledge_base: newKnowledgeBase };
+
+        updateServerConfig(guildId, 'conversational-agent', newConfig);
+        console.log(`[Database] Added new knowledge item for guild ${guildId}`);
+    } catch (error) {
+        console.error(`[Database] Error adding knowledge item for guild ${guildId}:`, error);
+    }
+}
+
+
+export function setupDefaultConfigs(guildId: string) {
+    const stmt = db.prepare('SELECT 1 FROM server_configs WHERE guild_id = ? AND module = ?');
+    
+    for (const moduleName of Object.keys(defaultConfigs) as Module[]) {
+        const existing = stmt.get(guildId, moduleName);
+        if (!existing) {
+            console.log(`[Database] Adding default config for module '${moduleName}' for guild ${guildId}`);
+            updateServerConfig(guildId, moduleName, defaultConfigs[moduleName]!);
+        }
     }
 }
 
@@ -652,4 +737,28 @@ export function getUserSanctionHistory(guildId: string, userId: string): Sanctio
         LIMIT 10
     `);
     return stmt.all(guildId, userId) as SanctionHistoryEntry[];
+}
+
+
+// --- Lock System ---
+export function isChannelLocked(channelId: string): boolean {
+    const stmt = db.prepare('SELECT 1 FROM locked_channels WHERE channel_id = ?');
+    return !!stmt.get(channelId);
+}
+
+export function lockChannel(channelId: string, originalPermissions: string): void {
+    const stmt = db.prepare('INSERT INTO locked_channels (channel_id, original_permissions) VALUES (?, ?)');
+    stmt.run(channelId, originalPermissions);
+}
+
+export function unlockChannel(channelId: string): string | null {
+    const stmt = db.prepare('SELECT original_permissions FROM locked_channels WHERE channel_id = ?');
+    const row = stmt.get(channelId) as { original_permissions: string } | undefined;
+
+    if (row) {
+        const deleteStmt = db.prepare('DELETE FROM locked_channels WHERE channel_id = ?');
+        deleteStmt.run(channelId);
+        return row.original_permissions;
+    }
+    return null;
 }

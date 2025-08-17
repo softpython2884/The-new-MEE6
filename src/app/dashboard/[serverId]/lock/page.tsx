@@ -13,6 +13,7 @@ import { Lock, ChevronDown, Trash2, PlusCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -143,6 +144,16 @@ export default function LockPage() {
             </div>
             
             <Separator />
+            
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                         <CardTitle>Configuration Générale</CardTitle>
+                        <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                    </div>
+                     <CardDescription>Activez ou désactivez toutes les commandes de ce module.</CardDescription>
+                </CardHeader>
+            </Card>
 
             {/* Section Options */}
             <Card>
@@ -222,7 +233,7 @@ export default function LockPage() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectGroup>
-                                                <SelectItem value="none">Désactivé (Admin seulement)</SelectItem>
+                                                <SelectItem value="none">Admin seulement</SelectItem>
                                                 {roles.map(role => (
                                                     <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                                                 ))}

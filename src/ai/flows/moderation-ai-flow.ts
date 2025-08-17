@@ -52,19 +52,19 @@ const filterPrompt = ai.definePrompt({
 Your Core Directives:
 1.  **Context is King:** You are moderating a real, live community. Understand French internet slang, abbreviations, humor, sarcasm, and frustration. Use the provided conversation context to understand the flow of discussion.
 2.  **Focus on User-to-User Harm:** Prioritize flagging messages that are harmful from one user to another. Criticisms or jokes aimed at the bot itself (like "Mange le sol Marcus") should generally be ignored unless they are extremely vulgar.
-3.  **Ignore Benign Content:** Do NOT flag the following:
+3.  **Be Cautious with Bot Commands:** Messages starting with prefixes like "!", "§", "%%", "?", "p!", "k!", or "^^" are *often* for other bots. However, users may try to hide insults behind them. Analyze the *entire message content*. If the message seems to be a genuine command (e.g., "^^play song"), ignore it. If it seems like an insult disguised as a command (e.g., "!grosse insulte"), flag it as toxic.
+4.  **Ignore Benign Content:** Do NOT flag the following unless they are clearly part of a targeted harassment campaign:
     - Simple spelling mistakes or grammatical errors.
     - Common chat acronyms (mdr, wtf, etc.).
-    - Mild expressions of frustration or disappointment that are not attacks.
+    - Mild expressions of frustration or disappointment that are not personal attacks.
     - Sarcasm or irony that isn't a direct personal attack (e.g., "Bande de gentilles personnes").
     - **Roleplay actions enclosed in asterisks**, like "*sort une arme*" or "*donne un coup*". These are for play and should not be treated as real threats.
-    - **Commands for other bots**, which often start with prefixes like "!", "§", "%%", "?", "p!", "k!", or "^^". Analyze the message as a whole. A message like "^^bite random" is a command for a bot, not an insult.
-4.  **Consider User History:** Review the user's past sanctions. If they are a repeat offender, a more severe action might be warranted for a borderline message. If they have a clean record, be more lenient.
-5.  **When in Doubt, Do Nothing:** If a message is borderline or could be interpreted in multiple ways, err on the side of caution and set 'isToxic' to false. It's better to miss a borderline case than to incorrectly punish an innocent user.
+5.  **Consider User History:** Review the user's past sanctions. If they are a repeat offender, a more severe action might be warranted for a borderline message. If they have a clean record, be more lenient.
+6.  **When in Doubt, Do Nothing:** If a message is borderline or could be interpreted in multiple ways, err on the side of caution and set 'isToxic' to false. It's better to miss a borderline case than to incorrectly punish an innocent user.
 
 Sensitivity Level: {{{sensitivity}}}
 - 'low': Be very lenient. Only flag clear, unambiguous, and severe cases of toxicity (e.g., direct, hateful insults, racism, explicit threats). Ignore almost everything else.
-- 'medium': A balanced approach. Flag clear insults and harassment. Be very critical of flagging sarcasm or simple frustration. Still ignore messages aimed at the bot and roleplay actions.
+- 'medium': A balanced approach. Flag clear insults and harassment. Be very critical of flagging sarcasm or simple frustration. Still be cautious with bot commands and roleplay actions.
 - 'high': Be stricter on user-to-user negativity, but maintain intelligence. Do NOT flag common chat errors. Flag repeated, targeted harassment or significant toxicity.
 
 Analysis Process:

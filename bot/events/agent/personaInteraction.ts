@@ -12,7 +12,7 @@ import { defineFlow } from 'genkit';
 
 const imageMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
 const PERSONA_WEBHOOK_NAME = "Marcus Persona";
-const COMMON_BOT_PREFIXES = /^[!§?%%.^^]/;
+const COMMON_BOT_PREFIXES = /^[!§?%.^]/;
 
 
 // Helper to convert image URL to data URI
@@ -158,7 +158,7 @@ async function handlePersonaInteraction(message: Message, persona: Persona, guil
                 memories: relevantMemories.map(m => ({ content: m.content, salience_score: m.salience_score })),
                 photoDataUri: photoDataUri,
                 interactionContext: interactionContext,
-            }, model);
+            });
             console.log(`[Persona] Model ${model} succeeded.`);
             break; 
         } catch (error: any) {

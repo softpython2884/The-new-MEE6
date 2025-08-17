@@ -54,6 +54,10 @@ const MarcusCommand: Command = {
         const commandsPath = path.join(__dirname, '..');
         
         for (const command of commands.values()) {
+            // Do not show owner commands in the list
+            if (['genpremium', 'givepremium', 'giverole', 'disableia', 'enableia'].includes(command.data.name)) {
+                continue;
+            }
             const category = getCommandCategory(command, commandsPath);
             if (!commandCategories.has(category)) {
                 commandCategories.set(category, []);
@@ -72,18 +76,12 @@ const MarcusCommand: Command = {
 
         for (const [category, commandList] of sortedCategories.entries()) {
             if (category !== 'uncategorized' && commandList.length > 0) {
-                 const commandFields = commandList.map(cmd => ({
-                    name: `\`/${cmd.data.name}\``,
-                    value: cmd.data.description,
-                    inline: true
-                }));
+                 const commandDescriptions = commandList
+                    .map(cmd => `\`/${cmd.data.name}\` - ${cmd.data.description}`)
+                    .join('\n');
 
-                if (commandFields.length > 0) {
-                    helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: '\u200B' });
-                    // Add each command as a separate field to avoid exceeding field value limits
-                    for (const field of commandFields) {
-                        helpEmbed.addFields(field);
-                    }
+                if (commandDescriptions) {
+                     helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: commandDescriptions });
                 }
             }
         }
@@ -93,5 +91,3 @@ const MarcusCommand: Command = {
 };
 
 export default MarcusCommand;
-
-    

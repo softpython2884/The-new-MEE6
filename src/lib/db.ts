@@ -230,7 +230,8 @@ const defaultConfigs: DefaultConfigs = {
     },
     'webcam': {
         enabled: true,
-        mode: 'video_allowed',
+        webcam_allowed: true,
+        stream_allowed: true,
         exempt_roles: [],
     },
     'captcha': { 

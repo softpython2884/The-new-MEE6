@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,7 +7,6 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -20,7 +20,8 @@ const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/ap
 // Types
 interface WebcamConfig {
     enabled: boolean;
-    mode: 'allowed' | 'video_allowed' | 'disallowed';
+    webcam_allowed: boolean;
+    stream_allowed: boolean;
     exempt_roles: string[];
 }
 
@@ -70,12 +71,6 @@ export default function WebcamControlPage() {
                 const configData = await configRes.json();
                 const serverDetailsData = await serverDetailsRes.json();
                 
-                // --- Migration de l'ancienne configuration ---
-                if (['webcam_only', 'stream_only'].includes(configData.mode)) {
-                    configData.mode = 'video_allowed';
-                }
-                // -----------------------------------------
-
                 setConfig(configData);
                 setRoles(serverDetailsData.roles.filter((r: DiscordRole) => r.name !== '@everyone'));
 
@@ -149,23 +144,27 @@ export default function WebcamControlPage() {
                 />
             </div>
             <Separator />
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-2">
+            <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="webcam-mode" className="font-bold text-sm uppercase text-muted-foreground">Politique d'utilisation de la vidéo</Label>
-                  <p className="text-sm text-muted-foreground/80">
-                    Choisissez une politique globale qui s'appliquera à tous les membres (non exemptés).
-                  </p>
+                  <Label htmlFor="webcam-allowed" className="font-bold text-sm uppercase text-muted-foreground">Autoriser la webcam</Label>
+                   <p className="text-sm text-muted-foreground/80">Permet aux membres d'activer leur caméra.</p>
                 </div>
-                 <Select value={config.mode} onValueChange={(value) => handleValueChange('mode', value)}>
-                    <SelectTrigger id="webcam-mode" className="w-full md:w-[280px]">
-                        <SelectValue placeholder="Sélectionner un mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="allowed">Tout autoriser</SelectItem>
-                        <SelectItem value="video_allowed">Vidéo autorisée</SelectItem>
-                        <SelectItem value="disallowed">Vidéo interdite</SelectItem>
-                    </SelectContent>
-                </Select>
+                <Switch
+                    id="webcam-allowed"
+                    checked={config.webcam_allowed}
+                    onCheckedChange={(val) => handleValueChange('webcam_allowed', val)}
+                />
+            </div>
+             <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="stream-allowed" className="font-bold text-sm uppercase text-muted-foreground">Autoriser le partage d'écran</Label>
+                   <p className="text-sm text-muted-foreground/80">Permet aux membres de partager leur écran.</p>
+                </div>
+                <Switch
+                    id="stream-allowed"
+                    checked={config.stream_allowed}
+                    onCheckedChange={(val) => handleValueChange('stream_allowed', val)}
+                />
             </div>
             <Separator />
              <div className="space-y-2">

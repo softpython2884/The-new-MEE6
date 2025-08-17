@@ -177,18 +177,15 @@ function AiContentCreatorPageContent({ isPremium }: { isPremium: boolean }) {
                         <div className="flex items-center justify-between">
                             <div>
                                 <Label htmlFor="enable-nsfw" className="font-bold text-sm uppercase text-muted-foreground">Autoriser la génération d'images NSFW</Label>
-                                <p className="text-sm text-muted-foreground/80">
-                                    Permet à l'IA de générer du contenu potentiellement inapproprié.
-                                </p>
                             </div>
                             <Switch id="enable-nsfw" checked={config.allow_nsfw_images} onCheckedChange={(val) => handleValueChange('allow_nsfw_images', val)} />
                         </div>
                         {config.allow_nsfw_images && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Attention</AlertTitle>
+                                <AlertTitle>Attention : Avertissement sur le contenu</AlertTitle>
                                 <AlertDescription>
-                                    En activant cette option, vous autorisez la génération d'images qui peuvent ne pas être appropriées pour tous les publics. Utilisez avec prudence.
+                                    L'activation de cette option ne garantit pas la génération de contenu NSFW. Le modèle d'IA de Google applique ses propres filtres de sécurité qui peuvent bloquer les requêtes, même avec cette option activée. Le résultat n'est pas garanti et est hors du contrôle du bot.
                                 </AlertDescription>
                             </Alert>
                         )}

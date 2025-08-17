@@ -39,6 +39,7 @@ const filterPrompt = ai.definePrompt({
   name: 'imageFilterPrompt',
   input: { schema: ImageFilterInputSchema },
   output: { schema: ImageFilterOutputSchema },
+  model: 'googleai/gemini-2.0-flash',
   prompt: `You are an expert content moderator for a Discord server. Your task is to analyze an image and determine if it is inappropriate.
 
 You must consider the following categories for inappropriate content:

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Ticket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -21,6 +23,7 @@ interface PrivateRoomsConfig {
     creation_channel: string | null;
     category_id: string | null;
     embed_message: string;
+    channel_name_format: string;
     archive_summary: boolean;
     command_permissions: { [key: string]: string | null };
 }
@@ -251,6 +254,24 @@ export default function PrivateRoomsPage() {
           <Separator />
           <div className="space-y-2">
             <Label
+              htmlFor="channel-name-format"
+              className="font-bold text-sm uppercase text-muted-foreground"
+            >
+              Format du nom du salon
+            </Label>
+            <p className="text-sm text-muted-foreground/80">
+              Personnalisez le nom des salons créés. Utilisez {"{user}"} pour insérer le nom de l'utilisateur.
+            </p>
+            <Input
+              id="channel-name-format"
+              value={config.channel_name_format || ''}
+              onBlur={(e) => handleValueChange('channel_name_format', e.target.value)}
+              placeholder="ticket-{user}"
+            />
+          </div>
+          <Separator />
+          <div className="space-y-2">
+            <Label
               htmlFor="embed-message"
               className="font-bold text-sm uppercase text-muted-foreground"
             >
@@ -318,7 +339,7 @@ export default function PrivateRoomsPage() {
                     Rôle minimum requis
                   </Label>
                   <Select
-                    value={config.command_permissions[command.key] || 'none'}
+                    value={config.command_permissions?.[command.key] || 'none'}
                     onValueChange={(val) => handlePermissionChange(command.key, val)}
                   >
                     <SelectTrigger id={`role-select-${command.key}`} className="w-full">

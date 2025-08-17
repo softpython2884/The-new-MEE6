@@ -1,4 +1,5 @@
 
+
 import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags, ChannelType, OverwriteType, EmbedBuilder, TextChannel, ModalSubmitInteraction, Interaction, ButtonInteraction, GuildMember } from 'discord.js';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -292,7 +293,14 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
             try {
                 await interaction.deferReply({ ephemeral: true });
 
-                const channelName = `ticket-${interaction.user.username}`;
+                const channelNameFormat = config.channel_name_format || 'ticket-{user}';
+                // Sanitize username to be channel-name-safe (lowercase, no special chars except -, limit length)
+                const sanitizedUsername = interaction.user.username
+                    .toLowerCase()
+                    .replace(/[^a-z0-9-]/g, '')
+                    .slice(0, 20) || 'user';
+                const channelName = channelNameFormat.replace('{user}', sanitizedUsername);
+
                 const existingChannel = interaction.guild.channels.cache.find(c => c.name === channelName && c.parentId === config.category_id);
                 if(existingChannel) {
                     await interaction.editReply(`Vous avez déjà un salon privé ouvert : ${existingChannel}`);

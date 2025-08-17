@@ -165,7 +165,6 @@ const defaultConfigs: DefaultConfigs = {
             help: null,
             marcus: null,
             traduire: null,
-            say: null,
         },
         command_enabled: {
             invite: true,
@@ -173,7 +172,6 @@ const defaultConfigs: DefaultConfigs = {
             help: true,
             marcus: true,
             traduire: true,
-            say: true,
         }
     },
     'community-assistant': {
@@ -275,7 +273,8 @@ const defaultConfigs: DefaultConfigs = {
         enabled: true, 
         creation_channel: null, 
         category_id: null, 
-        embed_message: 'Cliquez sur le bouton ci-dessous pour créer un salon privé.', 
+        embed_message: 'Cliquez sur le bouton ci-dessous pour créer un salon privé.',
+        channel_name_format: 'ticket-{user}',
         archive_summary: true,
         command_permissions: {
             addprivate: null,

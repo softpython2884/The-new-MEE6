@@ -51,6 +51,7 @@ interface AutoModRule {
 interface AutoModConfig {
     enabled: boolean;
     rules: AutoModRule[];
+    log_channel_id: string | null;
 }
 interface DiscordRole {
   id: string;
@@ -171,7 +172,7 @@ export default function AutoModerationPage() {
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Auto-Modération Personnalisée</h1>
                 <p className="text-muted-foreground mt-2">
-                    Créez vos propres filtres de mots-clés pour garder votre serveur propre. Les messages correspondants seront supprimés.
+                    Créez vos propres filtres de mots-clés. Les messages correspondants seront supprimés et un avertissement sera enregistré pour l'utilisateur.
                 </p>
             </div>
              <div className="flex items-center space-x-4">
@@ -200,7 +201,7 @@ export default function AutoModerationPage() {
                         key={rule.id} 
                         rule={rule} 
                         roles={roles}
-                        channels={channels}
+                        channels={channels.filter(c => c.type === 0)} // Only text channels
                         onUpdate={handleUpdateRule}
                         onDelete={() => handleDeleteRule(rule.id)}
                     />
@@ -340,7 +341,7 @@ function MultiSelect({ options, selected, onSelectedChange, placeholder }: { opt
                         onCheckedChange={() => handleToggle(option.id)}
                         onSelect={(e) => e.preventDefault()}
                     >
-                        {option.name}
+                        # {option.name}
                     </DropdownMenuCheckboxItem>
                 ))}
             </DropdownMenuContent>

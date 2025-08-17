@@ -96,7 +96,7 @@ export async function execute(message: Message) {
                         recordSanction({
                             guild_id: message.guild.id,
                             user_id: member.id,
-                            moderator_id: 'AUTOMOD',
+                            moderator_id: 'AUTOMOD_IA',
                             action_type: 'warn',
                             reason: `[IA] ${result.reason}`
                         });
@@ -115,7 +115,7 @@ export async function execute(message: Message) {
                             recordSanction({
                                 guild_id: message.guild.id,
                                 user_id: member.id,
-                                moderator_id: 'AUTOMOD',
+                                moderator_id: 'AUTOMOD_IA',
                                 action_type: 'mute',
                                 reason: `[IA] ${result.reason}`,
                                 duration_seconds: durationMs / 1000
@@ -131,7 +131,7 @@ export async function execute(message: Message) {
                             recordSanction({
                                 guild_id: message.guild.id,
                                 user_id: member.id,
-                                moderator_id: 'AUTOMOD',
+                                moderator_id: 'AUTOMOD_IA',
                                 action_type: 'ban',
                                 reason: `[IA] ${result.reason}`
                             });

@@ -1,6 +1,5 @@
 
 
-
 import type {
   SlashCommandBuilder,
   CommandInteraction,
@@ -116,4 +115,10 @@ export interface SanctionPreset {
     action: 'warn' | 'mute' | 'kick' | 'ban';
     duration?: string; // e.g., '10m', '1h'
     reason: string;
+}
+
+export interface AutoSanction {
+    warn_count: number;
+    action: 'mute' | 'kick' | 'ban';
+    duration?: string;
 }

@@ -1,6 +1,6 @@
 
 import { Events, Message, TextChannel } from 'discord.js';
-import { getServerConfig } from '../../src/lib/db';
+import { getServerConfig, recordSanction } from '../../src/lib/db';
 import { autoTranslateFlow } from '../../src/ai/flows/auto-translate-flow';
 
 export const name = Events.MessageCreate;
@@ -96,18 +96,25 @@ async function handleAutoModeration(message: Message) {
             console.log(`[AutoMod] Message de ${message.author.tag} déclenché la règle "${rule.name}"`);
 
             try {
-                // Perform action
-                if (rule.action === 'delete') {
-                    await message.delete();
-                }
+                 // Always delete the message
+                await message.delete();
 
                 // Send warning/log
                 const logChannelId = config.log_channel_id || message.channel.id;
                 const logChannel = await message.guild.channels.fetch(logChannelId).catch(() => null) as TextChannel;
                 
                 if (logChannel) {
-                    await logChannel.send(`> **Auto-Modération :** Le message de ${message.author.toString()} a été supprimé car il contenait un terme interdit par la règle "${rule.name}".`);
+                    await logChannel.send(`> **Auto-Modération :** Le message de ${message.author.toString()} a été supprimé car il contenait un terme interdit par la règle "${rule.name}".`).then(m => setTimeout(() => m.delete().catch(() => {}), 10000));
                 }
+
+                // Record the sanction, which will trigger auto-sanction checks
+                recordSanction({
+                    guild_id: message.guild.id,
+                    user_id: message.author.id,
+                    moderator_id: 'AUTOMOD_KEYWORD',
+                    action_type: 'warn',
+                    reason: `[AutoMod] Règle: ${rule.name}`
+                });
 
             } catch (error) {
                 console.error(`[AutoMod] Erreur lors de l'action pour la règle "${rule.name}":`, error);

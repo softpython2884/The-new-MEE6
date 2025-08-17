@@ -117,13 +117,13 @@ async function handleConversationalAgent(message: Message) {
         const result = await conversationalAgentFlow({
             userMessage: userMessage,
             userName: message.member.displayName,
-            photoDataUri: photoDataUri,
             agentName: config.agent_name,
             agentRole: config.agent_role,
             agentPersonality: config.agent_personality,
             customPrompt: config.custom_prompt,
             knowledgeBase: config.knowledge_base,
             conversationHistory: historyForPrompt,
+            photoDataUri: photoDataUri,
         });
 
         if (result.response) {

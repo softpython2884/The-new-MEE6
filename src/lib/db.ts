@@ -1,5 +1,6 @@
 
 
+
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -32,6 +33,14 @@ const upgradeSchema = () => {
         `);
         db.exec(`INSERT OR IGNORE INTO global_settings (key, value) VALUES ('ai_disabled', '0');`);
         console.log('[Database] La table "global_settings" est prête.');
+
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS locked_channels (
+                channel_id TEXT PRIMARY KEY,
+                original_permissions TEXT NOT NULL
+            );
+        `);
+        console.log('[Database] La table "locked_channels" est prête.');
 
 
         db.exec(`
@@ -200,6 +209,7 @@ const defaultConfigs: DefaultConfigs = {
             roles: { enabled: false, channel_id: null },
             moderation: { enabled: true, channel_id: null },
             voice: { enabled: false, channel_id: null },
+            server: { enabled: false, channel_id: null },
         }
     },
     'auto-translation': {
@@ -730,3 +740,26 @@ export function getUserSanctionHistory(guildId: string, userId: string): Sanctio
     return stmt.all(guildId, userId) as SanctionHistoryEntry[];
 }
 
+
+// --- Lock System ---
+export function isChannelLocked(channelId: string): boolean {
+    const stmt = db.prepare('SELECT 1 FROM locked_channels WHERE channel_id = ?');
+    return !!stmt.get(channelId);
+}
+
+export function lockChannel(channelId: string, originalPermissions: string): void {
+    const stmt = db.prepare('INSERT INTO locked_channels (channel_id, original_permissions) VALUES (?, ?)');
+    stmt.run(channelId, originalPermissions);
+}
+
+export function unlockChannel(channelId: string): string | null {
+    const stmt = db.prepare('SELECT original_permissions FROM locked_channels WHERE channel_id = ?');
+    const row = stmt.get(channelId) as { original_permissions: string } | undefined;
+
+    if (row) {
+        const deleteStmt = db.prepare('DELETE FROM locked_channels WHERE channel_id = ?');
+        deleteStmt.run(channelId);
+        return row.original_permissions;
+    }
+    return null;
+}

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -12,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { ChevronDown, MessageSquare, User, Hash, Tag, Hammer, Voicemail } from 'lucide-react';
+import { ChevronDown, MessageSquare, User, Hash, Tag, Hammer, Voicemail, Server } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 
@@ -35,6 +36,7 @@ interface LogsConfig {
       roles: LogSetting;
       moderation: LogSetting;
       voice: LogSetting;
+      server: LogSetting;
   }
 }
 
@@ -54,7 +56,8 @@ const logOptions = [
     { id: "channels", label: "Logs des salons", description: "Création, modification, suppression.", icon: Hash },
     { id: "roles", label: "Logs des rôles", description: "Création, modification, suppression.", icon: Tag },
     { id: "moderation", label: "Logs de modération", description: "Bans, kicks, mutes, etc.", icon: Hammer },
-    { id: "voice", label: "Logs vocaux", description: "Connexions, déconnexions, etc.", icon: Voicemail },
+    { id: "voice", label: "Logs vocaux", description: "Connexions, mutes, etc.", icon: Voicemail },
+    { id: "server", label: "Logs du serveur", description: "Changements de nom, d'icône, etc.", icon: Server },
 ];
 
 

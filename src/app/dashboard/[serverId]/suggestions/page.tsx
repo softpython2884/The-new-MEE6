@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -38,7 +39,7 @@ const suggestionCommands = [
   {
     name: '/suggest',
     key: 'suggest',
-    description: 'Permet à un utilisateur de faire une suggestion.',
+    description: 'Permet à un utilisateur de faire une suggestion (serveur ou bot).',
   },
   {
     name: '/setsuggest',
@@ -177,7 +178,7 @@ export default function SuggestionsPage() {
                 Salon des suggestions
               </Label>
               <p className="text-sm text-muted-foreground/80">
-                Le salon où les nouvelles suggestions seront publiées.
+                Le salon où les nouvelles suggestions pour le serveur seront publiées.
               </p>
             </div>
             <Select 
@@ -235,7 +236,7 @@ export default function SuggestionsPage() {
                     Rôle minimum requis
                   </Label>
                   <Select
-                    value={config.command_permissions[command.key] || 'none'}
+                    value={config.command_permissions?.[command.key] || 'none'}
                     onValueChange={(val) => handlePermissionChange(command.key, val)}
                   >
                     <SelectTrigger id={`role-select-${command.key}`} className="w-full">
@@ -250,6 +251,7 @@ export default function SuggestionsPage() {
                         </SelectGroup>
                     </SelectContent>
                   </Select>
+                  {command.key === 'suggest' && <p className="text-xs text-muted-foreground pt-1">La sous-commande `/suggest bot` est toujours disponible pour tout le monde.</p>}
                 </div>
               </CardContent>
             </Card>

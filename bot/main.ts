@@ -67,29 +67,20 @@ const loadEvents = (client: Client) => {
                 traverseDirectory(fullPath);
             } else if (file.endsWith('.ts') || file.endsWith('.js')) {
                 // Ensure system event handlers are loaded
-                if(fullPath.includes('system') && !fs.existsSync(fullPath.replace('.ts', '.js'))){
-                     try {
-                        const event = require(fullPath);
-                         if (event.name && event.execute) {
-                            client.on(event.name, (...args) => event.execute(...args, client));
-                            console.log(`[+] Loaded event: ${event.name} from ${path.relative(eventsPath, fullPath)}`);
-                         }
-                     } catch(e) {
-                        console.error('Failed to require', fullPath, e);
-                     }
-                } else {
+                // The check for '.js' is to avoid double-loading in the compiled output
+                 try {
                     const event = require(fullPath);
-                    if (event.name && event.execute) {
+                     if (event.name && event.execute) {
                         if (event.once) {
-                            client.once(event.name, (...args) => event.execute(...args));
+                            client.once(event.name, (...args) => event.execute(...args, client));
                         } else {
                             client.on(event.name, (...args) => event.execute(...args, client));
                         }
                         console.log(`[+] Loaded event: ${event.name} from ${path.relative(eventsPath, fullPath)}`);
-                    } else {
-                        // console.log(`[-] Failed to load event at ${fullPath}. Missing "name" or "execute" property.`);
-                    }
-                }
+                     }
+                 } catch(e) {
+                    console.error(`[E] Failed to require event at ${fullPath}`, e);
+                 }
             }
         }
     };

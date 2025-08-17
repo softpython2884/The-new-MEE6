@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { TestTubeDiagonal } from 'lucide-react';
+import { TestTubeDiagonal, Crown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useServerInfo } from '@/hooks/use-server-info';
@@ -28,15 +28,16 @@ interface DiscordRole {
     name: string;
     color: number;
 }
-interface ServerData {
-    roles: DiscordRole[];
-    isPremium: boolean;
-}
 
-const testerCommands = [
-    { name: '/mp', key: 'mp', description: 'Envoie un message privé à un utilisateur.' },
-    { name: '/webhook', key: 'webhook', description: 'Envoie un message en imitant un utilisateur via un webhook.' },
-    { name: '/tester', key: 'tester', description: 'Gère le statut de Testeur pour les utilisateurs.' },
+const specialCommands = [
+    { name: '/mp', key: 'mp', description: 'Envoie un message privé à un utilisateur.', type: 'tester' },
+    { name: '/webhook', key: 'webhook', description: 'Envoie un message en imitant un utilisateur via un webhook.', type: 'tester' },
+    { name: '/tester', key: 'tester', description: 'Gère le statut de Testeur pour les utilisateurs.', type: 'tester' },
+    { name: '/givepremium', key: 'givepremium', description: 'Donne ou retire le statut premium à un serveur.', type: 'owner' },
+    { name: '/genpremium', key: 'genpremium', description: 'Génère une nouvelle clé d\'activation premium.', type: 'owner' },
+    { name: '/giverole', key: 'giverole', description: 'Attribue un rôle spécifié (accès restreint).', type: 'owner' },
+    { name: '/disableia', key: 'disableia', description: 'Désactive toutes les fonctionnalités IA globalement.', type: 'owner' },
+    { name: '/enableia', key: 'enableia', description: 'Réactive toutes les fonctionnalités IA globalement.', type: 'owner' },
 ];
 
 export default function TesterCommandsPage() {
@@ -111,29 +112,32 @@ export default function TesterCommandsPage() {
     <div className="space-y-8 text-white max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            Commandes Testeurs
+            Commandes Spéciales
              <Badge variant="secondary">Exclusif</Badge>
         </h1>
         <p className="text-muted-foreground mt-2">
-          Gérez les permissions pour les commandes réservées aux utilisateurs ayant le statut Testeur.
+          Gérez les permissions pour les commandes réservées aux Testeurs et au Propriétaire du bot.
         </p>
       </div>
       
       <Separator />
         
-        <PremiumFeatureWrapper isPremium={serverInfo?.isPremium ?? false}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {testerCommands.map(command => (
-                    <Card key={command.name}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <TestTubeDiagonal className="w-5 h-5 text-primary" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {specialCommands.map(command => (
+                <Card key={command.name} className="flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                                {command.type === 'owner' ? <Crown className="w-5 h-5 text-yellow-400" /> : <TestTubeDiagonal className="w-5 h-5 text-primary" />}
                                 <span>{command.name}</span>
-                            </CardTitle>
-                            <CardDescription>{command.description}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
+                            </span>
+                            {command.type === 'owner' && <Badge variant="destructive">Propriétaire</Badge>}
+                        </CardTitle>
+                        <CardDescription>{command.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow flex flex-col justify-end">
+                        {command.type === 'tester' && (
+                             <div className="space-y-2">
                                 <Label htmlFor={`role-select-${command.key}`} className="text-sm font-medium">Rôle Testeur minimum requis</Label>
                                 <Select 
                                     value={config.command_permissions?.[command.key] || 'none'}
@@ -155,11 +159,16 @@ export default function TesterCommandsPage() {
                                 </Select>
                                  <p className="text-xs text-muted-foreground pt-2">Seuls les utilisateurs avec le statut "Testeur" peuvent utiliser cette commande. Vous pouvez restreindre davantage l'accès à un rôle spécifique ici.</p>
                             </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        </PremiumFeatureWrapper>
+                        )}
+                         {command.type === 'owner' && (
+                             <div className="pt-2">
+                                 <p className="text-xs text-yellow-400/80 font-semibold">Seul le propriétaire du bot peut utiliser cette commande.</p>
+                             </div>
+                         )}
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
     </div>
   );
 }

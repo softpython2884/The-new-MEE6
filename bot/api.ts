@@ -7,6 +7,7 @@ import { verifyAndConsumeAuthToken, getBotAccessToken } from './auth';
 import { generatePersonaPrompt, generatePersonaAvatar } from '@/ai/flows/persona-flow';
 import { v4 as uuidv4 } from 'uuid';
 import { updateGuildCommands } from './handlers/commandHandler';
+import { generateKeywords } from '@/ai/flows/keyword-generation-flow';
 
 const API_PORT = process.env.BOT_API_PORT || 25875;
 
@@ -361,52 +362,20 @@ export function startApi(client: Client) {
         }
     });
 
-
-    // --- Discord Auto-Moderation API ---
-    app.get('/api/automod-rules/:guildId', ensureBotToken, async (req, res) => {
-        const { guildId } = req.params;
+    // --- Keyword Generation API for Auto-Mod ---
+    app.post('/api/generate-keywords', async (req, res) => {
+        const { prompt } = req.body;
+        if (!prompt) {
+            return res.status(400).json({ error: 'Prompt is required.' });
+        }
         try {
-            const rules = await rest.get(Routes.guildAutoModerationRules(guildId));
-            res.json(rules);
+            const result = await generateKeywords({ prompt });
+            res.json(result);
         } catch (error) {
-            console.error(`[AutoMod API] Failed to fetch rules for guild ${guildId}:`, error);
-            res.status(500).json({ error: "Failed to fetch AutoMod rules from Discord." });
+            console.error("[Keyword Gen API] Error:", error);
+            res.status(500).json({ error: "Failed to generate keywords." });
         }
     });
-
-    app.post('/api/automod-rules/:guildId', ensureBotToken, async (req, res) => {
-        const { guildId } = req.params;
-        try {
-            const newRule = await rest.post(Routes.guildAutoModerationRules(guildId), { body: req.body });
-            res.status(201).json(newRule);
-        } catch (error) {
-            console.error(`[AutoMod API] Failed to create rule for guild ${guildId}:`, error);
-            res.status(500).json({ error: "Failed to create AutoMod rule on Discord." });
-        }
-    });
-
-    app.patch('/api/automod-rules/:guildId/:ruleId', ensureBotToken, async (req, res) => {
-        const { guildId, ruleId } = req.params;
-        try {
-            const updatedRule = await rest.patch(Routes.guildAutoModerationRule(guildId, ruleId), { body: req.body });
-            res.json(updatedRule);
-        } catch (error) {
-            console.error(`[AutoMod API] Failed to update rule ${ruleId} for guild ${guildId}:`, error);
-            res.status(500).json({ error: "Failed to update AutoMod rule on Discord." });
-        }
-    });
-
-    app.delete('/api/automod-rules/:guildId/:ruleId', ensureBotToken, async (req, res) => {
-        const { guildId, ruleId } = req.params;
-        try {
-            await rest.delete(Routes.guildAutoModerationRule(guildId, ruleId));
-            res.status(204).send();
-        } catch (error) {
-            console.error(`[AutoMod API] Failed to delete rule ${ruleId} for guild ${guildId}:`, error);
-            res.status(500).json({ error: "Failed to delete AutoMod rule on Discord." });
-        }
-    });
-
 
     app.listen(API_PORT, () => {
         console.log(`[Bot API] Le serveur API interne écoute sur le port ${API_PORT}`);

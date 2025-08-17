@@ -25,6 +25,7 @@ const keywordGenPrompt = ai.definePrompt({
     name: 'keywordGenPrompt',
     input: { schema: KeywordGenInputSchema },
     output: { schema: KeywordGenOutputSchema },
+    model: 'googleai/gemini-2.0-flash',
     prompt: `You are an expert in content moderation and linguistics.
 Your task is to generate a list of keywords based on a user's request.
 The list should be comprehensive and include common variations, slang, and related terms.

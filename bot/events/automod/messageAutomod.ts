@@ -1,5 +1,4 @@
 
-
 import { Events, Message, TextChannel } from 'discord.js';
 import { getServerConfig } from '@/lib/db';
 
@@ -17,11 +16,13 @@ export async function execute(message: Message) {
     const channelId = message.channel.id;
 
     for (const rule of config.rules) {
+        if (!rule.keywords || rule.keywords.length === 0) continue;
+
         // Check for exemptions
-        const isRoleExempt = rule.exempt_roles.some((roleId: string) => memberRoles.includes(roleId));
+        const isRoleExempt = (rule.exempt_roles || []).some((roleId: string) => memberRoles.includes(roleId));
         if (isRoleExempt) continue;
 
-        const isChannelExempt = rule.exempt_channels.includes(channelId);
+        const isChannelExempt = (rule.exempt_channels || []).includes(channelId);
         if (isChannelExempt) continue;
 
         // Check for keyword matches

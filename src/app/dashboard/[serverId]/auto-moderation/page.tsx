@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Trash2, PlusCircle, Sparkles, Loader2, BotMessageSquare, ShieldAlert } from 'lucide-react';
+import { Trash2, PlusCircle, Sparkles, Loader2, BotMessageSquare } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,9 +31,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog"
-import { generateKeywords } from '@/ai/flows/keyword-generation-flow';
 import { Switch } from '@/components/ui/switch';
-import { useServerInfo } from '@/hooks/use-server-info';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -76,8 +74,8 @@ function AutoModerationPageSkeleton() {
                  <Skeleton className="h-10 w-32" />
             </div>
             <div className="space-y-4">
-                <Skeleton className="h-32 w-full" />
-                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-48 w-full" />
             </div>
         </div>
     );
@@ -158,23 +156,31 @@ export default function AutoModerationPage() {
         saveConfig({ ...config, rules: config.rules.filter(rule => rule.id !== ruleId) });
     };
 
+    const handleToggleModule = (enabled: boolean) => {
+        if (!config) return;
+        saveConfig({ ...config, enabled });
+    };
+
     if (loading || !config) {
         return <AutoModerationPageSkeleton />;
     }
 
   return (
-    <div className="space-y-8 text-white max-w-4xl">
-        <div className="flex items-center justify-between">
+    <div className="space-y-8 text-white max-w-5xl">
+        <div className="flex items-start justify-between">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Auto-Modération Manuelle</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Auto-Modération Personnalisée</h1>
                 <p className="text-muted-foreground mt-2">
-                    Créez vos propres filtres de mots-clés pour garder votre serveur propre.
+                    Créez vos propres filtres de mots-clés pour garder votre serveur propre. Les messages correspondants seront supprimés.
                 </p>
             </div>
-             <Button onClick={handleAddRule}>
-                <PlusCircle className="mr-2"/>
-                Créer une règle
-            </Button>
+             <div className="flex items-center space-x-4">
+                 <Switch id="enable-module" checked={config.enabled} onCheckedChange={handleToggleModule} />
+                 <Button onClick={handleAddRule}>
+                    <PlusCircle className="mr-2"/>
+                    Créer une règle
+                </Button>
+            </div>
         </div>
         
         <Separator />
@@ -216,9 +222,9 @@ function RuleCard({ rule, roles, channels, onUpdate, onDelete }: { rule: AutoMod
     };
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-                <Input value={name} onChange={e => setName(e.target.value)} onBlur={handleBlur} className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto" />
+        <Card className="bg-card/50">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <Input value={name} onChange={e => setName(e.target.value)} onBlur={handleBlur} className="text-xl font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto bg-transparent" />
                 <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 className="w-4 h-4 text-destructive"/></Button>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -228,27 +234,17 @@ function RuleCard({ rule, roles, channels, onUpdate, onDelete }: { rule: AutoMod
                     <KeywordGenerator onGenerate={(newKeywords) => {
                         const updatedKeywords = [...new Set([...keywords.split(',').map(k => k.trim()).filter(Boolean), ...newKeywords])];
                         setKeywords(updatedKeywords.join(', '));
-                        onUpdate({ ...rule, keywords: updatedKeywords });
+                        onUpdate({ ...rule, name, keywords: updatedKeywords });
                     }}/>
                 </div>
-                <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                        <Label>Action</Label>
-                        <Select value={rule.action} onValueChange={(val: 'delete' | 'warn') => onUpdate({...rule, action: val})}>
-                            <SelectTrigger><SelectValue/></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="delete">Supprimer le message</SelectItem>
-                                <SelectItem value="warn">Avertir (bientôt)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                <div className="grid md:grid-cols-2 gap-4">
                      <div className="space-y-2">
                         <Label>Rôles exemptés</Label>
-                         <MultiSelect options={roles} selected={rule.exempt_roles} onSelectedChange={(selected) => onUpdate({...rule, exempt_roles: selected})} placeholder="Sélectionner des rôles..."/>
+                         <MultiSelect options={roles} selected={rule.exempt_roles} onSelectedChange={(selected) => onUpdate({...rule, name, keywords: keywords.split(',').map(k => k.trim()).filter(Boolean), exempt_roles: selected})} placeholder="Sélectionner des rôles..."/>
                     </div>
                      <div className="space-y-2">
                         <Label>Salons exemptés</Label>
-                        <MultiSelect options={channels} selected={rule.exempt_channels} onSelectedChange={(selected) => onUpdate({...rule, exempt_channels: selected})} placeholder="Sélectionner des salons..."/>
+                        <MultiSelect options={channels} selected={rule.exempt_channels} onSelectedChange={(selected) => onUpdate({...rule, name, keywords: keywords.split(',').map(k => k.trim()).filter(Boolean), exempt_channels: selected})} placeholder="Sélectionner des salons..."/>
                     </div>
                 </div>
             </CardContent>
@@ -260,14 +256,23 @@ function RuleCard({ rule, roles, channels, onUpdate, onDelete }: { rule: AutoMod
 function KeywordGenerator({ onGenerate }: { onGenerate: (keywords: string[]) => void }) {
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
     const { toast } = useToast();
 
     const handleGenerate = async () => {
         if (!prompt) return;
         setIsLoading(true);
         try {
-            const result = await generateKeywords({ prompt });
+            const response = await fetch(`${API_URL}/generate-keywords`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt }),
+            });
+            if (!response.ok) throw new Error('Keyword generation failed');
+            const result = await response.json();
             onGenerate(result.keywords);
+            setIsOpen(false);
+            setPrompt('');
         } catch (error) {
             toast({ title: "Erreur de génération IA", variant: "destructive" });
         } finally {
@@ -276,7 +281,7 @@ function KeywordGenerator({ onGenerate }: { onGenerate: (keywords: string[]) => 
     };
 
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="mt-2"><Sparkles className="w-4 h-4 mr-2"/>Générer avec l'IA</Button>
             </DialogTrigger>
@@ -291,7 +296,7 @@ function KeywordGenerator({ onGenerate }: { onGenerate: (keywords: string[]) => 
                 </div>
                 <DialogFooter>
                     <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-                    <Button onClick={handleGenerate} disabled={isLoading}>
+                    <Button onClick={handleGenerate} disabled={isLoading || !prompt}>
                         {isLoading ? <Loader2 className="animate-spin" /> : 'Générer'}
                     </Button>
                 </DialogFooter>
@@ -346,4 +351,3 @@ function MultiSelect({ options, selected, onSelectedChange, placeholder }: { opt
 if (typeof window !== 'undefined') {
     (window as any).uuidv4 = uuidv4;
 }
-

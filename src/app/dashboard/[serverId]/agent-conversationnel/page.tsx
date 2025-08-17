@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircleQuestion, Trash2, PlusCircle, Gamepad2, BrainCircuit } from 'lucide-react';
+import { MessageCircleQuestion, Trash2, PlusCircle, Gamepad2, BrainCircuit, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { KnowledgeBaseItem } from '@/types';
@@ -21,6 +21,7 @@ import { PremiumFeatureWrapper } from '@/components/premium-wrapper';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -34,6 +35,7 @@ interface AgentConfig {
     dedicated_channel_id: string | null;
     engagement_module_enabled: boolean;
     allow_imagination: boolean;
+    allow_freewheeling: boolean;
 }
 
 interface DiscordChannel {
@@ -226,20 +228,41 @@ function AgentPageContent({ isPremium, serverId }: { isPremium: boolean, serverI
                             <div>
                                 <Label htmlFor="enable-engagement" className="font-bold">Engagement proactif</Label>
                                 <p className="text-sm text-muted-foreground/80">
-                                    Si le salon est calme, l'agent pourra suggérer des jeux ou des sujets de discussion.
+                                    Si le salon est calme, l'agent pourra suggérer des jeux ou des sujets de discussion. (Bientôt)
                                 </p>
                             </div>
-                            <Switch id="enable-engagement" checked={config.engagement_module_enabled ?? false} onCheckedChange={(val) => handleValueChange('engagement_module_enabled', val)} />
+                            <Switch id="enable-engagement" checked={config.engagement_module_enabled ?? false} onCheckedChange={(val) => handleValueChange('engagement_module_enabled', val)} disabled />
                         </div>
                         <Separator />
                          <div className="flex items-center justify-between">
                             <div>
                                 <Label htmlFor="enable-imagination" className="font-bold">Autoriser l'imagination</Label>
                                 <p className="text-sm text-muted-foreground/80">
-                                    Permet à l'agent d'inventer des réponses s'il ne les trouve pas dans sa base de connaissances.
+                                    Permet à l'agent d'inventer des réponses et de les ajouter à ses connaissances.
                                 </p>
                             </div>
                             <Switch id="enable-imagination" checked={config.allow_imagination ?? false} onCheckedChange={(val) => handleValueChange('allow_imagination', val)} />
+                        </div>
+                        <Separator />
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label htmlFor="enable-freewheeling" className="font-bold text-destructive">Mode Roue Libre</Label>
+                                    <p className="text-sm text-muted-foreground/80">
+                                        Désactive les filtres de sécurité pour les insultes et le contenu NSFW.
+                                    </p>
+                                </div>
+                                <Switch id="enable-freewheeling" checked={config.allow_freewheeling ?? false} onCheckedChange={(val) => handleValueChange('allow_freewheeling', val)} />
+                            </div>
+                             {config.allow_freewheeling && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Mode sans filtre activé</AlertTitle>
+                                    <AlertDescription>
+                                        En activant cette option, l'agent peut générer du contenu inapproprié. Utilisez avec une extrême prudence.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                         </div>
                     </CardContent>
                 </Card>

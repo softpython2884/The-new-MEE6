@@ -1,10 +1,11 @@
 
 
-import { Events, Message, Collection, EmbedBuilder } from 'discord.js';
+import { Events, Message, Collection, EmbedBuilder, TextChannel, AttachmentBuilder } from 'discord.js';
 import { getServerConfig, addKnowledgeBaseItem } from '../../../src/lib/db';
 import { conversationalAgentFlow } from '../../../src/ai/flows/conversational-agent-flow';
 import { knowledgeCreationFlow } from '../../../src/ai/flows/knowledge-creation-flow';
 import { faqFlow } from '../../../src/ai/flows/faq-flow';
+import { generateImage } from '../../../src/ai/flows/content-creation-flow';
 import fetch from 'node-fetch';
 
 const imageMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
@@ -126,12 +127,28 @@ async function handleConversationalAgent(message: Message) {
             conversationHistory: historyForPrompt,
             photoDataUri: photoDataUri,
             allow_imagination: config.allow_imagination,
+            allow_freewheeling: config.allow_freewheeling,
         });
 
-        if (result.response) {
+        if (result.response || result.image_prompt) {
+            let files: AttachmentBuilder[] = [];
+            if (result.image_prompt) {
+                console.log(`[Agent] Generating image with prompt: "${result.image_prompt}"`);
+                try {
+                    const imageResult = await generateImage({ prompt: result.image_prompt, allow_nsfw: config.allow_freewheeling });
+                    if (imageResult.imageDataUri) {
+                        const imageBuffer = Buffer.from(imageResult.imageDataUri.split(',')[1], 'base64');
+                        files.push(new AttachmentBuilder(imageBuffer, { name: 'agent_image.png' }));
+                    }
+                } catch (imgError) {
+                    console.error(`[Agent] Image generation failed:`, imgError);
+                }
+            }
+
             // Use a try-catch block to handle cases where the original message is deleted before the bot can reply.
             try {
-                await message.reply(result.response);
+                await message.reply({ content: result.response || undefined, files: files });
+                
                 if (isInDedicatedChannel) {
                     const currentHistory = conversationHistory.get(message.channel.id) || [];
                     currentHistory.push({ user: config.agent_name, content: result.response });

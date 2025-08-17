@@ -331,6 +331,11 @@ const defaultConfigs: DefaultConfigs = {
             mp: null,
             webhook: null,
             tester: null,
+            givepremium: null,
+            genpremium: null,
+            giverole: null,
+            disableia: null,
+            enableia: null,
         },
     },
     'conversational-agent': {
@@ -344,6 +349,7 @@ const defaultConfigs: DefaultConfigs = {
         dedicated_channel_id: null,
         engagement_module_enabled: false,
         allow_imagination: false,
+        allow_freewheeling: false,
     },
     'suggestions': {
         enabled: true,
@@ -723,3 +729,4 @@ export function getUserSanctionHistory(guildId: string, userId: string): Sanctio
     `);
     return stmt.all(guildId, userId) as SanctionHistoryEntry[];
 }
+

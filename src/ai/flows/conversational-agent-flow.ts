@@ -6,7 +6,7 @@
  * @fileOverview A fully configurable conversational AI agent for Discord servers.
  */
 
-import { ai, textModelCascade } from '@/ai/genkit';
+import { ai, textModelCascade, imageModel } from '@/ai/genkit';
 import { z } from 'genkit';
 import type { KnowledgeBaseItem } from '@/types';
 
@@ -31,6 +31,7 @@ export const ConversationalAgentInputSchema = z.object({
   knowledgeBase: z.array(KnowledgeBaseItemSchema).optional().describe('A list of Q&A pairs to provide context.'),
   conversationHistory: z.array(ConversationHistoryItemSchema).optional().describe('The last few messages in the conversation for context.'),
   allow_imagination: z.boolean().optional().describe("If true, the agent can create new information if it doesn't know the answer."),
+  allow_freewheeling: z.boolean().optional().describe("If true, the agent can use insults, NSFW language, etc."),
   photoDataUri: z
     .string()
     .optional()
@@ -42,6 +43,7 @@ export const ConversationalAgentInputSchema = z.object({
 export const ConversationalAgentOutputSchema = z.object({
   response: z.string().describe("The agent's generated response to the user's message."),
   imagined_answer: z.boolean().describe("True if the answer was imagined because it was not in the knowledge base."),
+  image_prompt: z.string().optional().describe("If the character decides to generate an image to accompany its response, this should be the prompt for the image generation model. Otherwise, this should be null."),
 });
 
 export type ConversationalAgentInput = z.infer<typeof ConversationalAgentInputSchema>;
@@ -51,8 +53,8 @@ export type ConversationalAgentOutput = z.infer<typeof ConversationalAgentOutput
 const agentPrompt = ai.definePrompt({
   name: 'conversationalAgentPrompt',
   input: { schema: ConversationalAgentInputSchema },
-  output: { schema: z.object({ response: z.string(), imagined_answer: z.boolean() }) },
-  prompt: `You are a conversational AI agent on a Discord server. You must fully embody the persona defined below.
+  output: { schema: ConversationalAgentOutputSchema },
+  prompt: `You are an AI actor. Your role is to perfectly and realistically embody the character described below.
 
 Your Identity:
 - Your name is {{{agentName}}}.
@@ -84,6 +86,17 @@ You have access to the following information.
 - **Imagination is disabled.** If the user's question cannot be answered from your knowledge base, you MUST state that you don't know the answer. Do not invent information. Set 'imagined_answer' to false.
 {{/if}}
 
+Image Generation:
+- You have the ability to generate an image to accompany your text response.
+- Only generate an image if it adds significant value to the conversation (e.g., to show an emotion, illustrate a point, visualize a memory, or for a joke). Do not generate images for simple greetings.
+- If you decide to generate an image, provide a rich, descriptive prompt for the image generation model in the 'image_prompt' field. Otherwise, leave it empty.
+
+Freewheeling Mode:
+{{#if allow_freewheeling}}
+- **Freewheeling is ON.** You are permitted to use strong language, insults, and discuss sensitive (NSFW) topics if it is consistent with your defined persona. You must still adhere to your core personality.
+{{else}}
+- **Freewheeling is OFF.** You must maintain a respectful and appropriate tone at all times. Do not use insults or discuss NSFW topics.
+{{/if}}
 
 Conversation History:
 {{#if conversationHistory}}
@@ -115,12 +128,22 @@ export const conversationalAgentFlow = ai.defineFlow(
   },
   async (input) => {
     let lastError: any;
+    
+    const safetySettings = input.allow_freewheeling
+      ? [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        ]
+      : [];
+
     for (const model of textModelCascade) {
       try {
         console.log(`[Agent] Trying model ${model}...`);
-        const { output } = await agentPrompt(input, { model });
+        const { output } = await agentPrompt(input, { model, config: { safetySettings } });
         console.log(`[Agent] Model ${model} succeeded.`);
-        return { response: output!.response, imagined_answer: output!.imagined_answer };
+        return output!;
       } catch (error: any) {
         lastError = error;
         console.warn(`[Agent] Model ${model} failed with error:`, error.message);

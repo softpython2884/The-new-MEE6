@@ -16,14 +16,30 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
     }
 
     const member = newState.member;
-    const rolesToAssign = config.on_voice_join_roles;
+    const rolesToManage = config.on_voice_join_roles;
 
     try {
+        const botMember = await newState.guild.members.fetch(newState.client.user.id);
+        const botHighestRolePosition = botMember.roles.highest.position;
+
+        const filterManageableRoles = (roleId: string): boolean => {
+            const role = newState.guild.roles.cache.get(roleId);
+            if (!role) {
+                console.warn(`[Autorole Vocal] Le rôle avec l'ID ${roleId} n'a pas été trouvé sur le serveur ${newState.guild.name}.`);
+                return false;
+            }
+            if (role.position >= botHighestRolePosition) {
+                console.warn(`[Autorole Vocal] Le bot ne peut pas gérer le rôle "${role.name}" car il est plus élevé ou égal dans la hiérarchie.`);
+                return false;
+            }
+            return true;
+        };
+
         // User joins a voice channel
         if (!oldState.channelId && newState.channelId) {
-            const rolesToAdd = rolesToAssign.filter((roleId: string) => 
-                !member.roles.cache.has(roleId) && newState.guild.roles.cache.has(roleId)
-            );
+            const rolesToAdd = rolesToManage
+                .filter((roleId: string) => !member.roles.cache.has(roleId))
+                .filter(filterManageableRoles);
 
             if (rolesToAdd.length > 0) {
                 await member.roles.add(rolesToAdd);
@@ -32,9 +48,10 @@ export async function execute(oldState: VoiceState, newState: VoiceState) {
         }
         // User leaves a voice channel
         else if (oldState.channelId && !newState.channelId) {
-             const rolesToRemove = rolesToAssign.filter((roleId: string) => 
-                member.roles.cache.has(roleId) && newState.guild.roles.cache.has(roleId)
-            );
+             const rolesToRemove = rolesToManage
+                .filter((roleId: string) => member.roles.cache.has(roleId))
+                .filter(filterManageableRoles);
+
              if (rolesToRemove.length > 0) {
                 await member.roles.remove(rolesToRemove);
                 console.log(`[Autorole Vocal] Retiré les rôles ${rolesToRemove.join(', ')} de ${member.user.tag} sur ${member.guild.name}.`);

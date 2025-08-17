@@ -8,60 +8,51 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { Shield } from 'lucide-react';
+import { Shield, Settings, PlusCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
-
-// Types pour la configuration et les données du serveur
+// --- Types ---
+interface SanctionPreset {
+    name: string;
+    action: 'warn' | 'mute' | 'kick' | 'ban';
+    duration?: string; // e.g., '10m', '1h'
+    reason: string;
+}
 interface ModerationConfig {
   enabled: boolean;
   log_channel_id: string | null;
   dm_user_on_action: boolean;
-  premium: boolean;
-  command_permissions: {
-      [command: string]: string | null;
-  }
-  presets: any[];
+  command_permissions: { [command: string]: string | null };
+  presets: SanctionPreset[];
+  auto_sanctions: {
+      warn_count: number;
+      action: 'mute' | 'kick' | 'ban';
+      duration?: string;
+  }[];
 }
-
 interface DiscordChannel {
   id: string;
   name: string;
   type: number;
 }
-
 interface DiscordRole {
     id: string;
     name: string;
     color: number;
 }
 
-
 const moderationCommands = [
-    {
-        name: '/ban',
-        key: 'ban',
-        description: 'Bannit un utilisateur du serveur.',
-    },
-    {
-        name: '/unban',
-        key: 'unban',
-        description: "Révoque le bannissement d'un utilisateur.",
-    },
-    {
-        name: '/kick',
-        key: 'kick',
-        description: 'Expulse un utilisateur du serveur.',
-    },
-    {
-        name: '/mute',
-        key: 'mute',
-        description: 'Rend un utilisateur muet (timeout).',
-    },
+    { name: '/ban', key: 'ban', description: 'Bannit un utilisateur.' },
+    { name: '/unban', key: 'unban', description: "Révoque un bannissement." },
+    { name: '/kick', key: 'kick', description: 'Expulse un utilisateur.' },
+    { name: '/mute', key: 'mute', description: 'Rend un utilisateur muet.' },
+    { name: '/warn', key: 'warn', description: 'Avertit un utilisateur.' },
+    { name: '/listwarns', key: 'listwarns', description: "Liste les avertissements d'un utilisateur." },
 ];
 
 export default function ModerationPage() {
@@ -77,62 +68,38 @@ export default function ModerationPage() {
   // --- Data Fetching ---
   useEffect(() => {
     if (!serverId) return;
-
     const fetchData = async () => {
       setLoading(true);
-      
       try {
-        // Fetch module config
-        const configRes = await fetch(`${API_URL}/get-config/${serverId}/moderation`);
-        if (!configRes.ok) throw new Error(`HTTP error! status: ${configRes.status}`);
+        const [configRes, serverDetailsRes] = await Promise.all([
+          fetch(`${API_URL}/get-config/${serverId}/moderation`),
+          fetch(`${API_URL}/get-server-details/${serverId}`)
+        ]);
+        if (!configRes.ok || !serverDetailsRes.ok) throw new Error('Failed to fetch data');
         const configData = await configRes.json();
-        setConfig(configData);
-
-        // Fetch server details (which includes channels and roles)
-        const serverDetailsRes = await fetch(`${API_URL}/get-server-details/${serverId}`);
-        if (!serverDetailsRes.ok) throw new Error(`HTTP error! status: ${serverDetailsRes.status}`);
         const serverDetailsData = await serverDetailsRes.json();
-        setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0)); // Text channels
+        setConfig(configData);
+        setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0));
         setRoles(serverDetailsData.roles);
-
       } catch (error) {
-        console.error("Failed to fetch data", error);
-        toast({
-            title: "Erreur",
-            description: "Impossible de charger les données du serveur.",
-            variant: "destructive",
-        });
+        toast({ title: "Erreur", description: "Impossible de charger les données.", variant: "destructive" });
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [serverId, toast]);
 
   const saveConfig = async (newConfig: ModerationConfig) => {
-    setConfig(newConfig); // Optimistic UI update
+    setConfig(newConfig); // Optimistic update
     try {
-      const response = await fetch(`${API_URL}/update-config/${serverId}/moderation`, {
+      await fetch(`${API_URL}/update-config/${serverId}/moderation`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newConfig),
       });
-      if (!response.ok) throw new Error("Failed to save");
-      // toast({
-      //   title: "Succès",
-      //   description: "Configuration enregistrée.",
-      // });
     } catch (error) {
-      console.error('Failed to update config', error);
-      toast({
-        title: "Erreur",
-        description: "La sauvegarde a échoué. Veuillez réessayer.",
-        variant: "destructive",
-      });
-      // Optionally revert state here
+      toast({ title: "Erreur", description: "La sauvegarde a échoué.", variant: "destructive" });
     }
   };
 
@@ -143,60 +110,59 @@ export default function ModerationPage() {
   
   const handlePermissionChange = (commandKey: string, roleId: string) => {
     if (!config) return;
-    
-    const newPermissions = {
-      ...config.command_permissions,
-      [commandKey]: roleId,
-    };
+    const newPermissions = { ...config.command_permissions, [commandKey]: roleId === 'none' ? null : roleId };
     saveConfig({ ...config, command_permissions: newPermissions });
   };
-  
-  const getRoleColor = (color: number) => {
-    if (color === 0) return '#FFFFFF';
-    return `#${color.toString(16).padStart(6, '0')}`;
-  }
 
+  // --- Preset Handlers ---
+  const addPreset = () => {
+    if (!config) return;
+    const newPreset: SanctionPreset = { name: 'Nouvelle Sanction', action: 'warn', reason: '' };
+    handleValueChange('presets', [...config.presets, newPreset]);
+  };
+  const updatePreset = (index: number, updatedPreset: SanctionPreset) => {
+    if (!config) return;
+    const newPresets = [...config.presets];
+    newPresets[index] = updatedPreset;
+    handleValueChange('presets', newPresets);
+  };
+  const removePreset = (index: number) => {
+    if (!config) return;
+    handleValueChange('presets', config.presets.filter((_, i) => i !== index));
+  };
 
-  if (loading) {
+  if (loading || !config) {
     return <ModerationPageSkeleton />;
-  }
-
-  if (!config) {
-    return (
-        <div className="flex items-center justify-center h-full">
-            <Card className="p-8">
-                <CardTitle>Erreur de chargement</CardTitle>
-                <CardDescription>Impossible de charger la configuration. Veuillez rafraîchir la page.</CardDescription>
-            </Card>
-        </div>
-    );
   }
 
   return (
     <div className="space-y-8 text-white max-w-4xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Bans & Kicks</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Modération de Base</h1>
         <p className="text-muted-foreground mt-2">
-          Gérez les sanctions de base pour votre serveur.
+          Gérez les sanctions, permissions et automatisez les avertissements.
         </p>
       </div>
       
       <Separator />
 
       {/* Section Options */}
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold">Options</h2>
-          <p className="text-muted-foreground">
-            Personnalisez le comportement des actions de modération.
-          </p>
-        </div>
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="pt-6 space-y-6">
+      <Card>
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Settings />Options Générales</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Label htmlFor="enable-module" className="font-bold">Activer le module</Label>
+                        <p className="text-sm text-muted-foreground/80">Active ou désactive toutes les commandes de modération.</p>
+                    </div>
+                    <Switch id="enable-module" checked={config.enabled} onCheckedChange={(val) => handleValueChange('enabled', val)} />
+                </div>
+               <Separator />
                <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="log-channel" className="font-bold text-sm uppercase text-muted-foreground">Salon de logs</Label>
+                  <Label className="font-bold">Salon de logs</Label>
                   <p className="text-sm text-muted-foreground/80">
                     Le salon où envoyer les logs de modération.
                   </p>
@@ -222,155 +188,105 @@ export default function ModerationPage() {
               <Separator/>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="dm-sanction" className="font-bold text-sm uppercase text-muted-foreground">Notifier l'utilisateur en DM</Label>
+                  <Label className="font-bold">Notifier l'utilisateur en DM</Label>
                   <p className="text-sm text-muted-foreground/80">
                     Envoyer un message privé à l'utilisateur lorsqu'une sanction est appliquée.
                   </p>
                 </div>
                 <Switch 
-                    id="dm-sanction" 
                     checked={config.dm_user_on_action}
                     onCheckedChange={(checked) => handleValueChange('dm_user_on_action', checked)}
                 />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+          </CardContent>
+      </Card>
       
-      <Separator />
+      {/* Section Sanctions Prédéfinies */}
+       <Card>
+        <CardHeader>
+          <CardTitle>Sanctions Prédéfinies</CardTitle>
+          <CardDescription>
+            Configurez des sanctions rapides pour vos modérateurs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {config.presets.map((preset, index) => (
+            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end p-4 border rounded-lg bg-card-foreground/5">
+              <Input label="Nom du preset" placeholder="Ex: Spam" value={preset.name} onChange={e => updatePreset(index, {...preset, name: e.target.value})} />
+              <Select value={preset.action} onValueChange={(val: any) => updatePreset(index, {...preset, action: val})}>
+                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="warn">Avertir</SelectItem>
+                  <SelectItem value="mute">Rendre Muet</SelectItem>
+                  <SelectItem value="kick">Expulser</SelectItem>
+                  <SelectItem value="ban">Bannir</SelectItem>
+                </SelectContent>
+              </Select>
+              {preset.action === 'mute' && (
+                <Input label="Durée" placeholder="Ex: 10m, 1h, 1d" value={preset.duration || ''} onChange={e => updatePreset(index, {...preset, duration: e.target.value})} />
+              )}
+              <div className={preset.action === 'mute' ? 'col-span-full md:col-span-1' : 'col-span-full md:col-span-2'}>
+                 <Input label="Raison" placeholder="Raison de la sanction" value={preset.reason} onChange={e => updatePreset(index, {...preset, reason: e.target.value})} />
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => removePreset(index)}><Trash2 className="text-destructive"/></Button>
+            </div>
+          ))}
+          <Button variant="outline" className="w-full" onClick={addPreset}><PlusCircle/>Ajouter une sanction</Button>
+        </CardContent>
+      </Card>
 
       {/* Section Commandes */}
-       <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold">Commandes</h2>
-          <p className="text-muted-foreground">
-            Gérez les permissions pour chaque commande de ce module.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {moderationCommands.map(command => {
-                 const selectedRoleId = config.command_permissions?.[command.key] || '';
-                 return (
-                 <Card key={command.name}>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Shield className="w-5 h-5 text-primary" />
-                            <span>{command.name}</span>
-                        </CardTitle>
-                        <CardDescription>{command.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                             <Label htmlFor={`role-select-${command.name}`} className="text-sm font-medium">Rôle minimum requis</Label>
-                            <Select
-                                value={selectedRoleId || ''}
-                                onValueChange={(value) => handlePermissionChange(command.key, value)}
-                            >
-                                <SelectTrigger id={`role-select-${command.name}`} className="w-full">
-                                    <SelectValue placeholder="Sélectionner un rôle" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectLabel>Rôles</SelectLabel>
-                                        {roles.filter(r => r.name !== '@everyone').sort((a,b) => (a.name > b.name) ? 1 : -1).map(role => (
-                                            <SelectItem key={role.id} value={role.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getRoleColor(role.color) }}></span>
-                                                    {role.name}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </CardContent>
-                </Card>
-            )})}
-        </div>
-      </div>
-
-
-      <Separator />
-
-      {/* Section Sanctions prédéfinies */}
-      <div className="space-y-4">
-        <div>
-            <h2 className="text-xl font-bold">Sanctions prédéfinies</h2>
-            <p className="text-muted-foreground">
-                Configurez des sanctions prédéfinies afin de faciliter et de réglementer les sanctions applicables par vos modérateurs.
-            </p>
-        </div>
-        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/60 bg-card p-12 text-center">
-            <p className="text-muted-foreground mb-4">Vous n'avez créé aucune sanction prédéfinie.</p>
-            <Button variant="default">Créer une sanction prédéfinie</Button>
-        </div>
-      </div>
+       <Card>
+        <CardHeader>
+            <CardTitle>Permissions des Commandes</CardTitle>
+            <CardDescription>Gérez les permissions pour chaque commande de modération.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {moderationCommands.map(command => (
+                 <div key={command.name} className="space-y-2">
+                     <Label htmlFor={`role-select-${command.name}`} className="font-semibold flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        {command.name}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{command.description}</p>
+                    <Select
+                        value={config.command_permissions?.[command.key] || 'none'}
+                        onValueChange={(value) => handlePermissionChange(command.key, value === 'none' ? null : value)}
+                    >
+                        <SelectTrigger id={`role-select-${command.name}`} className="w-full">
+                            <SelectValue placeholder="Sélectionner un rôle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectLabel>Rôle minimum requis</SelectLabel>
+                                <SelectItem value="none">Admin seulement</SelectItem>
+                                {roles.filter(r => r.name !== '@everyone').map(role => (
+                                    <SelectItem key={role.id} value={role.id}>
+                                        {role.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </div>
+            ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-
 function ModerationPageSkeleton() {
   return (
-    <div className="space-y-8 text-white max-w-4xl">
-        <div>
-            <Skeleton className="h-8 w-64 mb-2" />
-            <Skeleton className="h-4 w-96" />
-        </div>
-        <Separator />
-        <div className="space-y-6">
-            <div>
-                <Skeleton className="h-6 w-32 mb-2" />
-                <Skeleton className="h-4 w-80" />
-            </div>
-            <Card>
-                <CardContent className="pt-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <Skeleton className="h-4 w-32 mb-2" />
-                            <Skeleton className="h-3 w-64" />
-                        </div>
-                        <Skeleton className="h-10 w-[240px]" />
-                    </div>
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                         <div>
-                            <Skeleton className="h-4 w-48 mb-2" />
-                            <Skeleton className="h-3 w-72" />
-                        </div>
-                        <Skeleton className="h-6 w-11 rounded-full" />
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-        <Separator />
-        <div className="space-y-6">
-           <div>
-                <Skeleton className="h-6 w-32 mb-2" />
-                <Skeleton className="h-4 w-80" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[...Array(4)].map((_, i) => (
-                    <Card key={i}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Skeleton className="h-6 w-6 rounded-full" />
-                                <Skeleton className="h-6 w-32" />
-                            </CardTitle>
-                            <Skeleton className="h-4 w-full mt-2" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                <Skeleton className="h-4 w-40" />
-                                <Skeleton className="h-10 w-full" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <Skeleton className="h-8 w-64 mb-2" />
+        <Skeleton className="h-4 w-96" />
+      </div>
+      <Separator />
+      <Card><CardContent className="p-6"><Skeleton className="h-24 w-full" /></CardContent></Card>
+      <Card><CardContent className="p-6"><Skeleton className="h-40 w-full" /></CardContent></Card>
+      <Card><CardContent className="p-6"><Skeleton className="h-48 w-full" /></CardContent></Card>
     </div>
   )
 }

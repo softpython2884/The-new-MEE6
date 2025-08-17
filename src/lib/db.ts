@@ -1,10 +1,11 @@
 
 
+
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { Client } from 'discord.js';
-import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory, SanctionHistoryEntry, KnowledgeBaseItem } from '../types';
+import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory, SanctionHistoryEntry, KnowledgeBaseItem, SanctionPreset } from '../types';
 import { randomBytes } from 'crypto';
 
 // Assurez-vous que le répertoire de la base de données existe
@@ -158,11 +159,14 @@ const defaultConfigs: DefaultConfigs = {
         log_channel_id: null, 
         dm_user_on_action: true, 
         presets: [],
+        auto_sanctions: [],
         command_permissions: {
             ban: null,
             unban: null,
             kick: null,
             mute: null,
+            warn: null,
+            listwarns: null,
         }
     },
     'general-commands': {

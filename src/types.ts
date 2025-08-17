@@ -110,3 +110,10 @@ export interface SanctionHistoryEntry {
     duration_seconds?: number;
     timestamp: string;
 }
+
+export interface SanctionPreset {
+    name: string;
+    action: 'warn' | 'mute' | 'kick' | 'ban';
+    duration?: string; // e.g., '10m', '1h'
+    reason: string;
+}

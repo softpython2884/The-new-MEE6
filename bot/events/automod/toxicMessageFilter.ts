@@ -7,8 +7,23 @@ import ms from 'ms';
 export const name = Events.MessageCreate;
 export const once = false;
 
+// Collection to track messages sent by the bot to prevent self-triggering
+const botSentMessages = new Set<string>();
+export function addBotSentMessage(messageId: string) {
+    botSentMessages.add(messageId);
+    // Remove the ID after a short period to prevent memory leaks
+    setTimeout(() => botSentMessages.delete(messageId), 15000);
+}
+
+
 export async function execute(message: Message) {
-    if (!message.guild || message.author.bot || !message.content || !message.member) return;
+    // Ignore messages from bots AND messages that the bot itself just sent as a warning
+    if (message.author.bot || !message.guild || !message.content || !message.member || botSentMessages.has(message.id)) {
+        if (botSentMessages.has(message.id)) {
+            botSentMessages.delete(message.id); // Consume the tracked ID
+        }
+        return;
+    }
 
     const modAiConfig = await getServerConfig(message.guild.id, 'moderation-ai');
     const isPremium = modAiConfig?.premium || false;
@@ -89,9 +104,10 @@ export async function execute(message: Message) {
 
             switch (action) {
                 case 'warn':
-                    await message.channel.send(`> **${message.author.toString()}, attention.** Votre message a été jugé inapproprié. Raison : ${result.reason}.`).then(msg => {
-                        setTimeout(() => msg.delete().catch(console.error), 10000);
-                    });
+                    const warnMsg = await message.channel.send(`> **${message.author.toString()}, attention.** Votre message a été jugé inapproprié. Raison : ${result.reason}.`);
+                    addBotSentMessage(warnMsg.id);
+                    setTimeout(() => warnMsg.delete().catch(console.error), 10000);
+                    
                     recordSanction({
                         guild_id: message.guild.id,
                         user_id: member.id,
@@ -108,9 +124,9 @@ export async function execute(message: Message) {
                     durationMs = ms(durationStr);
                     if (member.moderatable) {
                         await member.timeout(durationMs, `AutoMod IA: ${result.reason}`);
-                        await message.channel.send(`> **${message.author.toString()} a été rendu muet.** Raison : ${result.reason}.`).then(msg => {
-                            setTimeout(() => msg.delete().catch(console.error), 10000);
-                        });
+                        const muteMsg = await message.channel.send(`> **${message.author.toString()} a été rendu muet.** Raison : ${result.reason}.`);
+                        addBotSentMessage(muteMsg.id);
+                        setTimeout(() => muteMsg.delete().catch(console.error), 10000);
                         recordSanction({
                             guild_id: message.guild.id,
                             user_id: member.id,
@@ -124,9 +140,9 @@ export async function execute(message: Message) {
                 case 'ban':
                     if (member.bannable) {
                         await member.ban({ reason: `AutoMod IA: ${result.reason}` });
-                        await message.channel.send(`> **${message.author.toString()} a été banni.** Raison : ${result.reason}.`).then(msg => {
-                            setTimeout(() => msg.delete().catch(console.error), 10000);
-                        });
+                        const banMsg = await message.channel.send(`> **${message.author.toString()} a été banni.** Raison : ${result.reason}.`);
+                        addBotSentMessage(banMsg.id);
+                        setTimeout(() => banMsg.delete().catch(console.error), 10000);
                         recordSanction({
                             guild_id: message.guild.id,
                             user_id: member.id,

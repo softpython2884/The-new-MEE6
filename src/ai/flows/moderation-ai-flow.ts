@@ -35,7 +35,7 @@ export type ModerationAiInput = z.infer<typeof ModerationAiInputSchema>;
 export type ModerationAiOutput = z.infer<typeof ModerationAiOutputSchema>;
 
 export async function moderationAiFlow(input: ModerationAiInput): Promise<ModerationAiOutput> {
-  // Prevent analyzing very short, non-toxic messages
+    // Prevent analyzing very short, non-toxic messages
     if (input.messageContent.length < 3 && !/[*@_~`|]/.test(input.messageContent)) {
         return { isToxic: false, reason: '', severity: 'low', suggestedAction: 'none', suggestedDuration: undefined };
     }
@@ -51,13 +51,13 @@ const filterPrompt = ai.definePrompt({
 
 Your Core Directives:
 1.  **Context is King:** You are moderating a real, live community. Understand French internet slang, abbreviations, humor, sarcasm, and frustration. Use the provided conversation context to understand the flow of discussion.
-2.  **Focus on User-to-User Harm:** Prioritize flagging messages that are harmful from one user to another. Criticisms or jokes aimed at the bot itself (like "Mange le sol Marcus") should generally be ignored unless they are extremely vulgar.
+2.  **Focus on User-to-User Harm:** Prioritize flagging messages that are harmful from one user to another. Criticisms or jokes aimed at the bot itself (like "Mange le sol Marcus" or "omg marcus t la ?") should generally be ignored unless they are extremely vulgar.
 3.  **Be Cautious with Bot Commands:** Messages starting with prefixes like "!", "§", "%%", "?", "p!", "k!", or "^^" are *often* for other bots. However, users may try to hide insults behind them. Analyze the *entire message content*. If the message seems to be a genuine command (e.g., "^^play song"), ignore it. If it seems like an insult disguised as a command (e.g., "!grosse insulte"), flag it as toxic.
 4.  **Ignore Benign Content:** Do NOT flag the following unless they are clearly part of a targeted harassment campaign:
     - Simple spelling mistakes or grammatical errors.
     - Common chat acronyms (mdr, wtf, etc.).
     - Mild expressions of frustration or disappointment that are not personal attacks.
-    - Sarcasm or irony that isn't a direct personal attack (e.g., "Bande de gentilles personnes").
+    - Sarcasm or irony that isn't a direct personal attack (e.g., "Bande de gentilles personnes" or "mrc mec t trop sympa de m'insulter").
     - **Roleplay actions enclosed in asterisks**, like "*sort une arme*" or "*donne un coup*". These are for play and should not be treated as real threats.
 5.  **Consider User History:** Review the user's past sanctions. If they are a repeat offender, a more severe action might be warranted for a borderline message. If they have a clean record, be more lenient.
 6.  **When in Doubt, Do Nothing:** If a message is borderline or could be interpreted in multiple ways, err on the side of caution and set 'isToxic' to false. It's better to miss a borderline case than to incorrectly punish an innocent user.
@@ -90,9 +90,8 @@ Analysis Process:
 5.  If and ONLY IF the message is clearly toxic under these rules, set 'isToxic' to true. Otherwise, set it to false.
 6.  If toxic, provide a concise reason IN FRENCH (e.g., "Insulte directe", "Contenu haineux", "Harcèlement").
 7.  If toxic, determine a severity level ('low', 'medium', 'high', 'critical').
-8.  If toxic, suggest a proportionate action ('warn', 'delete', 'mute', 'kick', 'ban').
-9.  If action is 'mute', suggest a reasonable duration (e.g., '5m', '1h', '24h').
-10. If the message is NOT toxic, set 'isToxic' to false and 'suggestedAction' to 'none'.`,
+8.  If action is 'mute', suggest a reasonable duration (e.g., '5m', '1h', '24h').
+9.  If the message is NOT toxic, set 'isToxic' to false and 'suggestedAction' to 'none'.`,
 });
 
 const flow = ai.defineFlow(
@@ -103,6 +102,12 @@ const flow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await filterPrompt(input);
+    
+    // Final check: if the AI still flags a non-toxic message, override it.
+    if (output && !output.isToxic) {
+        return { isToxic: false, reason: '', severity: 'low', suggestedAction: 'none' };
+    }
+    
     return output!;
   }
 );

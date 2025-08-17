@@ -1,11 +1,11 @@
 
-import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags, ChannelType, OverwriteType, EmbedBuilder, TextChannel, ModalSubmitInteraction, Interaction } from 'discord.js';
+import { Client, GatewayIntentBits, Events, ActivityType, Collection, PermissionFlagsBits, MessageFlags, ChannelType, OverwriteType, EmbedBuilder, TextChannel, ModalSubmitInteraction, Interaction, ButtonInteraction, GuildMember } from 'discord.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { loadCommands, updateGuildCommands, deployGlobalCommands } from './handlers/commandHandler';
 import type { Command } from '@/types';
-import { initializeDatabase, syncGuilds, getServerConfig, setupDefaultConfigs } from '@/lib/db';
+import { initializeDatabase, syncGuilds, getServerConfig, setupDefaultConfigs, updateServerConfig } from '@/lib/db';
 import { startApi } from './api';
 import { initializeBotAuth } from './auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -218,6 +218,46 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     if (interaction.isButton()) {
         console.log(`[Interaction] Button clicked: ${interaction.customId}`);
         const { customId } = interaction;
+
+        // --- Handler for Anti-Bot Buttons ---
+        if (customId.startsWith('approve_bot_') || customId.startsWith('deny_bot_')) {
+            await interaction.deferUpdate();
+            const isApproval = customId.startsWith('approve_bot_');
+            const botId = customId.substring(isApproval ? 'approve_bot_'.length : 'deny_bot_'.length);
+
+            if (!interaction.guild || !interaction.member) return;
+            
+            // Permission check: only members with Administrator permissions can approve/deny.
+            if (!(interaction.member.permissions as any).has(PermissionFlagsBits.Administrator)) {
+                 await interaction.followUp({ content: 'Vous n\'avez pas la permission d\'effectuer cette action.', flags: MessageFlags.Ephemeral });
+                 return;
+            }
+            
+            const originalEmbed = interaction.message.embeds[0];
+            const newEmbed = EmbedBuilder.from(originalEmbed);
+
+            if (isApproval) {
+                const antibotConfig = await getServerConfig(interaction.guild.id, 'anti-bot');
+                const whitelistedBots = (antibotConfig?.whitelisted_bots as string[]) || [];
+                if (!whitelistedBots.includes(botId)) {
+                    whitelistedBots.push(botId);
+                    updateServerConfig(interaction.guild.id, 'anti-bot', { ...antibotConfig, whitelisted_bots: whitelistedBots });
+                }
+                newEmbed.setColor(0x00FF00).setFooter({ text: `Approuvé par ${interaction.user.tag}` });
+            } else { // Denial
+                try {
+                    const memberToKick = await interaction.guild.members.fetch(botId);
+                    await memberToKick.kick('Approbation de bot refusée.');
+                    newEmbed.setColor(0xFF0000).setFooter({ text: `Refusé et expulsé par ${interaction.user.tag}` });
+                } catch (error) {
+                    console.error(`[Anti-Bot] Failed to kick bot ${botId} on denial:`, error);
+                    newEmbed.setColor(0xFF0000).setFooter({ text: `Refusé par ${interaction.user.tag} (expulsion échouée)` });
+                }
+            }
+            // Disable buttons after action
+            await interaction.message.edit({ embeds: [newEmbed], components: [] });
+            return;
+        }
 
         // --- Handler for Suggestion Button ---
         if (customId === 'create_suggestion') {

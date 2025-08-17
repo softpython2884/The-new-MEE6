@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Combobox } from '@/components/ui/combobox';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -135,6 +136,16 @@ export default function ModerationPage() {
     return <ModerationPageSkeleton />;
   }
 
+  const channelOptions = [
+      { value: 'none', label: 'Désactivé' },
+      ...channels.map(c => ({ value: c.id, label: `# ${c.name}` }))
+  ];
+  
+  const roleOptions = [
+      { value: 'none', label: 'Admin seulement' },
+      ...roles.filter(r => r.name !== '@everyone').map(r => ({ value: r.id, label: r.name }))
+  ];
+
   return (
     <div className="space-y-8 text-white max-w-4xl">
       <div>
@@ -167,23 +178,15 @@ export default function ModerationPage() {
                     Le salon où envoyer les logs de modération.
                   </p>
                 </div>
-                 <Select 
+                 <Combobox
+                    options={channelOptions}
                     value={config.log_channel_id || 'none'}
-                    onValueChange={(value) => handleValueChange('log_channel_id', value === 'none' ? null : value)}
-                 >
-                    <SelectTrigger className="w-[240px]">
-                        <SelectValue placeholder="Sélectionner un salon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            <SelectLabel>Salons textuels</SelectLabel>
-                             <SelectItem value="none">Désactivé</SelectItem>
-                            {channels.map(channel => (
-                                <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
-                            ))}
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
+                    onChange={(value) => handleValueChange('log_channel_id', value === 'none' ? null : value)}
+                    placeholder="Sélectionner un salon"
+                    searchPlaceholder="Rechercher un salon..."
+                    emptyPlaceholder="Aucun salon trouvé."
+                    className="w-[240px]"
+                 />
               </div>
               <Separator/>
               <div className="flex items-center justify-between">
@@ -249,25 +252,14 @@ export default function ModerationPage() {
                         {command.name}
                     </Label>
                     <p className="text-xs text-muted-foreground">{command.description}</p>
-                    <Select
+                    <Combobox
+                        options={roleOptions}
                         value={config.command_permissions?.[command.key] || 'none'}
-                        onValueChange={(value) => handlePermissionChange(command.key, value === 'none' ? null : value)}
-                    >
-                        <SelectTrigger id={`role-select-${command.name}`} className="w-full">
-                            <SelectValue placeholder="Sélectionner un rôle" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                <SelectLabel>Rôle minimum requis</SelectLabel>
-                                <SelectItem value="none">Admin seulement</SelectItem>
-                                {roles.filter(r => r.name !== '@everyone').map(role => (
-                                    <SelectItem key={role.id} value={role.id}>
-                                        {role.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
+                        onChange={(value) => handlePermissionChange(command.key, value)}
+                        placeholder="Sélectionner un rôle"
+                        searchPlaceholder="Rechercher un rôle..."
+                        emptyPlaceholder="Aucun rôle trouvé."
+                     />
                 </div>
             ))}
         </CardContent>

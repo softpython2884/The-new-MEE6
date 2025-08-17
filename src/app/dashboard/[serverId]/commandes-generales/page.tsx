@@ -1,17 +1,16 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Wrench } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { Combobox } from '@/components/ui/combobox';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -115,14 +114,14 @@ export default function GeneralCommandsPage() {
         saveConfig({ ...config, command_enabled: newEnabled });
     };
 
-    const getRoleColor = (color: number) => {
-        if (color === 0) return '#99aab5';
-        return `#${color.toString(16).padStart(6, '0')}`;
-    }
-
     if (loading || !config || !serverData) {
         return <PageSkeleton />;
     }
+
+    const roleOptions = [
+        { value: 'none', label: '@everyone' },
+        ...serverData.roles.filter(r => r.name !== '@everyone').map(r => ({ value: r.id, label: r.name }))
+    ];
 
   return (
     <div className="space-y-8 text-white max-w-4xl">
@@ -180,27 +179,14 @@ export default function GeneralCommandsPage() {
                     <CardContent>
                         <div className="space-y-2">
                             <Label htmlFor={`role-select-${command.key}`} className="text-sm font-medium">Rôle minimum requis</Label>
-                            <Select 
+                            <Combobox
+                                options={roleOptions}
                                 value={config.command_permissions?.[command.key] || 'none'}
-                                onValueChange={(value) => handlePermissionChange(command.key, value)}
-                            >
-                                <SelectTrigger id={`role-select-${command.key}`} className="w-full">
-                                    <SelectValue placeholder="Sélectionner un rôle" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectItem value="none">@everyone</SelectItem>
-                                        {serverData.roles.filter(r => r.name !== '@everyone').map(role => (
-                                            <SelectItem key={role.id} value={role.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: getRoleColor(role.color) }}></span>
-                                                    {role.name}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
+                                onChange={(value) => handlePermissionChange(command.key, value)}
+                                placeholder="Sélectionner un rôle"
+                                searchPlaceholder="Rechercher un rôle..."
+                                emptyPlaceholder="Aucun rôle trouvé."
+                            />
                         </div>
                     </CardContent>
                 </Card>

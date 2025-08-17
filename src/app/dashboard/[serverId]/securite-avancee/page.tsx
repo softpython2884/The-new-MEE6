@@ -7,11 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { Combobox } from '@/components/ui/combobox';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -109,6 +109,11 @@ export default function AdvancedSecurityPage() {
         return <PageSkeleton />;
     }
 
+    const channelOptions = [
+        { value: 'none', label: 'Aucun' },
+        ...channels.map(c => ({ value: c.id, label: `# ${c.name}` }))
+    ];
+
     return (
         <div className="space-y-8 text-white max-w-4xl">
             <div>
@@ -140,18 +145,15 @@ export default function AdvancedSecurityPage() {
                                 Le salon où envoyer les notifications de sécurité.
                             </p>
                         </div>
-                        <Select value={config.alert_channel_id || 'none'} onValueChange={(val) => handleValueChange('alert_channel_id', val === 'none' ? null : val)}>
-                            <SelectTrigger id="alert-channel" className="w-full md:w-[280px]">
-                                <SelectValue placeholder="Sélectionner un salon" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Salons textuels</SelectLabel>
-                                    <SelectItem value="none">Aucun</SelectItem>
-                                    {channels.map(channel => <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>)}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
+                        <Combobox
+                            options={channelOptions}
+                            value={config.alert_channel_id || 'none'}
+                            onChange={(value) => handleValueChange('alert_channel_id', value === 'none' ? null : value)}
+                            placeholder="Sélectionner un salon"
+                            searchPlaceholder="Rechercher un salon..."
+                            emptyPlaceholder="Aucun salon trouvé."
+                            className="w-full md:w-[280px]"
+                        />
                     </div>
                 </CardContent>
             </Card>

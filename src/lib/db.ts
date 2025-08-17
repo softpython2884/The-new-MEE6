@@ -1,6 +1,5 @@
 
 
-
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -278,7 +277,8 @@ const defaultConfigs: DefaultConfigs = {
         raid_action: 'lockdown',
         link_scanner_enabled: false,
         link_scanner_action: 'delete',
-        alert_channel_id: null
+        alert_channel_id: null,
+        exempt_roles: []
     },
     'private-rooms': { 
         enabled: true, 

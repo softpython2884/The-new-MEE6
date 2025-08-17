@@ -45,7 +45,7 @@ export async function execute(member: GuildMember) {
         const dmEmbed = new EmbedBuilder()
             .setColor(0x3498DB)
             .setTitle('Processus de Vérification')
-            .setDescription(`Pour vérifier que vous êtes bien un humain, veuillez entrer le code ci-dessous dans le salon #${verificationChannel.name}.`)
+            .setDescription(`Pour vérifier que vous êtes bien un humain sur le serveur **${member.guild.name}**, veuillez entrer le code ci-dessous dans le salon #${verificationChannel.name}.`)
             .addFields({ name: 'Votre Code', value: `**\`${captchaCode}\`**` })
             .setFooter({ text: 'Ce code est sensible à la casse.'});
             

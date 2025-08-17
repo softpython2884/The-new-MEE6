@@ -69,77 +69,73 @@ export async function execute(message: Message) {
                 }
             }
             
-            // --- Take Action ONLY if severity is NOT low ---
-            if (result.severity !== 'low') {
-                // Delete the toxic message
-                try {
-                    await message.delete();
-                } catch(e: any) {
-                    if (e.code === 10008) { // Unknown Message
-                        console.log(`[Mod-AI] Tried to delete a message that was already deleted: ${message.id}`);
-                    } else {
-                        console.error(`[Mod-AI] Failed to delete message:`, e);
-                    }
+            // --- Take Action based on configuration for the detected severity ---
+             // Delete the toxic message
+            try {
+                await message.delete();
+            } catch(e: any) {
+                if (e.code === 10008) { // Unknown Message
+                    console.log(`[Mod-AI] Tried to delete a message that was already deleted: ${message.id}`);
+                } else {
+                    console.error(`[Mod-AI] Failed to delete message:`, e);
                 }
-                
-                // Apply sanction
-                const member = await message.guild.members.fetch(message.author.id).catch(() => null);
-                if (!member) return;
+            }
+            
+            // Apply sanction
+            const member = await message.guild.members.fetch(message.author.id).catch(() => null);
+            if (!member) return;
 
-                let durationMs: number | undefined = undefined;
+            let durationMs: number | undefined = undefined;
 
-                switch (action) {
-                    case 'warn':
-                        await message.channel.send(`> **${message.author.toString()}, attention.** Votre message a été jugé inapproprié. Raison : ${result.reason}.`).then(msg => {
+            switch (action) {
+                case 'warn':
+                    await message.channel.send(`> **${message.author.toString()}, attention.** Votre message a été jugé inapproprié. Raison : ${result.reason}.`).then(msg => {
+                        setTimeout(() => msg.delete().catch(console.error), 10000);
+                    });
+                    recordSanction({
+                        guild_id: message.guild.id,
+                        user_id: member.id,
+                        moderator_id: 'AUTOMOD_IA',
+                        action_type: 'warn',
+                        reason: `[IA] ${result.reason}`
+                    });
+                    break;
+                case 'mute_5m':
+                case 'mute_10m':
+                case 'mute_1h':
+                case 'mute_24h':
+                    const durationStr = action.split('_')[1];
+                    durationMs = ms(durationStr);
+                    if (member.moderatable) {
+                        await member.timeout(durationMs, `AutoMod IA: ${result.reason}`);
+                        await message.channel.send(`> **${message.author.toString()} a été rendu muet.** Raison : ${result.reason}.`).then(msg => {
                             setTimeout(() => msg.delete().catch(console.error), 10000);
                         });
                         recordSanction({
                             guild_id: message.guild.id,
                             user_id: member.id,
                             moderator_id: 'AUTOMOD_IA',
-                            action_type: 'warn',
+                            action_type: 'mute',
+                            reason: `[IA] ${result.reason}`,
+                            duration_seconds: durationMs / 1000
+                        });
+                    }
+                    break;
+                case 'ban':
+                    if (member.bannable) {
+                        await member.ban({ reason: `AutoMod IA: ${result.reason}` });
+                        await message.channel.send(`> **${message.author.toString()} a été banni.** Raison : ${result.reason}.`).then(msg => {
+                            setTimeout(() => msg.delete().catch(console.error), 10000);
+                        });
+                        recordSanction({
+                            guild_id: message.guild.id,
+                            user_id: member.id,
+                            moderator_id: 'AUTOMOD_IA',
+                            action_type: 'ban',
                             reason: `[IA] ${result.reason}`
                         });
-                        break;
-                    case 'mute_5m':
-                    case 'mute_10m':
-                    case 'mute_1h':
-                    case 'mute_24h':
-                        const durationStr = action.split('_')[1];
-                        durationMs = ms(durationStr);
-                        if (member.moderatable) {
-                            await member.timeout(durationMs, `AutoMod IA: ${result.reason}`);
-                            await message.channel.send(`> **${message.author.toString()} a été rendu muet.** Raison : ${result.reason}.`).then(msg => {
-                                setTimeout(() => msg.delete().catch(console.error), 10000);
-                            });
-                            recordSanction({
-                                guild_id: message.guild.id,
-                                user_id: member.id,
-                                moderator_id: 'AUTOMOD_IA',
-                                action_type: 'mute',
-                                reason: `[IA] ${result.reason}`,
-                                duration_seconds: durationMs / 1000
-                            });
-                        }
-                        break;
-                    case 'ban':
-                        if (member.bannable) {
-                            await member.ban({ reason: `AutoMod IA: ${result.reason}` });
-                            await message.channel.send(`> **${message.author.toString()} a été banni.** Raison : ${result.reason}.`).then(msg => {
-                                setTimeout(() => msg.delete().catch(console.error), 10000);
-                            });
-                            recordSanction({
-                                guild_id: message.guild.id,
-                                user_id: member.id,
-                                moderator_id: 'AUTOMOD_IA',
-                                action_type: 'ban',
-                                reason: `[IA] ${result.reason}`
-                            });
-                        }
-                        break;
-                }
-            } else {
-                 console.log(`[Mod-AI] Low severity detected. Alert sent but no action taken for message ${message.id}.`);
+                    }
+                    break;
             }
         }
 

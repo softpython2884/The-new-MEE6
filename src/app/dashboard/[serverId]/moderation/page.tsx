@@ -209,29 +209,42 @@ export default function ModerationPage() {
         <CardHeader>
           <CardTitle>Sanctions Prédéfinies</CardTitle>
           <CardDescription>
-            Configurez des sanctions rapides pour vos modérateurs.
+            Configurez des sanctions rapides pour vos modérateurs. Celles-ci seront disponibles dans les commandes.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {config.presets.map((preset, index) => (
             <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end p-4 border rounded-lg bg-card-foreground/5">
-              <Input label="Nom du preset" placeholder="Ex: Spam" value={preset.name} onChange={e => updatePreset(index, {...preset, name: e.target.value})} />
-              <Select value={preset.action} onValueChange={(val: any) => updatePreset(index, {...preset, action: val})}>
-                <SelectTrigger><SelectValue/></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="warn">Avertir</SelectItem>
-                  <SelectItem value="mute">Rendre Muet</SelectItem>
-                  <SelectItem value="kick">Expulser</SelectItem>
-                  <SelectItem value="ban">Bannir</SelectItem>
-                </SelectContent>
-              </Select>
-              {preset.action === 'mute' && (
-                <Input label="Durée" placeholder="Ex: 10m, 1h, 1d" value={preset.duration || ''} onChange={e => updatePreset(index, {...preset, duration: e.target.value})} />
-              )}
-              <div className={preset.action === 'mute' ? 'col-span-full md:col-span-1' : 'col-span-full md:col-span-2'}>
-                 <Input label="Raison" placeholder="Raison de la sanction" value={preset.reason} onChange={e => updatePreset(index, {...preset, reason: e.target.value})} />
+              <div className="space-y-1">
+                <Label className="text-xs">Nom du preset</Label>
+                <Input placeholder="Ex: Spam" value={preset.name} onChange={e => updatePreset(index, {...preset, name: e.target.value})} />
               </div>
-              <Button variant="ghost" size="icon" onClick={() => removePreset(index)}><Trash2 className="text-destructive"/></Button>
+              <div className="space-y-1">
+                 <Label className="text-xs">Action</Label>
+                <Select value={preset.action} onValueChange={(val: any) => updatePreset(index, {...preset, action: val})}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="warn">Avertir</SelectItem>
+                    <SelectItem value="mute">Rendre Muet</SelectItem>
+                    <SelectItem value="kick">Expulser</SelectItem>
+                    <SelectItem value="ban">Bannir</SelectItem>
+                    </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                 <Label className="text-xs">Raison</Label>
+                 <Input placeholder="Raison de la sanction" value={preset.reason} onChange={e => updatePreset(index, {...preset, reason: e.target.value})} />
+              </div>
+
+              <div className="flex items-end gap-2">
+                {preset.action === 'mute' && (
+                    <div className="space-y-1 flex-grow">
+                        <Label className="text-xs">Durée</Label>
+                        <Input placeholder="Ex: 10m, 1h" value={preset.duration || ''} onChange={e => updatePreset(index, {...preset, duration: e.target.value})} />
+                    </div>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => removePreset(index)}><Trash2 className="text-destructive"/></Button>
+              </div>
             </div>
           ))}
           <Button variant="outline" className="w-full" onClick={addPreset}><PlusCircle/>Ajouter une sanction</Button>

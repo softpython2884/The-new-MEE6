@@ -76,12 +76,12 @@ const MarcusCommand: Command = {
 
         for (const [category, commandList] of sortedCategories.entries()) {
             if (category !== 'uncategorized' && commandList.length > 0) {
-                 const commandDescriptions = commandList
-                    .map(cmd => `\`/${cmd.data.name}\` - ${cmd.data.description}`)
-                    .join('\n');
+                 const commandFields = commandList
+                    .map(cmd => ({ name: `\`/${cmd.data.name}\``, value: cmd.data.description, inline: true }));
 
-                if (commandDescriptions) {
-                     helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: commandDescriptions });
+                if (commandFields.length > 0) {
+                     helpEmbed.addFields({ name: `**${capitalize(category)}**`, value: '\u200B' }); // Add a blank field for category title
+                     helpEmbed.addFields(commandFields);
                 }
             }
         }

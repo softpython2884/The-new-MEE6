@@ -1,15 +1,17 @@
 
-import { Events, Guild, TextChannel, EmbedBuilder, ChannelType } from 'discord.js';
+import { Events, Guild, TextChannel, EmbedBuilder, ChannelType, Client } from 'discord.js';
 import { setupDefaultConfigs } from '@/lib/db';
+import { updateGuildCommands } from '../../handlers/commandHandler';
 
 /**
  * This event handler is triggered whenever the bot joins a new guild.
  * It ensures that the new guild is immediately set up with all the
- * default configurations for every module, and sends a welcome message.
+ * default configurations for every module, sends a welcome message,
+ * and deploys all guild-specific slash commands.
  */
 export const name = Events.GuildCreate;
 
-export async function execute(guild: Guild) {
+export async function execute(guild: Guild, client: Client) {
     console.log(`[+] Joined a new guild: ${guild.name} (${guild.id}).`);
     
     // --- 1. Setup Database ---
@@ -19,10 +21,15 @@ export async function execute(guild: Guild) {
         console.log(`[Database] Successfully set up default configurations for ${guild.name}.`);
     } catch (error) {
         console.error(`[Database] Failed to set up default configurations for guild ${guild.id}:`, error);
-        // We don't return here, we still want to try and send the message.
     }
+    
+    // --- 2. Deploy Guild Commands ---
+    // This is crucial to make commands available immediately on join.
+    console.log(`[Commands] Deploying commands for the new guild: ${guild.name}`);
+    await updateGuildCommands(guild.id, client);
 
-    // --- 2. Send Welcome Message ---
+
+    // --- 3. Send Welcome Message ---
     let welcomeChannel: TextChannel | undefined;
 
     // Find the first available text channel where we can send messages

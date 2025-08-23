@@ -69,7 +69,6 @@ export function Combobox({
                   key={option.value}
                   value={option.label}
                   onSelect={(currentValue) => {
-                    // Find the option that matches the case-insensitive selection
                     const matchedOption = options.find(opt => opt.label.toLowerCase() === currentValue.toLowerCase());
                     onChange(matchedOption ? matchedOption.value : "")
                     setOpen(false)

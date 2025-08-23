@@ -7,14 +7,6 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,10 +24,9 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { Switch } from '@/components/ui/switch';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { v4 as uuidv4 } from 'uuid';
+import { Combobox } from '@/components/ui/combobox';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -222,6 +213,15 @@ function RuleCard({ rule, roles, channels, onUpdate, onDelete }: { rule: AutoMod
         onUpdate({ ...rule, name, keywords: keywords.split(',').map(k => k.trim()).filter(Boolean) });
     };
 
+    const handleMultiSelectChange = (type: 'exempt_roles' | 'exempt_channels', newSelectedIds: string[]) => {
+        onUpdate({
+            ...rule,
+            name,
+            keywords: keywords.split(',').map(k => k.trim()).filter(Boolean),
+            [type]: newSelectedIds,
+        });
+    };
+
     return (
         <Card className="bg-card/50">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -241,11 +241,21 @@ function RuleCard({ rule, roles, channels, onUpdate, onDelete }: { rule: AutoMod
                 <div className="grid md:grid-cols-2 gap-4">
                      <div className="space-y-2">
                         <Label>Rôles exemptés</Label>
-                         <MultiSelect options={roles} selected={rule.exempt_roles} onSelectedChange={(selected) => onUpdate({...rule, name, keywords: keywords.split(',').map(k => k.trim()).filter(Boolean), exempt_roles: selected})} placeholder="Sélectionner des rôles..."/>
+                         <MultiSelectCombobox 
+                            options={roles.map(r => ({ value: r.id, label: r.name }))} 
+                            selected={rule.exempt_roles} 
+                            onSelectedChange={(selected) => handleMultiSelectChange('exempt_roles', selected)}
+                            placeholder="Sélectionner des rôles..."
+                         />
                     </div>
                      <div className="space-y-2">
                         <Label>Salons exemptés</Label>
-                        <MultiSelect options={channels} selected={rule.exempt_channels} onSelectedChange={(selected) => onUpdate({...rule, name, keywords: keywords.split(',').map(k => k.trim()).filter(Boolean), exempt_channels: selected})} placeholder="Sélectionner des salons..."/>
+                        <MultiSelectCombobox 
+                            options={channels.map(c => ({ value: c.id, label: `# ${c.name}` }))} 
+                            selected={rule.exempt_channels} 
+                            onSelectedChange={(selected) => handleMultiSelectChange('exempt_channels', selected)}
+                            placeholder="Sélectionner des salons..."
+                        />
                     </div>
                 </div>
             </CardContent>
@@ -307,47 +317,79 @@ function KeywordGenerator({ onGenerate }: { onGenerate: (keywords: string[]) => 
 }
 
 
-// --- MultiSelect Component ---
-function MultiSelect({ options, selected, onSelectedChange, placeholder }: { options: {id: string, name: string}[], selected: string[], onSelectedChange: (selected: string[]) => void, placeholder: string }) {
-    const handleToggle = (id: string) => {
-        const newSelected = selected.includes(id)
-            ? selected.filter(sId => sId !== id)
-            : [...selected, id];
+// --- MultiSelectCombobox Component ---
+function MultiSelectCombobox({ options, selected, onSelectedChange, placeholder }: { options: {value: string, label: string}[], selected: string[], onSelectedChange: (selected: string[]) => void, placeholder: string }) {
+    const [open, setOpen] = React.useState(false)
+
+    const handleToggle = (value: string) => {
+        const newSelected = selected.includes(value)
+            ? selected.filter(sId => sId !== value)
+            : [...selected, value];
         onSelectedChange(newSelected);
     };
 
-    const selectedNames = selected.map(id => options.find(o => o.id === id)?.name || id);
+    const selectedLabels = selected.map(id => options.find(o => o.id === id)?.label || id);
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                    <div className="flex-1 text-left truncate">
-                        {selected.length > 0
-                            ? selectedNames.map(name => <Badge key={name} variant="secondary" className="mr-1 mb-1">{name}</Badge>)
-                            : placeholder
-                        }
-                    </div>
-                    <ChevronDown className="ml-2 h-4 w-4" />
+         <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between h-auto min-h-10"
+                >
+                <div className="flex gap-1 flex-wrap">
+                    {selected.length > 0
+                        ? selected.map(value => (
+                            <Badge
+                                key={value}
+                                variant="secondary"
+                                className="mr-1"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggle(value);
+                                }}
+                            >
+                                {options.find(o => o.value === value)?.label || value}
+                            </Badge>
+                        ))
+                        : placeholder
+                    }
+                </div>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                <DropdownMenuLabel>Choisir les éléments</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {options.map(option => (
-                    <DropdownMenuCheckboxItem
-                        key={option.id}
-                        checked={selected.includes(option.id)}
-                        onCheckedChange={() => handleToggle(option.id)}
-                        onSelect={(e) => e.preventDefault()}
-                    >
-                        # {option.name}
-                    </DropdownMenuCheckboxItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                    <CommandInput placeholder="Rechercher..." />
+                    <CommandList>
+                        <CommandEmpty>Aucun résultat.</CommandEmpty>
+                        <CommandGroup>
+                        {options.map((option) => (
+                            <CommandItem
+                            key={option.value}
+                            onSelect={() => {
+                                handleToggle(option.value)
+                            }}
+                            >
+                            <Check
+                                className={cn(
+                                "mr-2 h-4 w-4",
+                                selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                                )}
+                            />
+                            {option.label}
+                            </CommandItem>
+                        ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
 }
+
 
 if (typeof window !== 'undefined') {
     (window as any).uuidv4 = uuidv4;

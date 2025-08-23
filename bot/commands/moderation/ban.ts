@@ -121,7 +121,7 @@ const BanCommand: Command = {
                             { name: 'Suppression des messages', value: `${deleteMessageDays} jour(s)`, inline: false }
                         )
                         .setTimestamp()
-                        .setFooter({ text: 'ID de l'utilisateur: ' + targetUser.id });
+                        .setFooter({ text: 'ID de l\'utilisateur: ' + targetUser.id });
                     
                     await logChannel.send({ embeds: [logEmbed] });
                 }

@@ -412,6 +412,15 @@ const defaultConfigs: DefaultConfigs = {
             leave: null,
             parle: null
         }
+    },
+    'announcements': {
+        enabled: true,
+        announcement_channel_id: null,
+        bot_announcement_channel_id: null,
+        command_permissions: {
+            announce: null,
+            adminannounce: null,
+        }
     }
 };
 

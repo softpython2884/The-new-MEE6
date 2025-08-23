@@ -33,6 +33,7 @@ import {
   TestTubeDiagonal,
   X,
   UserPlus,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ const navCategories = [
         items: [
             { href: 'commandes-generales', label: 'Commandes Générales', icon: Wrench },
             { href: 'identite', label: 'Identité du Bot', icon: UserSquare },
+            { href: 'annonces', label: 'Annonces', icon: Megaphone },
             { href: 'assistant-communautaire', label: 'Assistant Communautaire', icon: MessageSquare, isPremium: true },
             { href: 'suggestions', label: 'Suggestions', icon: Lightbulb },
             { href: 'traduction-automatique', label: 'Traduction Auto', icon: Languages },

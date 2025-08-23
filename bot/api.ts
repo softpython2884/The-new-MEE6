@@ -47,6 +47,20 @@ export function startApi(client: Client) {
             res.status(500).json({ error: "Erreur d'authentification interne du bot." });
         }
     };
+    
+    /**
+     * Middleware to check if AI features are globally disabled.
+     */
+    const checkGlobalAiStatus = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        const status = getGlobalAiStatus();
+        if (status.disabled) {
+            return res.status(503).json({ 
+                error: 'AI features are temporarily disabled by the administrator.',
+                reason: status.reason 
+            });
+        }
+        next();
+    };
 
 
     /**
@@ -276,7 +290,7 @@ export function startApi(client: Client) {
         }
     });
 
-    app.post('/api/personas/generate-prompt', async (req, res) => {
+    app.post('/api/personas/generate-prompt', checkGlobalAiStatus, async (req, res) => {
         const { name, instructions } = req.body;
         if (!name || !instructions) {
             return res.status(400).json({ error: 'Name and instructions are required.' });
@@ -289,7 +303,7 @@ export function startApi(client: Client) {
         }
     });
 
-    app.post('/api/personas/create', async (req, res) => {
+    app.post('/api/personas/create', checkGlobalAiStatus, async (req, res) => {
         const { guild_id, name, persona_prompt, creator_id } = req.body;
          if (!guild_id || !name || !persona_prompt || !creator_id) {
             return res.status(400).json({ error: 'Missing required fields for persona creation.' });
@@ -364,7 +378,7 @@ export function startApi(client: Client) {
     });
 
     // --- Keyword Generation API for Auto-Mod ---
-    app.post('/api/generate-keywords', async (req, res) => {
+    app.post('/api/generate-keywords', checkGlobalAiStatus, async (req, res) => {
         const { prompt } = req.body;
         if (!prompt) {
             return res.status(400).json({ error: 'Prompt is required.' });
@@ -378,7 +392,7 @@ export function startApi(client: Client) {
         }
     });
 
-    app.post('/api/add-knowledge-item/:guildId', async (req, res) => {
+    app.post('/api/add-knowledge-item/:guildId', checkGlobalAiStatus, async (req, res) => {
         const { guildId } = req.params;
         const { userQuestion, agentResponse } = req.body;
 

@@ -1,7 +1,7 @@
 
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, TextChannel, Client } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, TextChannel, Client, SystemChannelFlagsBitField, SystemChannelFlags, APIPartialChannel } from 'discord.js';
 import type { Command } from '@/types';
-import { getServerConfig, getAllBotServers } from '@/lib/db';
+import { getServerConfig, getAllBotServers, getGlobalAiStatus } from '@/lib/db';
 import { announcementFlow } from '@/ai/flows/announcement-flow';
 
 const OWNER_ID = '556529963877138442';
@@ -18,11 +18,26 @@ const AdminAnnounceCommand: Command = {
         .addBooleanOption(option =>
             option.setName('use_ia')
                 .setDescription('Mettre en forme le message avec l\'IA ? (Oui par défaut)')
-                .setRequired(false)),
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('langue')
+                .setDescription('Traduire l\'annonce dans une langue spécifique ? (Optionnel)')
+                .setRequired(false)
+                 .addChoices(
+                    { name: 'Anglais', value: 'English' },
+                    { name: 'Français', value: 'French' },
+                    { name: 'Espagnol', value: 'Spanish' }
+                )),
 
     async execute(interaction: ChatInputCommandInteraction) {
         if (interaction.user.id !== OWNER_ID) {
             await interaction.reply({ content: 'Cette commande est réservée au propriétaire du bot.', ephemeral: true });
+            return;
+        }
+        
+        const globalAiStatus = getGlobalAiStatus();
+        if (globalAiStatus.disabled) {
+            await interaction.reply({ content: `Les fonctionnalités IA sont désactivées globalement. Raison : ${globalAiStatus.reason}`, ephemeral: true });
             return;
         }
 
@@ -30,6 +45,7 @@ const AdminAnnounceCommand: Command = {
         
         const rawText = interaction.options.getString('message', true);
         const useIA = interaction.options.getBoolean('use_ia') ?? true;
+        const targetLanguage = interaction.options.getString('langue');
         const client = interaction.client;
 
         let title = 'Annonce Importante';
@@ -40,6 +56,7 @@ const AdminAnnounceCommand: Command = {
                 const result = await announcementFlow({
                     rawText,
                     authorName: interaction.user.username,
+                    targetLanguage: targetLanguage || undefined,
                 });
                 title = `📢 ${result.title}`;
                 description = result.description;
@@ -62,22 +79,57 @@ const AdminAnnounceCommand: Command = {
 
         await interaction.editReply({ content: `Envoi de l'annonce à ${allServers.length} serveurs...` });
 
-        for (const server of allServers) {
+        for (const serverId of allServers.map(s => s.id)) {
             try {
-                const config = await getServerConfig(server.id, 'announcements');
+                const guild = await client.guilds.fetch(serverId).catch(() => null);
+                if (!guild) {
+                    failCount++;
+                    continue;
+                }
+
+                const config = await getServerConfig(guild.id, 'announcements');
+                let targetChannel: TextChannel | null = null;
+                let isFallback = false;
+
+                // 1. Try dedicated announcement channel
                 if (config && config.bot_announcement_channel_id) {
-                    const channel = await client.channels.fetch(config.bot_announcement_channel_id) as TextChannel;
-                    if (channel) {
-                        await channel.send({ embeds: [embed] });
-                        successCount++;
-                    } else {
-                        failCount++;
+                    targetChannel = await client.channels.fetch(config.bot_announcement_channel_id).catch(() => null) as TextChannel;
+                }
+
+                // 2. If not found, try welcome channel
+                if (!targetChannel) {
+                    const welcomeConfig = await getServerConfig(guild.id, 'welcome-message');
+                    if (welcomeConfig && welcomeConfig.welcome_channel_id) {
+                         targetChannel = await client.channels.fetch(welcomeConfig.welcome_channel_id).catch(() => null) as TextChannel;
+                         if (targetChannel) isFallback = true;
                     }
+                }
+                
+                // 3. If not found, try system channel
+                if (!targetChannel && guild.systemChannel && !guild.systemChannel.flags.has(SystemChannelFlags.SuppressJoinNotifications)) {
+                     targetChannel = guild.systemChannel;
+                     if (targetChannel) isFallback = true;
+                }
+
+                // 4. If not found, find first writable text channel
+                if (!targetChannel) {
+                    targetChannel = guild.channels.cache.find(c => c.type === 0 && c.permissionsFor(guild.members.me!)?.has('SendMessages')) as TextChannel;
+                     if (targetChannel) isFallback = true;
+                }
+                
+                // Send the message
+                if (targetChannel) {
+                    let messageContent = isFallback 
+                        ? "Message de l'équipe du bot (veuillez configurer un salon d'annonce dédié via le panel pour éviter ce message)." 
+                        : "";
+                    await targetChannel.send({ content: messageContent, embeds: [embed] });
+                    successCount++;
                 } else {
                     failCount++;
                 }
+
             } catch (error) {
-                console.warn(`[AdminAnnounce] Impossible d'envoyer l'annonce au serveur ${server.id}:`, error);
+                console.warn(`[AdminAnnounce] Impossible d'envoyer l'annonce au serveur ${serverId}:`, error);
                 failCount++;
             }
         }

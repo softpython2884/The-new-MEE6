@@ -1,7 +1,7 @@
 
 import { SlashCommandBuilder, PermissionFlagsBits, ChatInputCommandInteraction, EmbedBuilder, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import type { Command } from '../../../src/types';
-import { getServerConfig } from '../../../src/lib/db';
+import { getServerConfig, getGlobalAiStatus } from '../../../src/lib/db';
 import { generateTextContent, generateImage } from '../../../src/ai/flows/content-creation-flow';
 
 const IAContentCommand: Command = {
@@ -37,6 +37,12 @@ const IAContentCommand: Command = {
     async execute(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild) {
             await interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un serveur.', flags: MessageFlags.Ephemeral });
+            return;
+        }
+        
+        const globalAiStatus = getGlobalAiStatus();
+        if (globalAiStatus.disabled) {
+            await interaction.reply({ content: `Les fonctionnalités IA sont désactivées globalement. Raison : ${globalAiStatus.reason}`, ephemeral: true });
             return;
         }
 

@@ -10,6 +10,7 @@ import { initializeDatabase, syncGuilds, getServerConfig, setupDefaultConfigs, u
 import { startApi } from './api';
 import { initializeBotAuth } from './auth';
 import { v4 as uuidv4 } from 'uuid';
+import { startVoiceXPInterval } from './events/leveling/voiceXP';
 
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -111,6 +112,9 @@ client.once(Events.ClientReady, async (readyClient) => {
     for (const guild of readyClient.guilds.cache.values()) {
         await updateGuildCommands(guild.id, client);
     }
+    
+    // Start interval for voice XP gain
+    startVoiceXPInterval(client);
 
     // Start the API for the web panel
     startApi(client);

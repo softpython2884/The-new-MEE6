@@ -33,7 +33,6 @@ interface AgentConfig {
     custom_prompt: string;
     knowledge_base: KnowledgeBaseItem[];
     dedicated_channel_id: string | null;
-    engagement_module_enabled: boolean;
     allow_imagination: boolean;
     allow_freewheeling: boolean;
 }
@@ -224,16 +223,6 @@ function AgentPageContent({ isPremium, serverId }: { isPremium: boolean, serverI
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <Label htmlFor="enable-engagement" className="font-bold">Engagement proactif</Label>
-                                <p className="text-sm text-muted-foreground/80">
-                                    Si le salon est calme, l'agent pourra suggérer des jeux ou des sujets de discussion. (Bientôt)
-                                </p>
-                            </div>
-                            <Switch id="enable-engagement" checked={config.engagement_module_enabled ?? false} onCheckedChange={(val) => handleValueChange('engagement_module_enabled', val)} disabled />
-                        </div>
-                        <Separator />
                          <div className="flex items-center justify-between">
                             <div>
                                 <Label htmlFor="enable-imagination" className="font-bold">Autoriser l'imagination</Label>

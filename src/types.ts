@@ -47,7 +47,8 @@ export type Module =
     | 'security-alerts'
     | 'moveall'
     | 'manual-voice-control'
-    | 'announcements';
+    | 'announcements'
+    | 'leveling';
 
 export interface ModuleConfig {
   [key: string]: any; // Pour une flexibilité maximale
@@ -122,4 +123,21 @@ export interface AutoSanction {
     warn_count: number;
     action: 'mute' | 'kick' | 'ban';
     duration?: string;
+}
+
+export interface RoleReward {
+    level: number;
+    role_id: string;
+}
+
+export interface XPBoost {
+    role_id: string;
+    channel_id: string;
+    multiplier: number;
+}
+
+export interface UserLevel {
+    xp: number;
+    level: number;
+    requiredXp: number;
 }

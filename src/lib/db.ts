@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { Client } from 'discord.js';
-import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory, SanctionHistoryEntry, KnowledgeBaseItem, SanctionPreset, AutoSanction } from '../types';
+import type { Module, ModuleConfig, DefaultConfigs, Persona, PersonaMemory, SanctionHistoryEntry, KnowledgeBaseItem, SanctionPreset, AutoSanction, RoleReward, XPBoost, UserLevel } from '../types';
 import { randomBytes } from 'crypto';
 
 // Assurez-vous que le répertoire de la base de données existe
@@ -130,6 +130,18 @@ const upgradeSchema = () => {
         `);
         console.log('[Database] La table "premium_keys" est prête.');
 
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS user_levels (
+                user_id TEXT NOT NULL,
+                guild_id TEXT NOT NULL,
+                xp INTEGER NOT NULL DEFAULT 0,
+                level INTEGER NOT NULL DEFAULT 0,
+                last_message_timestamp DATETIME,
+                PRIMARY KEY (user_id, guild_id)
+            );
+        `);
+        console.log('[Database] La table "user_levels" est prête.');
+
 
     } catch (error) {
         console.error('[Database] Erreur lors de la mise à jour du schéma:', error);
@@ -184,6 +196,7 @@ const defaultConfigs: DefaultConfigs = {
             marcus: true,
             traduire: true,
             say: true,
+            level: true,
         }
     },
     'community-assistant': {
@@ -258,7 +271,8 @@ const defaultConfigs: DefaultConfigs = {
         enabled: false, 
         sensitivity: 'medium',
         premium: true,
-        exempt_roles: []
+        exempt_roles: [],
+        exempt_channels: []
     },
     'moderation-ai': { 
         enabled: false,
@@ -267,6 +281,7 @@ const defaultConfigs: DefaultConfigs = {
         alert_role_id: null,
         sensitivity: 'medium',
         exempt_roles: [],
+        exempt_channels: [],
         actions: {
             low: 'warn',
             medium: 'mute_5m',
@@ -362,7 +377,6 @@ const defaultConfigs: DefaultConfigs = {
         custom_prompt: '',
         knowledge_base: [],
         dedicated_channel_id: null,
-        engagement_module_enabled: false,
         allow_imagination: false,
         allow_freewheeling: false,
     },
@@ -421,6 +435,19 @@ const defaultConfigs: DefaultConfigs = {
             announce: null,
             adminannounce: null,
         }
+    },
+    'leveling': {
+        enabled: true,
+        xp_per_message: 15,
+        xp_per_minute_in_voice: 10,
+        cooldown_seconds: 60,
+        level_up_message: 'Félicitations {user}, vous avez atteint le niveau {level} !',
+        level_up_channel_id: null,
+        level_card_background_url: null,
+        ignored_channels: [],
+        role_rewards: [],
+        xp_boost_roles: [],
+        xp_boost_channels: [],
     }
 };
 
@@ -776,4 +803,58 @@ export function unlockChannel(channelId: string): string | null {
         return row.original_permissions;
     }
     return null;
+}
+
+// --- Leveling System ---
+const calculateRequiredXp = (level: number) => 5 * (level ** 2) + 50 * level + 100;
+
+export function getUserLevel(userId: string, guildId: string): UserLevel {
+    let stmt = db.prepare('SELECT xp, level FROM user_levels WHERE user_id = ? AND guild_id = ?');
+    let user = stmt.get(userId, guildId) as { xp: number, level: number } | undefined;
+    
+    if (!user) {
+        user = { xp: 0, level: 0 };
+    }
+
+    return {
+        ...user,
+        requiredXp: calculateRequiredXp(user.level),
+    };
+}
+
+export function updateUserXP(userId: string, guildId: string, xpToAdd: number) {
+    const stmt = db.prepare(`
+        INSERT INTO user_levels (user_id, guild_id, xp, level)
+        VALUES (?, ?, ?, 0)
+        ON CONFLICT(user_id, guild_id) DO UPDATE SET
+        xp = xp + excluded.xp;
+    `);
+    stmt.run(userId, guildId, xpToAdd);
+
+    // Check for level up
+    const { xp, level } = getUserLevel(userId, guildId);
+    const requiredXp = calculateRequiredXp(level);
+    
+    if (xp >= requiredXp) {
+        let newLevel = level;
+        let currentXp = xp;
+        while(currentXp >= calculateRequiredXp(newLevel)) {
+            newLevel++;
+        }
+        
+        const updateLevelStmt = db.prepare('UPDATE user_levels SET level = ? WHERE user_id = ? AND guild_id = ?');
+        updateLevelStmt.run(newLevel, userId, guildId);
+
+        // TODO: Trigger level up event
+        console.log(`[Leveling] ${userId} has leveled up to level ${newLevel} in guild ${guildId}!`);
+    }
+}
+
+export function getUserRank(userId: string, guildId: string): number {
+    const stmt = db.prepare(`
+        SELECT COUNT(*) + 1 as rank FROM user_levels
+        WHERE guild_id = ? AND (xp > (SELECT xp FROM user_levels WHERE user_id = ? AND guild_id = ?))
+    `);
+    const result = stmt.get(guildId, userId, guildId) as { rank: number } | undefined;
+    return result?.rank || 1;
 }

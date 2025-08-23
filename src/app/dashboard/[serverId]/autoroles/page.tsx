@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,12 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Voicemail } from 'lucide-react';
+import { Voicemail } from 'lucide-react';
+import { MultiSelectCombobox } from '@/components/ui/multi-select-combobox';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -117,18 +116,11 @@ export default function AutorolesPage() {
         saveConfig({ ...config, [key]: value });
     };
 
-    const handleRoleToggle = (list: 'on_join_roles' | 'on_voice_join_roles', roleId: string) => {
-        if (!config) return;
-        const currentRoles = config[list] || [];
-        const newRoles = currentRoles.includes(roleId)
-            ? currentRoles.filter(id => id !== roleId)
-            : [...currentRoles, roleId];
-        handleValueChange(list, newRoles);
-    };
-
     if (loading || !config) {
         return <AutorolesPageSkeleton />;
     }
+
+    const roleOptions = roles.map(r => ({ value: r.id, label: r.name }));
 
     return (
         <div className="space-y-8 text-white max-w-4xl">
@@ -159,34 +151,12 @@ export default function AutorolesPage() {
                 <CardContent className="space-y-6">
                     <div className="space-y-2">
                         <Label htmlFor="join-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles à attribuer</Label>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between">
-                                    <div className="flex-1 text-left truncate">
-                                        {config.on_join_roles.length > 0
-                                            ? config.on_join_roles.map(id => (
-                                                <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
-                                            ))
-                                            : "Sélectionner des rôles..."}
-                                    </div>
-                                    <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {roles.map(role => (
-                                    <DropdownMenuCheckboxItem
-                                        key={role.id}
-                                        checked={config.on_join_roles.includes(role.id)}
-                                        onCheckedChange={() => handleRoleToggle('on_join_roles', role.id)}
-                                        onSelect={(e) => e.preventDefault()}
-                                    >
-                                        {role.name}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <MultiSelectCombobox
+                            options={roleOptions}
+                            selected={config.on_join_roles || []}
+                            onSelectedChange={(selected) => handleValueChange('on_join_roles', selected)}
+                            placeholder="Sélectionner des rôles..."
+                        />
                     </div>
                 </CardContent>
             </Card>
@@ -204,34 +174,12 @@ export default function AutorolesPage() {
                 <CardContent className="space-y-6">
                     <div className="space-y-2">
                         <Label htmlFor="voice-join-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles à attribuer</Label>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between">
-                                    <div className="flex-1 text-left truncate">
-                                        {config.on_voice_join_roles.length > 0
-                                            ? config.on_voice_join_roles.map(id => (
-                                                <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
-                                            ))
-                                            : "Sélectionner des rôles..."}
-                                    </div>
-                                    <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {roles.map(role => (
-                                    <DropdownMenuCheckboxItem
-                                        key={role.id}
-                                        checked={config.on_voice_join_roles.includes(role.id)}
-                                        onCheckedChange={() => handleRoleToggle('on_voice_join_roles', role.id)}
-                                        onSelect={(e) => e.preventDefault()}
-                                    >
-                                        {role.name}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                         <MultiSelectCombobox
+                            options={roleOptions}
+                            selected={config.on_voice_join_roles || []}
+                            onSelectedChange={(selected) => handleValueChange('on_voice_join_roles', selected)}
+                            placeholder="Sélectionner des rôles..."
+                        />
                     </div>
                 </CardContent>
             </Card>

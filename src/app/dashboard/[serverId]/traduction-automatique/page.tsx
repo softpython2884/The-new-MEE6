@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,11 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Trash2, PlusCircle } from 'lucide-react';
+import { MultiSelectCombobox } from '@/components/ui/multi-select-combobox';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -75,23 +75,6 @@ function AutoTranslatePageContent({ serverId }: { serverId: string }) {
         if (!config) return;
         saveConfig({ ...config, [key]: value });
     };
-    
-    const handleChannelChange = (index: number, channelId: string) => {
-        if (!config) return;
-        const newChannels = [...config.channels];
-        newChannels[index] = channelId;
-        handleValueChange('channels', newChannels);
-    };
-
-    const addChannel = () => {
-        if (!config) return;
-        handleValueChange('channels', [...config.channels, '']);
-    };
-    
-    const removeChannel = (index: number) => {
-        if (!config) return;
-        handleValueChange('channels', config.channels.filter((_, i) => i !== index));
-    };
 
     if (loading || !config) {
         return <Skeleton className="h-72 w-full" />;
@@ -134,34 +117,19 @@ function AutoTranslatePageContent({ serverId }: { serverId: string }) {
                     </Select>
                 </div>
                 <Separator/>
-                <div className="space-y-4">
+                <div className="space-y-2">
                     <div>
                         <Label htmlFor="translation-channels" className="font-bold text-sm uppercase text-muted-foreground">Salons de traduction</Label>
                         <p className="text-sm text-muted-foreground/80">
                             Salons où la traduction sera active.
                         </p>
                     </div>
-                    {config.channels.map((channelId, index) => (
-                         <div key={index} className="flex items-center gap-2">
-                            <Select value={channelId} onValueChange={(id) => handleChannelChange(index, id)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Sélectionner un salon..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectLabel>Salons textuels</SelectLabel>
-                                        {allChannels.map(channel => (
-                                            <SelectItem key={channel.id} value={channel.id}># {channel.name}</SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                            <Button variant="ghost" size="icon" onClick={() => removeChannel(index)}>
-                                <Trash2 className="w-4 h-4 text-destructive"/>
-                            </Button>
-                        </div>
-                    ))}
-                    <Button variant="outline" size="sm" onClick={addChannel}><PlusCircle className="mr-2 h-4 w-4"/>Ajouter un salon</Button>
+                    <MultiSelectCombobox
+                        options={allChannels.map(c => ({ value: c.id, label: `# ${c.name}` }))}
+                        selected={config.channels || []}
+                        onSelectedChange={(selected) => handleValueChange('channels', selected)}
+                        placeholder="Sélectionner des salons..."
+                    />
                 </div>
             </CardContent>
         </Card>

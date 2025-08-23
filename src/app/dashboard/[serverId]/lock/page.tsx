@@ -1,19 +1,18 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Lock, ChevronDown, Trash2, PlusCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { MultiSelectCombobox } from '@/components/ui/multi-select-combobox';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -122,14 +121,6 @@ export default function LockPage() {
         handleValueChange('command_permissions', newPermissions);
     };
 
-    const handleRoleToggle = (roleId: string) => {
-        if (!config) return;
-        const newExemptRoles = config.exempt_roles.includes(roleId)
-            ? config.exempt_roles.filter(id => id !== roleId)
-            : [...config.exempt_roles, roleId];
-        handleValueChange('exempt_roles', newExemptRoles);
-    };
-
     if (loading || !config) {
         return <LockPageSkeleton />;
     }
@@ -169,34 +160,12 @@ export default function LockPage() {
                         <p className="text-sm text-muted-foreground/80">
                             Les utilisateurs avec ces rôles pourront toujours parler dans les salons verrouillés.
                         </p>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between">
-                                    <div className="flex-1 text-left truncate">
-                                        {config.exempt_roles.length > 0 
-                                            ? config.exempt_roles.map(id => (
-                                                <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
-                                            ))
-                                            : "Sélectionner des rôles..."}
-                                    </div>
-                                    <ChevronDown className="ml-2 h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {roles.map(role => (
-                                    <DropdownMenuCheckboxItem
-                                        key={role.id}
-                                        checked={config.exempt_roles.includes(role.id)}
-                                        onCheckedChange={() => handleRoleToggle(role.id)}
-                                        onSelect={(e) => e.preventDefault()} // Prevent closing menu on select
-                                    >
-                                        {role.name}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <MultiSelectCombobox
+                            options={roles.map(r => ({ value: r.id, label: r.name }))}
+                            selected={config.exempt_roles || []}
+                            onSelectedChange={(selected) => handleValueChange('exempt_roles', selected)}
+                            placeholder="Sélectionner des rôles..."
+                        />
                     </div>
                 </CardContent>
             </Card>

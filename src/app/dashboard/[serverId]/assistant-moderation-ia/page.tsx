@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,10 +22,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { ChevronDown } from 'lucide-react';
 import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
+import { MultiSelectCombobox } from '@/components/ui/multi-select-combobox';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -36,6 +35,7 @@ interface ModAssistantConfig {
     alert_role_id: string | null;
     sensitivity: 'low' | 'medium' | 'high';
     exempt_roles: string[];
+    exempt_channels: string[];
     actions: {
         low: string;
         medium: string;
@@ -130,14 +130,6 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
         handleValueChange('actions', newActions);
     };
 
-     const handleRoleToggle = (roleId: string) => {
-        if (!config) return;
-        const newExemptRoles = config.exempt_roles.includes(roleId)
-            ? config.exempt_roles.filter(id => id !== roleId)
-            : [...config.exempt_roles, roleId];
-        handleValueChange('exempt_roles', newExemptRoles);
-    };
-
     if (loading || !config) {
         return <Skeleton className="h-96 w-full" />;
     }
@@ -223,39 +215,25 @@ function ModAssistantPageContent({ isPremium }: { isPremium: boolean }) {
                                     </SelectContent>
                                 </Select>
                             </div>
-                             <div className="space-y-2 pt-2">
-                                <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés</Label>
-                                 <p className="text-sm text-muted-foreground/80">
-                                    Les messages des utilisateurs avec ces rôles ne seront pas analysés.
-                                </p>
-                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-between">
-                                            <div className="flex-1 text-left truncate">
-                                                {config.exempt_roles.length > 0 
-                                                    ? config.exempt_roles.map(id => (
-                                                        <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
-                                                    ))
-                                                    : "Sélectionner des rôles..."}
-                                            </div>
-                                            <ChevronDown className="ml-2 h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                        <DropdownMenuLabel>Choisir les rôles à exempter</DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        {roles.map(role => (
-                                            <DropdownMenuCheckboxItem
-                                                key={role.id}
-                                                checked={config.exempt_roles.includes(role.id)}
-                                                onCheckedChange={() => handleRoleToggle(role.id)}
-                                                onSelect={(e) => e.preventDefault()}
-                                            >
-                                                {role.name}
-                                            </DropdownMenuCheckboxItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                            <div className="grid md:grid-cols-2 gap-4 pt-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="exempt-roles" className="font-bold text-sm">Rôles exemptés</Label>
+                                    <MultiSelectCombobox
+                                        options={roles.map(r => ({ value: r.id, label: r.name }))}
+                                        selected={config.exempt_roles || []}
+                                        onSelectedChange={(selected) => handleValueChange('exempt_roles', selected)}
+                                        placeholder="Sélectionner des rôles..."
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="exempt-channels" className="font-bold text-sm">Salons exemptés</Label>
+                                    <MultiSelectCombobox
+                                        options={channels.map(c => ({ value: c.id, label: `# ${c.name}` }))}
+                                        selected={config.exempt_channels || []}
+                                        onSelectedChange={(selected) => handleValueChange('exempt_channels', selected)}
+                                        placeholder="Sélectionner des salons..."
+                                    />
+                                </div>
                             </div>
                         </div>
                          <Separator/>

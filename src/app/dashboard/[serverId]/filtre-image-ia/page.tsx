@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,10 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { ChevronDown } from 'lucide-react';
 import { GlobalAiStatusAlert } from '@/components/global-ai-status-alert';
+import { MultiSelectCombobox } from '@/components/ui/multi-select-combobox';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -25,8 +24,13 @@ interface ImageFilterConfig {
     enabled: boolean;
     sensitivity: 'low' | 'medium' | 'high';
     exempt_roles: string[];
+    exempt_channels: string[];
 }
-
+interface DiscordChannel {
+    id: string;
+    name: string;
+    type: number;
+}
 interface DiscordRole {
     id: string;
     name: string;
@@ -38,6 +42,7 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
     const { toast } = useToast();
 
     const [config, setConfig] = useState<ImageFilterConfig | null>(null);
+    const [channels, setChannels] = useState<DiscordChannel[]>([]);
     const [roles, setRoles] = useState<DiscordRole[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -57,6 +62,7 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
                 const serverDetailsData = await serverDetailsRes.json();
                 
                 setConfig(configData);
+                setChannels(serverDetailsData.channels.filter((c: DiscordChannel) => c.type === 0));
                 setRoles(serverDetailsData.roles.filter((r: DiscordRole) => r.name !== '@everyone'));
 
             } catch (error) {
@@ -84,14 +90,6 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
     const handleValueChange = (key: keyof ImageFilterConfig, value: any) => {
         if (!config) return;
         saveConfig({ ...config, [key]: value });
-    };
-
-    const handleRoleToggle = (roleId: string) => {
-        if (!config) return;
-        const newExemptRoles = config.exempt_roles.includes(roleId)
-            ? config.exempt_roles.filter(id => id !== roleId)
-            : [...config.exempt_roles, roleId];
-        handleValueChange('exempt_roles', newExemptRoles);
     };
 
     if (loading || !config) {
@@ -142,39 +140,25 @@ function ImageFilterPageContent({ isPremium }: { isPremium: boolean }) {
                     </Select>
                 </div>
                  <Separator/>
-                 <div className="space-y-2">
-                    <Label htmlFor="exempt-roles" className="font-bold text-sm uppercase text-muted-foreground">Rôles exemptés</Label>
-                    <p className="text-sm text-muted-foreground/80">
-                        Les images envoyées par les utilisateurs avec ces rôles ne seront pas analysées.
-                    </p>
-                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-full justify-between">
-                                <div className="flex-1 text-left truncate">
-                                    {config.exempt_roles.length > 0 
-                                        ? config.exempt_roles.map(id => (
-                                            <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
-                                        ))
-                                        : "Sélectionner des rôles..."}
-                                </div>
-                                <ChevronDown className="ml-2 h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                            <DropdownMenuLabel>Choisir les rôles à exempter</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {roles.map(role => (
-                                <DropdownMenuCheckboxItem
-                                    key={role.id}
-                                    checked={config.exempt_roles.includes(role.id)}
-                                    onCheckedChange={() => handleRoleToggle(role.id)}
-                                    onSelect={(e) => e.preventDefault()}
-                                >
-                                    {role.name}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                 <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="exempt-roles" className="font-bold text-sm">Rôles exemptés</Label>
+                        <MultiSelectCombobox
+                            options={roles.map(r => ({ value: r.id, label: r.name }))}
+                            selected={config.exempt_roles || []}
+                            onSelectedChange={(selected) => handleValueChange('exempt_roles', selected)}
+                            placeholder="Sélectionner des rôles..."
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="exempt-channels" className="font-bold text-sm">Salons exemptés</Label>
+                        <MultiSelectCombobox
+                            options={channels.map(c => ({ value: c.id, label: `# ${c.name}` }))}
+                            selected={config.exempt_channels || []}
+                            onSelectedChange={(selected) => handleValueChange('exempt_channels', selected)}
+                            placeholder="Sélectionner des salons..."
+                        />
+                    </div>
                 </div>
             </CardContent>
         </Card>

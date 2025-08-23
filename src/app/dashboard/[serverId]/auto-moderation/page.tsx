@@ -24,9 +24,8 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { v4 as uuidv4 } from 'uuid';
-import { Combobox } from '@/components/ui/combobox';
+import { MultiSelectCombobox } from '@/components/ui/multi-select-combobox';
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
 
@@ -315,81 +314,6 @@ function KeywordGenerator({ onGenerate }: { onGenerate: (keywords: string[]) => 
         </Dialog>
     );
 }
-
-
-// --- MultiSelectCombobox Component ---
-function MultiSelectCombobox({ options, selected, onSelectedChange, placeholder }: { options: {value: string, label: string}[], selected: string[], onSelectedChange: (selected: string[]) => void, placeholder: string }) {
-    const [open, setOpen] = React.useState(false)
-
-    const handleToggle = (value: string) => {
-        const newSelected = selected.includes(value)
-            ? selected.filter(sId => sId !== value)
-            : [...selected, value];
-        onSelectedChange(newSelected);
-    };
-
-    const selectedLabels = selected.map(id => options.find(o => o.id === id)?.label || id);
-
-    return (
-         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-full justify-between h-auto min-h-10"
-                >
-                <div className="flex gap-1 flex-wrap">
-                    {selected.length > 0
-                        ? selected.map(value => (
-                            <Badge
-                                key={value}
-                                variant="secondary"
-                                className="mr-1"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggle(value);
-                                }}
-                            >
-                                {options.find(o => o.value === value)?.label || value}
-                            </Badge>
-                        ))
-                        : placeholder
-                    }
-                </div>
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                <Command>
-                    <CommandInput placeholder="Rechercher..." />
-                    <CommandList>
-                        <CommandEmpty>Aucun résultat.</CommandEmpty>
-                        <CommandGroup>
-                        {options.map((option) => (
-                            <CommandItem
-                            key={option.value}
-                            onSelect={() => {
-                                handleToggle(option.value)
-                            }}
-                            >
-                            <Check
-                                className={cn(
-                                "mr-2 h-4 w-4",
-                                selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                                )}
-                            />
-                            {option.label}
-                            </CommandItem>
-                        ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
-    );
-}
-
 
 if (typeof window !== 'undefined') {
     (window as any).uuidv4 = uuidv4;

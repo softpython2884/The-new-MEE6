@@ -11,10 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { ChevronDown, MessageSquare, User, Hash, Tag, Hammer, Voicemail, Server } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { MessageSquare, User, Hash, Tag, Hammer, Voicemail, Server } from 'lucide-react';
+import { MultiSelectCombobox } from '@/components/ui/multi-select-combobox';
 
 
 const API_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:3001/api';
@@ -135,15 +133,6 @@ export default function LogsPage() {
         saveConfig({ ...config, log_settings: newLogSettings });
     };
 
-    const handleMultiSelectToggle = (key: 'exempt_roles' | 'exempt_channels', id: string) => {
-        if (!config) return;
-        const currentList = config[key] || [];
-        const newList = currentList.includes(id)
-            ? currentList.filter((itemId: string) => itemId !== id)
-            : [...currentList, id];
-        saveConfig({ ...config, [key]: newList });
-    };
-
     if (loading || !config) {
         return <PageSkeleton />;
     }
@@ -206,65 +195,21 @@ export default function LogsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label>Salons à ignorer</Label>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between">
-                                        <div className="flex-1 text-left truncate">
-                                            {config.exempt_channels?.length > 0
-                                                ? config.exempt_channels.map((id: string) => (
-                                                    <Badge key={id} variant="secondary" className="mr-1 mb-1">{channels.find(c => c.id === id)?.name || id}</Badge>
-                                                ))
-                                                : "Sélectionner des salons..."}
-                                        </div>
-                                        <ChevronDown className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                    <DropdownMenuLabel>Choisir les salons</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {channels.map(channel => (
-                                        <DropdownMenuCheckboxItem
-                                            key={channel.id}
-                                            checked={config.exempt_channels?.includes(channel.id)}
-                                            onCheckedChange={() => handleMultiSelectToggle('exempt_channels', channel.id)}
-                                            onSelect={(e) => e.preventDefault()}
-                                        >
-                                            # {channel.name}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <MultiSelectCombobox
+                                options={channels.map(c => ({ value: c.id, label: `# ${c.name}` }))}
+                                selected={config.exempt_channels || []}
+                                onSelectedChange={(selected) => handleValueChange('exempt_channels', selected)}
+                                placeholder="Sélectionner des salons..."
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label>Rôles à ignorer</Label>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-between">
-                                        <div className="flex-1 text-left truncate">
-                                            {config.exempt_roles?.length > 0
-                                                ? config.exempt_roles.map((id: string) => (
-                                                    <Badge key={id} variant="secondary" className="mr-1 mb-1">{roles.find(r => r.id === id)?.name || id}</Badge>
-                                                ))
-                                                : "Sélectionner des rôles..."}
-                                        </div>
-                                        <ChevronDown className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                    <DropdownMenuLabel>Choisir les rôles</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {roles.filter(r => r.name !== '@everyone').map(role => (
-                                        <DropdownMenuCheckboxItem
-                                            key={role.id}
-                                            checked={config.exempt_roles?.includes(role.id)}
-                                            onCheckedChange={() => handleMultiSelectToggle('exempt_roles', role.id)}
-                                            onSelect={(e) => e.preventDefault()}
-                                        >
-                                            {role.name}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                             <MultiSelectCombobox
+                                options={roles.map(r => ({ value: r.id, label: r.name }))}
+                                selected={config.exempt_roles || []}
+                                onSelectedChange={(selected) => handleValueChange('exempt_roles', selected)}
+                                placeholder="Sélectionner des rôles..."
+                            />
                         </div>
                     </div>
                 </div>
